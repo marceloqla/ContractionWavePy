@@ -1,0 +1,25 @@
+<svg height="230" width="680" style="stroke-width: 0px; background: white" xmlns="http://www.w3.org/2000/svg">>
+  <defs>
+    <linearGradient id="FirstGradient" x1="0%" y1="0%" x2="100%" y2="0%"  >
+    <!-- <stop offset="0%" style="stop-color:#FFFFFF"/> -->
+     <stop offset="0%" style="stop-color:#D38F92"/>
+     <!-- <stop offset="100%" style="stop-color:#FF0000"/> -->
+     <stop offset="100%" style="stop-color:#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="linear" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#05a"/>
+      <stop offset="100%" stop-color="#0a5"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="680" height="230" fill="white"/>
+  <rect x="108" y="104" width="400" height="30" fill="url(#FirstGradient)" rx="15" ry="15" />
+  <text x="0" y="100" font-weight="bold" font-size="100" >C<tspan fill="#922422">o</tspan>ntracti<tspan fill="#922422">o</tspan>n</text>
+  <text x="430" y="185" font-weight="bold" font-size="100" fill="#922422">Wave</text>
+  <!-- <line x1="90" y1="133" x2="481" y2="133" style="stroke:url(#FirstGradient);stroke-width:30;stroke-linecap:round;" /> -->
+  <line x1="113" y1="119" x2="528" y2="119" style="stroke:#922422;stroke-width:6;stroke-linecap:round;" />
+  <line x1="160" y1="111" x2="260" y2="111" style="stroke:#3d3d3e;stroke-width:6;stroke-linecap:round;" />
+  <line x1="315" y1="111" x2="415" y2="111" style="stroke:#3d3d3e;stroke-width:6;stroke-linecap:round;" />
+  <line x1="160" y1="127" x2="260" y2="127" style="stroke:#3d3d3e;stroke-width:6;stroke-linecap:round;" />
+  <line x1="315" y1="127" x2="415" y2="127" style="stroke:#3d3d3e;stroke-width:6;stroke-linecap:round;" />
+  <rect x="440" y="150" width="80" height="38" fill="white" fill-opacity="0.6"/>
+</svg>
