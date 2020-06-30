@@ -996,25 +996,28 @@ class MoveDragHandler(object):
             # print("on_motion_buffer")
             self.rectx1 = event.xdata
             # self.recty1 = event.ydata
-            
-            # new_rect = Rectangle((0,0), 1, 1)
+
+            curlims = (self.ax.get_xlim(), self.ax.get_ylim())
+
             new_rect = Rectangle((0,np.min(self.data)), 1, 1)
             new_rect.set_facecolor(self.colorify['rect_color'])    
             new_rect.set_width(self.rectx1 - self.rectx0)
-            # new_rect.set_height(self.recty1 - self.recty0)
-            # new_rect.set_height(self.ax.get_ylim()[1] - self.ax.get_ylim()[0])
-            # new_rect.set_height(np.max(self.data) + 0.5)
-            nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+            
+            # nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+            nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
+
             new_rect.set_height(nheight)
-            # new_rect.set_xy((self.rectx0, self.recty0))
-            # new_rect.set_xy((self.rectx0, self.ax.get_ylim()[0]))
-            # new_rect.set_xy((self.rectx0, 0.0))
-            new_rect.set_xy((self.rectx0, np.min(self.data)))
+            
+            # new_rect.set_xy((self.rectx0, np.min(self.data)))
+            new_rect.set_xy((self.rectx0, curlims[1][0]))
 
             if self.rect:
                 self.rect.remove()
             self.rect = None
             self.rect = self.ax.add_patch(new_rect)
+
+            self.ax.set_xlim(curlims[0])
+            self.ax.set_ylim(curlims[1])
 
             self.figure.canvas.draw()
         # print("")
@@ -1045,19 +1048,19 @@ class MoveDragHandler(object):
             self.recty1 = event.ydata
             if abs(self.rectx1 - self.rectx0) > 1:
                 #check if any rectangle on area and merge both rectangles if they exist
-                # new_rect = Rectangle((0,0), 1, 1)
+
+                curlims = (self.ax.get_xlim(), self.ax.get_ylim())
+
+
                 new_rect = Rectangle((0,np.min(self.data)), 1, 1)
                 new_rect.set_facecolor(self.colorify['rect_color'])
                 new_rect.set_width(self.rectx1 - self.rectx0)
                 
-                nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+                # nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+                nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
                 new_rect.set_height(nheight)
-                # new_rect.set_height(np.max(self.data)+ 0.5)
-                # new_rect.set_height(self.ax.get_ylim()[1] - self.ax.get_ylim()[0])
-
-                # new_rect.set_xy((self.rectx0, self.ax.get_ylim()[0]))
-                # new_rect.set_xy((self.rectx0, 0.0))
-                new_rect.set_xy((self.rectx0, np.min(self.data)))
+                # new_rect.set_xy((self.rectx0, np.min(self.data)))
+                new_rect.set_xy((self.rectx0, curlims[1][0]))
 
                 nrectstart = new_rect.get_x()
                 nrectend = new_rect.get_x() + new_rect.get_width()
@@ -1088,9 +1091,10 @@ class MoveDragHandler(object):
                 smallest = np.min(nstarts)
                 highest = np.max(nends)
                 new_rect.set_width(highest - smallest)
-                # new_rect.set_xy((smallest, self.ax.get_ylim()[0]))
-                # new_rect.set_xy((smallest, 0.0))
-                new_rect.set_xy((smallest, np.min(self.data)))
+                
+                # new_rect.set_xy((smallest, np.min(self.data)))
+                new_rect.set_xy((smallest, curlims[1][0]))
+
                 #save rect to rects
                 self.rect = self.ax.add_patch(new_rect)
                 # if not overlap:
@@ -1099,6 +1103,9 @@ class MoveDragHandler(object):
                 if self.ax2_type == "Zoom" or self.ax2_type == "FFT" or self.ax2_type=="PeakNoise":
                     self.drawAx2()
                 self.rect = None
+
+                self.ax.set_xlim(curlims[0])
+                self.ax.set_ylim(curlims[1])
 
                 self.figure.canvas.draw()
                 self.lockrect = False
@@ -1166,7 +1173,8 @@ class MoveDragHandler(object):
                     # if isinstance(child, Line2D) and child.get_marker() == "o" and child.get_data()[0][0] > smallest_int and child.get_data()[0][0] < highest_int:
                     if isinstance(child, Line2D) and child.get_marker() == "o":
                         xdata, ydata = child.get_data()
-                        self.ax2.plot(child.get_data()[0][0], child.get_data()[1][0], "o", color=child.get_color())
+                        self.ax2.plot(child.get_data()[0][0], child.get_data()[1][0], "o", linewidth=2, fillstyle='none', color=child.get_color())
+                        # self.ax2.plot(child.get_data()[0][0], child.get_data()[1][0], "o", color=child.get_color())
                 print("def drawAx2 adding ax dots to ax2 plot done")
                 self.ax2.set_xlim(curlims[0])
                 self.ax2.set_ylim(curlims[1])
@@ -1176,6 +1184,11 @@ class MoveDragHandler(object):
                 print("def drawAx2 plotDots about to be run on master")
                 self.master.current_frame.plotDots()
                 print("def drawAx2 plotDots done on master")
+                self.ax2.set_xlim(curlims[0])
+                self.ax2.set_ylim(curlims[1])
+
+                self.master.current_frame.plotRegressions()
+                self.master.current_frame.plotMeanNoise()
                 self.ax2.set_xlim(curlims[0])
                 self.ax2.set_ylim(curlims[1])
 
@@ -1474,6 +1487,9 @@ class MoveDragHandler(object):
     def on_motion_ax2noise(self, event):
         if event.inaxes != self.ax2: return
         if self.locknoiserect == True and event.xdata != None and event.ydata != None and self.noiserectx0 != None:
+
+            curlims = (self.ax2.get_xlim(), self.ax2.get_ylim())
+
             self.noiserectx1 = event.xdata
             # self.recty1 = event.ydata
             
@@ -1481,22 +1497,22 @@ class MoveDragHandler(object):
             new_rect = Rectangle((0,np.min(self.data)), 1, 1)
             new_rect.set_facecolor(self.colorify['rect_color'])
             new_rect.set_width(self.noiserectx1 - self.noiserectx0)
-            # new_rect.set_height(self.recty1 - self.recty0)
-            # new_rect.set_height(self.ax.get_ylim()[1] - self.ax.get_ylim()[0])
-            # new_rect.set_height(np.max(self.data) + 0.5)
 
-            nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+            # nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
+            nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
+
             new_rect.set_height(nheight)
 
-            # new_rect.set_xy((self.rectx0, self.recty0))
-            # new_rect.set_xy((self.rectx0, self.ax.get_ylim()[0]))
-            # new_rect.set_xy((self.noiserectx0, 0.0))
-            new_rect.set_xy((self.noiserectx0, np.min(self.data)))
+            # new_rect.set_xy((self.noiserectx0, np.min(self.data) ))
+            new_rect.set_xy((self.noiserectx0, curlims[1][0] ))
 
             if self.noiserect:
                 self.noiserect.remove()
             self.noiserect = None
             self.noiserect = self.ax2.add_patch(new_rect)
+
+            self.ax2.set_xlim(curlims[0])
+            self.ax2.set_ylim(curlims[1])
 
             self.figure.canvas.draw()
 
@@ -1512,19 +1528,20 @@ class MoveDragHandler(object):
             if abs(self.noiserectx1 - self.noiserectx0) > 1:
                 #check if any rectangle on area and merge both rectangles if they exist
                 # new_rect = Rectangle((0,0), 1, 1)
+
+                curlims = (self.ax2.get_xlim(), self.ax2.get_ylim())
+
                 new_rect = Rectangle((0,np.min(self.data)), 1, 1)
                 new_rect.set_facecolor(self.colorify['rect_color'])
                 new_rect.set_width(self.noiserectx1 - self.noiserectx0)
                 
-                # new_rect.set_height(np.max(self.data)+ 0.5)
+                nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
 
-                nheight = np.max(self.data) + abs(np.min(self.data)) + 0.5
                 new_rect.set_height(nheight)
-                # new_rect.set_height(self.ax.get_ylim()[1] - self.ax.get_ylim()[0])
 
-                # new_rect.set_xy((self.rectx0, self.ax.get_ylim()[0]))
-                # new_rect.set_xy((self.noiserectx0, 0.0))
-                new_rect.set_xy((self.noiserectx0, np.min(self.data)))
+                # new_rect.set_xy((self.noiserectx0, np.min(self.data)))
+                new_rect.set_xy((self.noiserectx0, curlims[1][0]))
+                
 
                 nrectstart = new_rect.get_x()
                 nrectend = new_rect.get_x() + new_rect.get_width()
@@ -1555,9 +1572,10 @@ class MoveDragHandler(object):
                 smallest = np.min(nstarts)
                 highest = np.max(nends)
                 new_rect.set_width(highest - smallest)
-                # new_rect.set_xy((smallest, self.ax.get_ylim()[0]))
-                # new_rect.set_xy((smallest, 0.0))
-                new_rect.set_xy((smallest, np.min(self.data)))
+
+                # new_rect.set_xy((smallest, np.min(self.data)))
+                new_rect.set_xy((smallest, curlims[1][0]))
+
                 #save rect to rects
                 self.noiserect = self.ax2.add_patch(new_rect)
                 # if not overlap:
@@ -1565,6 +1583,10 @@ class MoveDragHandler(object):
                 #if zoom or fft area, draw data on subplot area (ax2)
 
                 self.noiserect = None
+
+
+                self.ax2.set_xlim(curlims[0])
+                self.ax2.set_ylim(curlims[1])
 
                 self.figure.canvas.draw()
                 self.locknoiserect = False

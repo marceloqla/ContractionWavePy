@@ -4,7 +4,7 @@ from ttkthemes import themed_tk as tk1
 from tkinter import font  as tkfont # python 3
 from tkinter import filedialog
 from tkinter import ttk
-import ttk2 #this one has Spinbox in ttk2
+#import ttk2 #this one has Spinbox in ttk2
 from tkinter import messagebox
 #
 
@@ -19,11 +19,52 @@ from collections import deque
 import os, pickle, cv2, psutil, time, copy, locale
 import datetime as dt
 from sys import platform as _platform
+import warnings
+warnings.filterwarnings("ignore", "(?s).*MATPLOTLIBDATA.*",category=UserWarning)
+
+import xlsxwriter
+if _platform == "win32" or _platform == "win64":
+    import pkg_resources.py2_warn
 #import pandas as pd
 
-#import matplotlib
+import matplotlib as mpl
+
+#AXES
+mpl.rcParams['axes.titlepad'] = 10
+mpl.rcParams["axes.facecolor"]='white'
+mpl.rcParams['axes.edgecolor']='black'
+mpl.rcParams['axes.linewidth']= 1
+mpl.rcParams['axes.labelcolor'] = 'black'
+mpl.rcParams['axes.labelsize'] = 12
+
+#FONT
+mpl.rcParams['font.family'] ='Helvetica'
+mpl.rcParams['font.weight'] = 'normal'
+
+#TICK
+mpl.rcParams['xtick.labelsize'] = 10
+mpl.rcParams['ytick.labelsize'] = 10
+mpl.rcParams['xtick.color'] = 'black'
+mpl.rcParams['ytick.color'] = 'black'
+
+#FIGURE
+mpl.rcParams['figure.titlesize'] = 12
+mpl.rcParams['figure.figsize'] = [8.0, 6.0]
+
+
+#Legend
+mpl.rcParams['legend.fancybox'] = False
+mpl.rcParams['legend.loc'] = 'upper right'
+mpl.rcParams['legend.numpoints'] = 3
+mpl.rcParams['legend.fontsize'] = 10
+mpl.rcParams['legend.framealpha'] = None
+mpl.rcParams['legend.scatterpoints'] = 3
+mpl.rcParams['legend.edgecolor'] = 'inherit'
+
 
 import matplotlib.pyplot as plt
+# plt.style.use('ggplot')
+
 import matplotlib.gridspec as gridspec
 import matplotlib.colors as colors
 import matplotlib.cm as cm
@@ -34,6 +75,10 @@ from matplotlib.patches import Rectangle
 from matplotlib.lines import Line2D
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+# import seaborn as sns
+# sns.set()
+
+
 from scipy.signal import savgol_filter
 import numpy as np
 import io
@@ -43,6 +88,7 @@ from customframe import ttkScrollFrame
 from draghandlers import PeaksObj, MoveDragHandler#,PeakObj
 from customdialogs import AboutDialog, HelpDialog, FolderSelectDialog, CoreAskDialog, SelectMenuItem, AddPresetDialog, DotChangeDialog, SelectPresetDialog, PlotSettingsProgress, QuiverJetSettings, AdjustNoiseDetectDialog, SaveFigureVideoDialog, SaveFigureDialog, SaveTableDialog, SavGolDialog, NpConvDialog, FourierConvDialog, SummarizeTablesDialog, QuiverJetMaximize, WaitDialogProgress
 from smoothregress import exponential_fit, noise_detection, peak_detection, smooth_scipy#, smooth_data, _1gaussian, _2gaussian, noise_detection
+from tooltip import CreateToolTip
 
 used_separator = "/"
 
@@ -405,12 +451,9 @@ class AnalysisGroup(object):
         print("class AnalysisGroup retrieving done")
 
 class SampleApp(tk1.ThemedTk):
+
     #TODO LIST:
-    #TODO: Add Proper Icons in PageOne,Two,Three,Four,Five,Six
-    #TODO: Compile on Linux 64 and Windows 64
-    #TODO: Ask Neli to Compile on Mac 64
     #TODO BUG: Install on Spyder
-    #TODO BUG On multiple Zoom Plot regressions
     #TODO: Separar em Classes distintas para cada coisa
 
     def __init__(self, *args, **kwargs):
@@ -422,10 +465,18 @@ class SampleApp(tk1.ThemedTk):
 
         if _platform == "linux" or _platform == "linux2":
             # linux
-            self.set_theme("plastik")
+            self.set_theme("scidblue")
+            # self.set_theme("clearlooks")
         elif _platform == "darwin":
             # MAC OS X
-            self.set_theme("aqua")
+            try:
+                self.set_theme("scidblue")
+            except TclError:
+                pass
+            try:
+                self.set_theme("clearlooks")
+            except TclError:
+                self.set_theme("classic")
         elif _platform == "win32":
             # Windows
             self.set_theme("xpnative")
@@ -435,6 +486,7 @@ class SampleApp(tk1.ThemedTk):
 
         self.title('ContractionWave')
         self.bgcolor = self._get_bg_color()
+
         if "#" not in self.bgcolor:
             tempwidget = tk.Label(self)
             rgb = tempwidget.winfo_rgb(self.bgcolor)
@@ -445,7 +497,9 @@ class SampleApp(tk1.ThemedTk):
 
         self.configure(bg=self.bgcolor)
 
-        icon = ImageTk.PhotoImage(file='icons/Logo_CW.gif')
+        # icon = ImageTk.PhotoImage(file='icons/Logo_CW.gif')
+        icon = ImageTk.PhotoImage(file=os.path.abspath('./icons/Logo_CW.gif'))
+
         if _platform == "linux" or _platform == "linux2":
             # linux
             self.iconbitmap('@Logo_CW.xbm')
@@ -530,8 +584,11 @@ class SampleApp(tk1.ThemedTk):
             self.preset_dicts = userpresets
             filehandler.close()
 
-        self.geometry('800x600')
+        self.geometry('1074x640')
         self.update_idletasks()
+        # self.attributes('-fullscreen', True)
+        # self.wm_attributes('-zoomed', 1)
+
         width = self.winfo_width()
         frm_width = self.winfo_rootx() - self.winfo_x()
         win_width = width + 2 * frm_width
@@ -544,17 +601,72 @@ class SampleApp(tk1.ThemedTk):
         self.deiconify()
 
         #define icons
+        self.wd = None
 
-        self.progresspic = tk.PhotoImage(file="icons/folder-blue-activities-icon.png")
-        self.loadpeaks = tk.PhotoImage(file="icons/folder-green-documents-icon.png")
-        self.startanalysis = tk.PhotoImage(file="icons/folder-green-vbox-icon.png")
-        self.summtables = tk.PhotoImage(file="icons/folder-green-wine-icon.png")
-        self.beginanalysis = tk.PhotoImage(file="icons/folder-icon.png")
+        # self.loaddataimg = tk.PhotoImage(file="icons/folder-icon.png")
+        # self.progresspic = tk.PhotoImage(file="icons/folder-blue-activities-icon.png")
+        # self.startanalysis = tk.PhotoImage(file="icons/folder-green-vbox-icon.png")
+        # self.loadpeaks = tk.PhotoImage(file="icons/folder-green-documents-icon.png")
+        # self.summtables = tk.PhotoImage(file="icons/folder-green-wine-icon.png")
+
+        #Common
+        self.gotostartpage = tk.PhotoImage(file="icons/refresh-sharp.png")
+        self.goback = tk.PhotoImage(file="icons/arrow-back-sharp.png")
+
+        #StartPage
+        self.loaddataimg = tk.PhotoImage(file="icons/folder-open-sharp.png")
+        self.progresspic = tk.PhotoImage(file="icons/ellipsis-horizontal-sharp.png")
+        self.startanalysis = tk.PhotoImage(file="icons/analytics-sharp.png")
+        self.loadpeaks = tk.PhotoImage(file="icons/pulse-sharp.png")
+        self.summtables = tk.PhotoImage(file="icons/apps-sharp.png")
+
+        #PageOne
+        # New Data folder-open-sharp
+        #     Load Data add-sharp
+        #         Folder images-sharp 
+        #         Video  film-sharp 
+        #         Compressed Tiff duplicate-sharp
+        #     Delete All close-sharp
+        #     Run All checkmark-done-sharp
+        #     Go to the start page refresh-sharp
+        #     Check progress ellipsis-horizontal-sharp
+
+        self.openloaddialog = tk.PhotoImage(file="icons/add-sharp.png")
+        self.deleteallimg = tk.PhotoImage(file="icons/close-sharp.png")
+        self.runallimg = tk.PhotoImage(file="icons/checkmark-done-sharp.png")
+
+        #PageTwo
+        # Check Progress ellipsis-horizontal-sharp
+        #     Analysis analytics-sharp
+        #     Go to the start page refresh-sharp
+
+        #PageThree
+        # Start Analysis analytics-sharp
+        #     Download Table download-sharp
+        #     Start Analysis analytics-sharp
+        #     Go to the start page refresh-sharp
+
+        self.downloadtableimg = tk.PhotoImage(file="icons/download-sharp.png")
+
+        #PageFour
+        # Go back arrow-back-sharp
+        # Analyse Wave Areas pulse-sharp
+        # Go to the start page refresh-sharp
+        self.analysewvareas = tk.PhotoImage(file="icons/pulse-sharp.png")
+
+        #PageFive
+        # Load Saved Waves pulse-sharp
+        #     Go back arrow-back-sharp
+        #     Quiver/Jet Plots layers-sharp
+        #     Go to the start page refresh-sharp
+        self.jetquiverpltimg = tk.PhotoImage(file="icons/layers-sharp.png")
+
+        #PageSix
+        #     Go back arrow-back-sharp
+        #     Go to the start page refresh-sharp
 
         self.mainapppic = tk.PhotoImage(file="icons/cw_a.png")
         self.playstopicon=tk.PhotoImage(file="icons/startstop.png")
-        self.speedicon=tk.PhotoImage(file="icons/speed.png")
-        self.slowicon=tk.PhotoImage(file="icons/slow.png")
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -587,11 +699,22 @@ class SampleApp(tk1.ThemedTk):
         self.bind("<Button-1>", self.mouse_function)
         # self.bind("<FocusOut>", self.focus_out_menu)
         self.show_frame("StartPage", firsto=True)
+
+    def showwd(self):
+        if self.wd == None:
+            self.wd = WaitDialogProgress(self, title='Queueing Groups...')
+
+    def cancelwd(self):
+        if self.wd != None:
+            self.wd.cancel()
+            self.wd.destroy()
+        self.wd = None
+
     
     def on_closing(self):
         destroyProcesses()
         self.quit()
-        self.destroy()
+        # self.destroy()
         raise SystemExit(0)
 
     def focus_out_menu(self, event=None):
@@ -696,7 +819,7 @@ class SampleApp(tk1.ThemedTk):
                 validate = frame.init_vars()
                 frame.init_viz()
                 frame.init_ax2()
-            frame.update()
+            # frame.update()
 
             if self.do_reset == True and validate == False:
                 #if is trying to load but can't validate, copy back the previous objects
@@ -817,6 +940,7 @@ class SampleApp(tk1.ThemedTk):
             self.current_frame.onselect_event()
         if self.current_frame.fname == "PageFour":
             self.current_frame.plotsettings = self.plotsettings
+            print(" def configplotsettings self.current_frame.update_with_delta_freq()")
             self.current_frame.update_with_delta_freq()
         if self.current_frame.fname == "PageFive":
             self.current_frame.plotsettings = self.plotsettings
@@ -846,7 +970,8 @@ class SampleApp(tk1.ThemedTk):
             fname = r'%s' %fname
             fname2 = fname.split(".")[0]+".pickle" 
             filehandler = open(r'%s' % fname2, 'wb') 
-            pickle.dump(self.plotsettings.peak_plot_colors.copy(), filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+            # pickle.dump(self.plotsettings.peak_plot_colors.copy(), filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+            pickle.dump(self.plotsettings.peak_plot_colors.copy(), filehandler, protocol=3)
             filehandler.close()
         except Exception as e:
             messagebox.showerror("Error", "Could not save Plot Preferences file\n" + str(e))
@@ -880,6 +1005,7 @@ class SampleApp(tk1.ThemedTk):
             messagebox.showerror("Error", "File could not be loaded")
             validate = False
         if self.current_frame.fname == "PageFour":
+            print(" def loadplotsettings self.current_frame.update_with_delta_freq()")
             self.current_frame.update_with_delta_freq()
         if self.current_frame.fname == "PageFive":
             self.current_frame.tabletreeselection()
@@ -903,7 +1029,8 @@ class SampleApp(tk1.ThemedTk):
                         os.makedirs('savedgroups/')
                     try:
                         filehandler = open("savedgroups/" + etask + ".pickle" , 'wb') 
-                        pickle.dump(doneg, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                        # pickle.dump(doneg, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                        pickle.dump(doneg, filehandler, protocol=3)
                         filehandler.close()
                     except Exception as e:
                         messagebox.showerror("Error", "Could not save Analysis file\n" + str(e))
@@ -941,17 +1068,17 @@ class StartPage(ttk.Frame):
         btn1frame = ttk.Frame(self)#, style='greyBackground.TFrame')
         button1 = ttk.Button(btn1frame, text=" New Data",
                             command=lambda: controller.show_frame("PageOne"))#, style='greyBackground.TButton')
-        button1lbl = ttk.Label(btn1frame, text="New Data",width=17)#, style='greyBackground.TLabel')
+        button1lbl = ttk.Label(btn1frame, text=" New Data",width=17)#, style='greyBackground.TLabel')
 
         btn2frame = ttk.Frame(self)#, style='greyBackground.TFrame')
         button2 = ttk.Button(btn2frame, text=" Check Progress",
                             command=lambda: controller.show_frame("PageTwo"))#, style='greyBackground.TButton')
-        button2lbl = ttk.Label(btn2frame, text="  Check Progress",width=17,)# style='greyBackground.TLabel')
+        button2lbl = ttk.Label(btn2frame, text=" Check Progress",width=17,)# style='greyBackground.TLabel')
 
         btn3frame = ttk.Frame(self)#, style='greyBackground.TFrame')
         button3 = ttk.Button(btn3frame, text=" Start Analysis",
                             command=lambda: controller.show_frame("PageThree"))#, style='greyBackground.TButton')
-        button3lbl = ttk.Label(btn3frame, text="  Start Analysis",width=17)#, style='greyBackground.TLabel')
+        button3lbl = ttk.Label(btn3frame, text=" Start Analysis",width=17)#, style='greyBackground.TLabel')
 
         btn4frame = ttk.Frame(self)#, style='greyBackground.TFrame')
         button4 = ttk.Button(btn4frame, text=" Load Saved Waves",
@@ -961,9 +1088,9 @@ class StartPage(ttk.Frame):
         btn5frame = ttk.Frame(self)#, style='greyBackground.TFrame')
         button5 = ttk.Button(btn5frame, text=" Merge Results",
                             command= self.summarize_tables)#, style='greyBackground.TButton')
-        button5lbl = ttk.Label(btn5frame, text="Merge Results",width=17)#, style='greyBackground.TLabel')
+        button5lbl = ttk.Label(btn5frame, text=" Merge Results",width=17)#, style='greyBackground.TLabel')
 
-        button1.config(image=self.controller.beginanalysis, width=60)
+        button1.config(image=self.controller.loaddataimg, width=60)
         button2.config(image=self.controller.progresspic, width=60)
         button3.config(image=self.controller.startanalysis, width=60)
         button4.config(image=self.controller.loadpeaks, width=60)
@@ -1052,7 +1179,7 @@ class PageOne(ttk.Frame):
         for i in range(0,4):
             self.columnconfigure(i, weight=1)
         
-        label = ttk.Label(self, text="Queue Analysis Calculations", font=controller.title_font)#, style='greyBackground.TLabel')
+        label = ttk.Label(self, text="Queue Analysis Calculations", font=controller.title_font, anchor=tk.CENTER)#, style='greyBackground.TLabel')
         label.grid(row=0, column=0, rowspan =1, columnspan=4, sticky=tk.W+tk.E+tk.N+tk.S)
 
         self.rframe = ttk.Frame(self)#, style='greyBackground.TFrame')
@@ -1174,9 +1301,9 @@ class PageOne(ttk.Frame):
         self.popup_menu.bind("<FocusOut>", self.focus_out_menu)
 
         #open folder method
-        tframe = ttk.Frame(self)#, style='greyBackground.TFrame')
-        scrollbar = ttk.Scrollbar(tframe, orient=tk.VERTICAL)
-        self.listbox = tk.Listbox(tframe, yscrollcommand=scrollbar.set, selectmode=tk.MULTIPLE, width=50)
+        self.tframe = ttk.Frame(self)#, style='greyBackground.TFrame')
+        scrollbar = ttk.Scrollbar(self.tframe, orient=tk.VERTICAL)
+        self.listbox = tk.Listbox(self.tframe, yscrollcommand=scrollbar.set, selectmode=tk.MULTIPLE, width=50)
         
         scrollbar.config(command=self.listbox.yview)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -1185,37 +1312,77 @@ class PageOne(ttk.Frame):
         self.listbox.bind('<<ListboxSelect>>', self.onselect_event)
         self.listbox.bind("<Button-3>", self.show_focus_menu)
 
-        tframe.grid(row=1, column=0, rowspan = 8, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.tframe.grid(row=1, column=0, rowspan = 8, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
         self.currentselind = None
         self.rframe.grid(row=1, column=2, rowspan = 8, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
         self.rframe.grid_remove()
+        self.tframe.grid(row=1, column=0, rowspan = 8, columnspan=4, sticky=tk.W+tk.E+tk.N+tk.S)
 
-        button_addgroup = ttk.Button(self, text="Load Data",
-                           command=self.select_dir)#, style='greyBackground.TButton')
-        button_addgroup.grid(row=10, column=0, columnspan=1)
+        b1frame = ttk.Frame(self)
+        b1lbl = ttk.Label(b1frame, text="Load Data")
+        b1lbl.grid(row=0, column=1)
+
+        button_addgroup = ttk.Button(b1frame, image=self.controller.openloaddialog,
+                           command=self.select_dir)
+        button_addgroup.image = self.controller.openloaddialog
+        button_addgroup.grid(row=0, column=0)
+
+        b1frame.grid(row=10, column=0, columnspan=1)
+
+        CreateToolTip(button_addgroup, \
+    "Loads new data.")
+
+        b2frame = ttk.Frame(self)
+        b2lbl = ttk.Label(b2frame, text="Delete All")
+        b2lbl.grid(row=0, column=1)
         
-        button_deletegroup2 = ttk.Button(self, text="Delete All",
-           command=self.clear_all)#, style='greyBackground.TButton')
-        button_deletegroup2.grid(row=10, column=1, columnspan=1)
+        button_deletegroup2 = ttk.Button(b2frame, image=self.controller.deleteallimg,
+           command=self.clear_all)
+        button_deletegroup2.image=self.controller.deleteallimg
+        button_deletegroup2.grid(row=0, column=0)
 
-        button_rungroup = ttk.Button(self, text="Run All",
-                           command=self.run_groups)#, style='greyBackground.TButton')
-        button_rungroup.grid(row=10, column=2, columnspan=2)
+        b2frame.grid(row=10, column=1, columnspan=1)
 
-        button_go_start = ttk.Button(self, text="Go to the start page",
+        CreateToolTip(button_deletegroup2, \
+    "Removes all current data selections.")
+
+
+        b3frame = ttk.Frame(self)
+        b3lbl = ttk.Label(b3frame, text="Run All")
+        b3lbl.grid(row=0, column=1)
+
+        button_rungroup = ttk.Button(b3frame, image=self.controller.runallimg,
+                           command=self.run_groups)
+        button_rungroup.image=self.controller.runallimg
+        button_rungroup.grid(row=0, column=0)
+        b3frame.grid(row=10, column=2, columnspan=2)
+
+        CreateToolTip(button_rungroup, \
+    "Starts data processing.")
+
+        b4frame = ttk.Frame(self)
+        b4lbl = ttk.Label(b4frame, text="Go to the start page")
+        b4lbl.grid(row=0, column=1)
+
+        button_go_start = ttk.Button(b4frame, image=self.controller.gotostartpage,
                            command=lambda: controller.show_frame("StartPage"))
+        button_go_start.image =self.controller.gotostartpage
+        button_go_start.grid(row=0,column=0)
+        b4frame.grid(row=12, column=1, columnspan=1)
 
-        btnprogressframe = ttk.Frame(self)#, style='greyBackground.TFrame')
-        button_go_progress = ttk.Button(btnprogressframe, text="Check Progress",
-                           command=lambda: controller.show_frame("PageTwo"))#, style='greyBackground.TButton')
-
-        button_go_progresslbl = ttk.Label(btnprogressframe, text="Check Progress")#, style='greyBackground.TLabel')
-        button_go_progress.config(image=self.controller.progresspic, width=60)
-
-        button_go_start.grid(row=12, column=1, columnspan=1)
-        btnprogressframe.grid(row=12, column=3, columnspan=1)
-        button_go_progress.grid(row=0, column=0)
+        btnprogressframe = ttk.Frame(self)
+        button_go_progresslbl = ttk.Label(btnprogressframe, text="Check Progress")
         button_go_progresslbl.grid(row=0, column=1)
+
+        button_go_progress = ttk.Button(btnprogressframe, image=self.controller.progresspic,
+                           command=lambda: controller.show_frame("PageTwo"))
+        button_go_progress.image=self.controller.progresspic
+        button_go_progress.grid(row=0, column=0)
+        btnprogressframe.grid(row=12, column=3, columnspan=1)
+
+        CreateToolTip(button_go_progress, \
+    "Checks current data processing progress.")
+
 
     def focus_out_menu(self, event=None):
         self.popup_menu.grab_release()
@@ -1261,7 +1428,8 @@ class PageOne(ttk.Frame):
             self.controller.preset_dicts[d.result] =  new_preset_dict
             try:
                 filehandler = open('userprefs/userpresets.pickle' , 'wb') 
-                pickle.dump(self.controller.preset_dicts, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                # pickle.dump(self.controller.preset_dicts, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(self.controller.preset_dicts, filehandler, protocol=3)
                 filehandler.close()
                 messagebox.showinfo("File Saved", "User Preset File saved successfully!")
             except Exception as e:
@@ -1290,6 +1458,7 @@ class PageOne(ttk.Frame):
         self.analysisgroups = []
         self.rframe.grid_remove()
         self.rframeshow = False
+        self.tframe.grid(row=1, column=0, rowspan = 8, columnspan=4, sticky=tk.W+tk.E+tk.N+tk.S)
 
     def delete_item(self):
         if self.controller.current_frame.fname == self.fname:
@@ -1451,6 +1620,7 @@ class PageOne(ttk.Frame):
         if self.controller.current_frame.fname == self.fname:
             if self.rframeshow == False:
                 self.rframe.grid()
+                self.tframe.grid(row=1, column=0, rowspan = 8, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
                 self.rframeshow = True
             self.rlabel1_AnswerBox['text'] = str(self.selectedgroup.name)
             self.rLabel1d['text'] = str(self.selectedgroup.gtype)
@@ -1488,15 +1658,17 @@ class PageOne(ttk.Frame):
                 if self.controller.queuestarted == False:
                     ncores = multiprocessing.cpu_count()
                 self.controller.queuestarted = True
-                wd = WaitDialogProgress(self, title='Queueing Groups...')
-                self.controller.update()
-                wd.progress_bar.start()
+                # wd = WaitDialogProgress(self, title='Queueing Groups...')
+                self.controller.showwd()
+                # self.controller.update()
+                # wd.progress_bar.start()
                 for g_index in range(self.listbox.size()):
                     self.analysisgroups[g_index].saverun = True
                     addqueue(self.analysisgroups[g_index])
                     time.sleep(1)
                 self.controller.checkTheQueue()
-                wd.cancel()
+                self.controller.cancelwd()
+                # wd.cancel()
                 self.controller.show_frame("PageTwo")
         else:
             messagebox.showwarning(
@@ -1597,9 +1769,15 @@ class PageTwo(ttk.Frame):
             self.sframe.viewPort.rowconfigure(i, weight=1)
         self.defaultpattern = True
 
-        button_go_start = ttk.Button(self, text="Go to the start page",
+        btn7frame = ttk.Frame(self)
+        btn7lbl =  ttk.Label(btn7frame, text="Go to the start page")
+        btn7lbl.grid(row=0, column=1)
+
+        button_go_start = ttk.Button(btn7frame, image=self.controller.gotostartpage,
                            command=lambda: controller.show_frame("StartPage"))#, style='greyBackground.TButton')
-        button_go_start.grid(row=9, column=1)
+        button_go_start.image=self.controller.gotostartpage
+        button_go_start.grid(row=0, column=0)
+        btn7frame.grid(row=9, column=1)
 
     def removedefault(self):
         self.controller.btn_lock = True
@@ -1655,10 +1833,20 @@ class PageTwo(ttk.Frame):
                     timelbl = tk.Label(framegroup, text=remainingtime2, background=tbg)
                     timelbl.grid(row=0, column=2)
 
-                    button_go_analysis = tk.Button(framegroup, text="Analysis", background=tbg)
+                    btn6frame = tk.Frame(framegroup, background=tbg)
+                    btn6lbl = tk.Label(btn6frame, text="Analysis", background=tbg)
+                    btn6lbl.grid(row=0, column=1)
+
+                    button_go_analysis = tk.Button(btn6frame, image=self.controller.startanalysis, foreground=tbg)
+                    button_go_analysis.image=self.controller.startanalysis
+
                     button_go_analysis.n = rown
-                    button_go_analysis.grid(row=0, column=3)
+                    button_go_analysis.grid(row=0, column=0)
                     button_go_analysis.bind("<Button-1>", lambda *args: self.click_event(n=rown, argsp=args))
+
+                    # button_go_analysis.grid(row=0, column=3)
+                    btn6frame.grid(row=0, column=3)
+
 
                     for i in range(0,1):
                         framegroup.rowconfigure(i, weight=1)
@@ -1680,7 +1868,7 @@ class PageTwo(ttk.Frame):
                 remainingtime2 = "Time elapsed: " + str(remainingtime[0]) + "(s), Time left: " + str(remainingtime[1]) + "(s), Estimated Finish Time: "+ str(remainingtime[2])
                 var_barra = self.stamp_dict2[k]
                 var_barra.set(progress)
-                self.controller.update()
+                # self.controller.update()
                 self.timelbls[k]['text'] = remainingtime2
                 rown += 1
 
@@ -1713,11 +1901,11 @@ class PageThree(ttk.Frame):
         self.fname = "PageThree"
         for i in range(0,14):
             self.rowconfigure(i, weight=1)
-        for i in range(0,3):
+        for i in range(0,5):
             self.columnconfigure(i, weight=1)
             
-        label = ttk.Label(self, text="Select Group for Analysis:", font=controller.title_font)#, style='greyBackground.TLabel')
-        label.grid(row=0, column=1)
+        label = ttk.Label(self, text="Select a Group for Analysis:", font=controller.title_font)#, style='greyBackground.TLabel')
+        label.grid(row=0, column=1, columnspan=3)
 
         self.all_list = []
         self.selectedgroup = None
@@ -1735,7 +1923,7 @@ class PageThree(ttk.Frame):
 
         self.listbox.bind('<<ListboxSelect>>', self.onselect_event)
 
-        tframe.grid(row=1, column=0, rowspan = 4, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        tframe.grid(row=1, column=1, rowspan = 4, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
         self.tabletreeframe = ttk.Frame(self)
         cols = ('Time(' + self.controller.current_timescale + ')' , 'Average Raw Speed('+self.controller.current_speedscale+')')
@@ -1754,25 +1942,50 @@ class PageThree(ttk.Frame):
         self.tabletree.pack(side='left', fill="both", expand=True)
         self.vsb.pack(side='right', fill='y')
 
-        self.tabletreeframe.grid(row=6, column=0, rowspan = 4, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.tabletreeframe.grid(row=6, column=1, rowspan = 4, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
         self.data_s_index = None
         self.data_e_index = None
         self.y0 = None
         self.y1 = None
         self.current_down_data = [[],[]]
+        
 
-        self.button_download_table = ttk.Button(self, text="Download Table",
-                           command=self.download_table)#, style='greyBackground.TButton')
-        self.button_download_table.grid(row=11, column=1)
+        self.btn1frame =  ttk.Frame(self)
+        btn1lbl = ttk.Label(self.btn1frame, text="Download Table")
+        btn1lbl.grid(row=0, column=1)
+        self.button_download_table = ttk.Button(self.btn1frame, image=self.controller.downloadtableimg,
+                           command=self.download_table)
+        self.button_download_table.image=self.controller.downloadtableimg
+        self.button_download_table.grid(row=0, column=0, columnspan=1)
+        # self.button_download_table.grid(row=11, column=1, columnspan=1)
+        self.btn1frame.grid(row=11, column=2, columnspan=1)
 
-        button_go_run = ttk.Button(self, text="Start Analysis",
-                           command=self.start_analysis)#, style='greyBackground.TButton')
-        button_go_run.grid(row=12, column=1)
+        CreateToolTip(self.button_download_table, \
+    "Downloads current table.")
 
-        button_go_start = ttk.Button(self, text="Go to the start page",
-                           command=lambda: controller.show_frame("StartPage"))#, style='greyBackground.TButton')
-        button_go_start.grid(row=13, column=1)
+        btn2frame =  ttk.Frame(self)
+        btn2lbl = ttk.Label(btn2frame, text="Start Analysis")
+        btn2lbl.grid(row=0, column=1)
+        button_go_run = ttk.Button(btn2frame, image=self.controller.startanalysis,
+                           command=self.start_analysis)
+        button_go_run.image=self.controller.startanalysis
+        button_go_run.grid(row=0, column=0, columnspan=1)
+        # button_go_run.grid(row=11, column=2, columnspan=1)
+        btn2frame.grid(row=11, column=3, columnspan=1)
+
+        CreateToolTip(button_go_run, \
+    "Starts Analysis on a selected group.")
+
+        btn3frame =  ttk.Frame(self)
+        btn3lbl = ttk.Label(btn3frame, text="Go to the start page")
+        btn3lbl.grid(row=0, column=1)
+        button_go_start = ttk.Button(btn3frame, image=self.controller.gotostartpage,
+                           command=lambda: controller.show_frame("StartPage"))
+        button_go_start.image=self.controller.gotostartpage
+        button_go_start.grid(row=0, column=0, columnspan=1)
+        # button_go_start.grid(row=11, column=3, columnspan=1)
+        btn3frame.grid(row=11, column=1, columnspan=1)
 
     def update_headings(self):
         self.controller.btn_lock = True
@@ -1783,7 +1996,8 @@ class PageThree(ttk.Frame):
     def generate_default_table(self):
         self.controller.btn_lock = True
         self.update_headings()
-        self.button_download_table.grid_remove()
+        self.btn1frame.grid_remove()
+
         self.tabletree.delete(*self.tabletree.get_children())
         self.vsb.pack_forget()
         for i in range(20): #Rows
@@ -1800,7 +2014,7 @@ class PageThree(ttk.Frame):
         self.data_e_index = None
         self.current_down_data = [[],[]]
 
-        self.button_download_table.grid_remove()
+        self.btn1frame.grid_remove()
         self.tabletree.delete(*self.tabletree.get_children())
         self.tabletree.tag_configure('oddrow', background='#d3d3d3')
         self.tabletree.tag_configure('evenrow', background='white')
@@ -1818,12 +2032,12 @@ class PageThree(ttk.Frame):
                 if i % 2 == 0:
                     cur_tag = 'evenrow'
                 self.tabletree.insert("", "end", values=(xdata[i], ydata[i]), tags = (cur_tag,))
-            self.button_download_table.grid()
+            self.btn1frame.grid()
             self.vsb.pack(side=tk.RIGHT, fill=tk.Y)
 
         except IndexError:
             self.vsb.grid_forget()
-            self.button_download_table.grid_remove()
+            self.btn1frame.grid_remove()
             self.generate_default_table()
             #hide download table button    
         self.controller.btn_lock = False
@@ -1945,11 +2159,11 @@ class PageFour(ttk.Frame):
 
         for i in range(0,12):
             self.rowconfigure(i, weight=1)
-        for i in range(0,3):
+        for i in range(0,5):
             self.columnconfigure(i, weight=1)
 
-        label = ttk.Label(self, text="Select Waves from Analysis", font=controller.title_font)#, style="greyBackground.TLabel")
-        label.grid(row=0, column=1)
+        label = ttk.Label(self, text="Wave Definition and Selection", font=controller.title_font, anchor=tk.CENTER)#, style="greyBackground.TLabel")
+        label.grid(row=0, column=1, columnspan=3)
 
         #create top frame
         self.frame1 = ttk.Frame(self)#, style="greyBackground.TFrame")
@@ -1957,38 +2171,45 @@ class PageFour(ttk.Frame):
         lbl1 = ttk.Label(self.frame1, text= 'Delta: ')#, style="greyBackground.TLabel")
         lbl1.grid(row=0, column=0)
 
-        self.spin_deltavalue = ttk2.Spinbox(self.frame1, from_=0, to=9999999999999, increment=1.0, width=10, command=self.update_with_delta_freq)
+        self.spin_deltavalue = tk.Spinbox(self.frame1, from_=0, to=9999999999999, increment=1.0, width=10, command=self.update_with_delta_freq)
         self.spin_deltavalue.grid(row=0, column=1)
+        CreateToolTip(self.spin_deltavalue, \
+    "Speed difference for a given Maximum and a following Minimum Plot Points to be valid. "
+    "Necessary for the Wave Detection algorithm. ")
 
         lbl1_5 = ttk.Label(self.frame1, text= 'Noise Cutoff: ')#, style="greyBackground.TLabel")
         lbl1_5.grid(row=0, column=2)
 
-        self.spin_cutoff = ttk2.Spinbox(self.frame1, from_=0, to=9999999999999, increment=1.0, width=10, command=self.update_with_delta_freq)
+        self.spin_cutoff = tk.Spinbox(self.frame1, from_=0, to=9999999999999, increment=1.0, width=10, command=self.update_with_delta_freq)
         self.spin_cutoff.grid(row=0, column=3)
+        CreateToolTip(self.spin_cutoff, \
+    "Data below this Speed threshold are considered as starter noise points. "
+    "Necessary for the Noise Detection algorithm. ")
 
-        self.CheckVar2 = tk.IntVar()
-        C2 = ttk.Checkbutton(self.frame1, text = "Plot Noise Max Line", variable = self.CheckVar2, \
-                         onvalue = 1, offvalue = 0, command = self.plotMeanNoise, \
-                         width = 20)#, style="greyBackground.TCheckbutton")
-        C2.grid(row=0, column=4)
+        e2 = 1
+        if self.decreasenoise == False:
+            e2 = 0
+        self.check_decrease_value = tk.IntVar(value=e2)
+        self.checkdecrease = ttk.Checkbutton(self.frame1, text = "Decrease Avg. Noise", variable = self.check_decrease_value, \
+                         onvalue = 1, offvalue = 0, command=self.update_with_delta_freq)
+        self.checkdecrease.grid(row=0, column=4)
+        CreateToolTip(self.checkdecrease, \
+    "Average starter noise points value is decreased from plot.")
 
         lbl2 = ttk.Label(self.frame1, text= 'Exp. Stop Freq: ')#, style="greyBackground.TLabel")
         lbl2.grid(row=0, column=5)
 
-        self.spin_stopcondition = ttk2.Spinbox(self.frame1, from_=0, to=1, increment=0.05, width=10, command=self.update_with_delta_freq)
+        self.spin_stopcondition = tk.Spinbox(self.frame1, from_=0, to=1, increment=0.05, width=10, command=self.update_with_delta_freq)
         self.spin_stopcondition.grid(row=0,column=6)
+        CreateToolTip(self.spin_stopcondition, \
+    "Minimum ratio between a given Data point and it's previous neighbouring point in the Exponential Regression "
+    "for finding the last point of a Wave. ")
 
-        self.CheckVar1 = tk.IntVar()
-        C1 = ttk.Checkbutton(self.frame1, text = "Plot Exp. Regressions", variable = self.CheckVar1, \
-                         onvalue = 1, offvalue = 0, command = self.plotRegressions, \
-                         width = 20)#, style="greyBackground.TCheckbutton")
-        C1.grid(row=0,column=7)
-
-        self.frame1.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame1.grid(row=1, column=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
         for i in range(0,1):
             self.frame1.rowconfigure(i, weight=1)
-        for i in range(0,8):
+        for i in range(0,7):
             self.frame1.columnconfigure(i, weight=1)
 
         self.spin_deltavalue.delete(0,"end")
@@ -2011,7 +2232,15 @@ class PageFour(ttk.Frame):
         self.l_points = None
         self.points = None
 
+        self.noise_line = None
+        self.noise_line_ax2 = None
+
+        self.regression_list = []
+        self.regression_list2 = []
+
         self.fig = plt.figure(figsize=(5, 4), dpi=100, facecolor=self.controller.bgcolor)
+        self.fig.tight_layout()
+        self.fig.subplots_adjust(top=0.90)
 
         self.gs = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.3)
         self.gs2 = gridspec.GridSpec(2, 1, height_ratios=[5, 5], hspace=0.5)
@@ -2058,9 +2287,9 @@ class PageFour(ttk.Frame):
         self.canvas.draw()
 
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        self.frame3.grid(row=2, column=0, rowspan=8, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame3.grid(row=2, column=1, rowspan=8, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-        self.frame3.grid(row=2, column=0, rowspan=8, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame3.grid(row=2, column=1, rowspan=8, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
         
         self.canvas.draw()
 
@@ -2071,35 +2300,72 @@ class PageFour(ttk.Frame):
                          onvalue = 1, offvalue = 0, command = self.plotDots, \
                          width = 20)#, style="greyBackground.TCheckbutton")
         self.CheckVar_dots.set(0)
-        CD.grid(row=0,column=1)
-        
-        button_go_analysis = ttk.Button(self.frame4, text="Analyse Wave Areas",
-                           command=self.analysepeakareas)#, style="greyBackground.TButton")
-        button_go_analysis.grid(row=0, column=3)
+        CD.grid(row=0,column=0)
+        CreateToolTip(CD, \
+    "Plots Wave Points.")
+
+        self.CheckVar2 = tk.IntVar()
+        C2 = ttk.Checkbutton(self.frame4, text = "Plot Noise Max Line", variable = self.CheckVar2, \
+                         onvalue = 1, offvalue = 0, command = self.plotMeanNoise, \
+                         width = 20)#, style="greyBackground.TCheckbutton")
+        C2.grid(row=0, column=1)
+        CreateToolTip(C2, \
+    "Plots maximum value of starter noise points.")
+
+
+        self.CheckVar1 = tk.IntVar()
+        C1 = ttk.Checkbutton(self.frame4, text = "Plot Exp. Regressions", variable = self.CheckVar1, \
+                         onvalue = 1, offvalue = 0, command = self.plotRegressions, \
+                         width = 20)#, style="greyBackground.TCheckbutton")
+        C1.grid(row=0,column=2)
+        CreateToolTip(C1, \
+    "Plots Exponential Regessions used to find the final point of all Waves.")
 
         for i in range(0,1):
             self.frame4.rowconfigure(i, weight=1)
-        for i in range(0,5):
+        for i in range(0,3):
             self.frame4.columnconfigure(i, weight=1)
-        self.frame4.grid(row=10, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame4.grid(row=10, column=1, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
         self.runupdate()
 
         self.frame5 = ttk.Frame(self)#, style="greyBackground.TFrame")
 
-        button_go_back = ttk.Button(self.frame5, text="Go back",
+        btn1frame = ttk.Frame(self.frame5)
+        btn1lbl = ttk.Label(btn1frame, text="Go back")
+        btn1lbl.grid(row=0, column=1)
+        button_go_back = ttk.Button(btn1frame, image=self.controller.goback,
                            command=lambda: controller.show_frame("PageThree"))#, style="greyBackground.TButton")
-        button_go_back.grid(row=0, column=1)
+        button_go_back.image=self.controller.goback
+        button_go_back.grid(row=0, column=0)
+        btn1frame.grid(row=0, column=1)
 
-        button_go_start = ttk.Button(self.frame5, text="Go to the start page",
+        btn2frame = ttk.Frame(self.frame5)
+        btn2lbl = ttk.Label(btn2frame, text="Analyse Wave Areas")
+        btn2lbl.grid(row=0, column=1)
+        button_go_analysis = ttk.Button(btn2frame, image=self.controller.analysewvareas,
+                           command=self.analysepeakareas)#, style="greyBackground.TButton")
+        button_go_analysis.image=self.controller.analysewvareas
+        button_go_analysis.grid(row=0, column=0)
+        btn2frame.grid(row=0, column=2)
+
+        CreateToolTip(button_go_analysis, \
+    "Once at least a single Wave Area is selected on plot, moves to the next analysis")
+
+        btn3frame = ttk.Frame(self.frame5)
+        btn3lbl = ttk.Label(btn3frame, text="Go to the start page")
+        btn3lbl.grid(row=0, column=1)
+        button_go_start = ttk.Button(btn3frame, image=self.controller.gotostartpage,
                            command=lambda: controller.show_frame("StartPage"))#, style="greyBackground.TButton")
-        button_go_start.grid(row=0, column=3)
+        button_go_start.image=self.controller.gotostartpage
+        button_go_start.grid(row=0, column=0)
+        btn3frame.grid(row=0, column=0)
 
         for i in range(0,1):
             self.frame5.rowconfigure(i, weight=1)
-        for i in range(0,5):
+        for i in range(0,3):
             self.frame5.columnconfigure(i, weight=1)
-        self.frame5.grid(row=11, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame5.grid(row=11, column=1, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
     
     def plotDots(self, event=None):
         self.controller.btn_lock = True
@@ -2201,6 +2467,7 @@ class PageFour(ttk.Frame):
             self.regression_list = []
             self.regression_list2 = []
             self.noise_line = None
+            self.noise_line_ax2 = None
             self.runupdate()
             
             if self.controller.current_analysis.delta is not None:
@@ -2210,6 +2477,7 @@ class PageFour(ttk.Frame):
                 self.spin_stopcondition.insert(0,self.controller.current_analysis.stopcond)
                 self.spin_cutoff.delete(0,"end")
                 self.spin_cutoff.insert(0,self.controller.current_analysis.noisemin)
+                print(" if self.controller.current_analysis.delta is not None: update_with_delta_freq")
                 self.update_with_delta_freq()
 
             self.controller.btn_lock = False
@@ -2339,9 +2607,9 @@ class PageFour(ttk.Frame):
         menu.add_cascade(label='Export', menu=export_menu)
 
         plots_menu = tk.Menu(menu, tearoff=0)
-        plots_menu.add_command(label='Peak Area Select (D)', command=lambda:self.set_dragmode(txt="edit"))#, command=set_original)
+        plots_menu.add_command(label='Peak Area Select', command=lambda:self.set_dragmode(txt="edit"))#, command=set_original)
         plots_menu.add_separator()
-        plots_menu.add_command(label='Peak Point Select (E)', command=lambda:self.set_dragmode(txt="point"))#)
+        plots_menu.add_command(label='Peak Point Select', command=lambda:self.set_dragmode(txt="point"))#)
         plots_menu.add_separator()
         plots_menu.add_command(label='None', command=lambda:self.set_dragmode(txt="none"))#, command=set_original)
         plots_menu.add_separator()
@@ -2349,33 +2617,33 @@ class PageFour(ttk.Frame):
 
         # Sub Plot Menu
         sub_plots_menu = tk.Menu(menu, tearoff=0)
-        sub_plots_menu.add_command(label='None (M)', command=lambda:self.add_a_subplot(txt="None"))#, command=set_original)
+        sub_plots_menu.add_command(label='None', command=lambda:self.add_a_subplot(txt="None"))#, command=set_original)
         sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='Peak Zoom (Z)', command=lambda:self.add_a_subplot(txt="Zoom"))#, command=set_original)
+        sub_plots_menu.add_command(label='Peak Zoom', command=lambda:self.add_a_subplot(txt="Zoom"))#, command=set_original)
         sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='Noise/Peak Areas (W)', command=lambda:self.add_a_subplot(txt="PeakNoise"))#, command=set_original)
+        sub_plots_menu.add_command(label='Noise/Peak Areas', command=lambda:self.add_a_subplot(txt="PeakNoise"))#, command=set_original)
         sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='FFT (F)', command=lambda:self.add_a_subplot(txt="FFT"))#, command=set_original)
+        sub_plots_menu.add_command(label='FFT', command=lambda:self.add_a_subplot(txt="FFT"))#, command=set_original)
         sub_plots_menu.add_separator()
         menu.add_cascade(label='Sub-Plot Mode', menu=sub_plots_menu)
 
         # Data Menu
         data_menu = tk.Menu(menu, tearoff=0)
-        data_menu.add_command(label='Restore Original (O)', command=self.set_original)
+        data_menu.add_command(label='Restore Original', command=self.set_original)
         data_menu.add_separator()
-        data_menu.add_command(label='Noise Detection Options (P)', command=self.adjustnoise)#, command=self.set_original)
+        data_menu.add_command(label='Noise Detection Options', command=self.adjustnoise)#, command=self.set_original)
         data_menu.add_separator()
 
         # Smooth/Noise Sub Menu
         noise_menu = tk.Menu(data_menu, tearoff=0)
 
-        noise_menu.add_command(label='Average Window (A)', command=self.set_npconv)
+        noise_menu.add_command(label='Average Window', command=self.set_npconv)
         noise_menu.add_separator()
 
-        noise_menu.add_command(label='Savitzky-Golay (S)', command=self.set_savgol)
+        noise_menu.add_command(label='Savitzky-Golay', command=self.set_savgol)
         noise_menu.add_separator()
 
-        noise_menu.add_command(label='FFT denoise (T)', command=self.set_fourier)
+        noise_menu.add_command(label='FFT denoise', command=self.set_fourier)
         noise_menu.add_separator()
 
         data_menu.add_cascade(label='Smooth/Denoise', menu=noise_menu)
@@ -2409,8 +2677,13 @@ class PageFour(ttk.Frame):
         if d.result:
             self.adjustnoisevar = d.result["adjustnoisevar"]
             self.decreasenoise = d.result["noisedecrease"]
+            if self.decreasenoise == True:
+                self.check_decrease_value.set(1)
+            else:
+                self.check_decrease_value.set(0)
             self.userdecreasenoise = d.result["userdecrease"]
             self.usernoise = d.result["noisevalue"]
+            print(" def adjustnoise update_with_delta_freq")
             self.update_with_delta_freq()
         self.controller.btn_lock = False
 
@@ -2426,6 +2699,7 @@ class PageFour(ttk.Frame):
                 self.controller.btn_lock = False
                 return
             else:
+                print(" def analysepeakareas update_with_delta_freq")
                 self.update_with_delta_freq(doupdate=False)
                 self.controller.current_analysis.delta = self.delta
                 self.controller.current_analysis.noisemin = self.gvf_cutoff
@@ -2544,6 +2818,7 @@ class PageFour(ttk.Frame):
                 erect.remove()
             self.dragDots.rect = None
             self.dragDots.drawnrects = []
+            print(" def local_peak_operation update_with_delta_freq")
             self.update_with_delta_freq()
             self.denoising = prev_denoising
         elif txt == "del_current":
@@ -2563,6 +2838,7 @@ class PageFour(ttk.Frame):
             self.current_case_frames.extend(l_current_case_ind)
             prev_denoising = self.denoising
             self.denoising = "Fake"
+            print(" def local_peak_operation update_with_delta_freq")
             self.update_with_delta_freq()
             self.denoising = prev_denoising
         elif txt == "edit_current":
@@ -2584,11 +2860,13 @@ class PageFour(ttk.Frame):
             self.current_case.extend(l_current_case)
             prev_denoising = self.denoising
             self.denoising = "Fake"
+            print(" def local_peak_operation update_with_delta_freq")
             self.update_with_delta_freq()
             self.denoising = prev_denoising
         elif txt == "add_as_noise":
             # self.dragDots.user_selected_noise
             self.dragDots.set_area_as_noise()
+            print(" def local_peak_operation update_with_delta_freq")
             self.update_with_delta_freq()
         elif txt == "remove_as_noise":
             # self.dragDots.user_selected_noise
@@ -2635,6 +2913,7 @@ class PageFour(ttk.Frame):
             ])
         if d.result:
             self.plotsettings.fourier_opts["frequency_maintain"] = d.result
+            print(" def set_fourier update_with_delta_freq")
             self.update_with_delta_freq()
         self.controller.btn_lock = False
 
@@ -2649,6 +2928,7 @@ class PageFour(ttk.Frame):
         if d.result:
             self.plotsettings.np_conv["window_length"] = d.result[0]
             self.plotsettings.np_conv["window_type"] = d.result[1]
+            print(" def set_npconv update_with_delta_freq")
             self.update_with_delta_freq()
         self.controller.btn_lock = False
     
@@ -2663,6 +2943,7 @@ class PageFour(ttk.Frame):
         if d.result:
             self.plotsettings.savgol_opts["window_length"] = d.result[0]
             self.plotsettings.savgol_opts["polynomial_order"] = d.result[1]
+            print(" def set_savgol update_with_delta_freq")
             self.update_with_delta_freq()
         self.controller.btn_lock = False
 
@@ -2681,10 +2962,17 @@ class PageFour(ttk.Frame):
         self.controller.btn_lock = False
 
     def update_with_delta_freq(self, event=None, doupdate=True):
+        print("######")
+        print("def update_with_delta_freq")
+        print("######")
         self.controller.btn_lock = True
         delta_val = self.spin_deltavalue.get().replace(",",".")
         stop_condition_perc_val = self.spin_stopcondition.get().replace(",",".")
         gvf_cutoff_val = self.spin_cutoff.get().replace(",",".")
+        if self.check_decrease_value.get() == 1:
+            self.decreasenoise = True
+        else:
+            self.decreasenoise = False
         try:
             delta_val = float(delta_val)
         except ValueError:
@@ -2810,13 +3098,16 @@ class PageFour(ttk.Frame):
         return finalcase
 
     def runupdate(self, delta_val=False, stop_condition_perc_val=False, gvf=None, revert_case=False):
-        wd = WaitDialogProgress(self, title='In Progress...')
-        self.controller.update()
-        wd.progress_bar.start()
-        self.update_idletasks()
+        self.controller.showwd()
+        # wd = WaitDialogProgress(self, title='In Progress...')
+        print("start here")
+        # self.controller.update()
+        # wd.progress_bar.start()
+        # self.update_idletasks()
         self.controller.btn_lock = True
         #set plot fig main title
-        self.fig.suptitle(self.case)
+        # self.fig.suptitle(self.case)
+        # self.fig.suptitle(self.case)
         
         #read noise if previously removed
         if self.prevrenoise != None:
@@ -2850,20 +3141,22 @@ class PageFour(ttk.Frame):
         nargs = noise_detection(self.current_case,filter_noise_area=self.adjustnoisevar, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
         
         if nargs == None:
-            messagebox.showerror("Error:", "Noise not detected. Please adjust the Noise cutoff")
-            wd.cancel()
+            messagebox.showerror("Error:", "Noise not detected. Please adjust the Noise cutoff")    
+            self.controller.cancelwd()
             return
         #decrease noise from case if selected
         if self.decreasenoise == True:
+            print("decrease noise")
             val = (nargs[6]+nargs[7])
             self.current_case = [a - val  for a in self.current_case]
             self.prevrenoise = val
+
         elif self.userdecreasenoise == True:
             self.current_case = [a - self.usernoise  for a in self.current_case]
             self.prevrenoise = self.usernoise
+
         else:
             self.prevrenoise = None
-
 
         #detect points from case
         self.points, noises_vals, exponential_pops_vals, conditions = peak_detection(self.current_case, delta=delta_val, stop_condition_perc=stop_condition_perc_val, nargs=nargs)
@@ -2893,6 +3186,7 @@ class PageFour(ttk.Frame):
         
         #figure main ax is cleared for drawing
         self.ax.clear()
+        self.ax.set_title(self.case)
 
         #x and y labels are set according to current timescale (default: seconds)
         self.ax.set_xlabel("Time("+ self.controller.current_timescale +")")
@@ -2933,22 +3227,26 @@ class PageFour(ttk.Frame):
         #plot each type of detected dot and save in dots_list
         fdots = []
         for x, y in zip(self.f_points, [self.current_case[i] for i in self.f_points]):
-            dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
+            dot = self.ax.plot(x, y, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+            # dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
             dot[0].pointtype = "first"
             fdots.extend(dot)        
         sfdots = []
         for x, y in zip(self.s_f_points, [self.current_case[i] for i in self.s_f_points]):
-            dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            dot = self.ax.plot(x, y, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            # dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
             dot[0].pointtype = "max"
             sfdots.extend(dot)
         mdots = []
         for x, y in zip(self.t_points, [self.current_case[i] for i in self.t_points]):
-            dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
+            dot = self.ax.plot(x, y, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
+            # dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
             dot[0].pointtype = "min"
             mdots.extend(dot)
         ldots = []
         for x, y in zip(self.l_points, [self.current_case[i] for i in self.l_points]):
-            dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+            dot = self.ax.plot(x, y, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
+            # dot = self.ax.plot(x, y, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
             dot[0].pointtype = "last"
             ldots.extend(dot)
 
@@ -2969,12 +3267,6 @@ class PageFour(ttk.Frame):
         self.dots_list.extend(mdots)
         self.dots_list.extend(ldots)
 
-        #regressions and noise line is plotted if selected
-        if self.CheckVar1.get() == 1:
-            self.plotThoseRegressions()
-        if self.CheckVar2.get() == 1:
-            self.plotNoiseLine()
-
         #previous ax2_type, and drawn noise rectanles are saved
         txt = self.dragDots.ax2_type
         prevndr = self.dragDots.noisedrawnrects.copy()
@@ -2993,19 +3285,37 @@ class PageFour(ttk.Frame):
         #readds previous selection by user on plot updates with adjusted height and y positioning
         self.dragDots.rect = rect
         if rect != None:
-            nheight = np.max(self.current_case) + abs(np.min(self.current_case)) + 0.5
+            curlims = (self.ax.get_xlim(), self.ax.get_ylim())
+            # nheight = np.max(self.current_case) + abs(np.min(self.current_case)) + 0.5
+            nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
             rect.set_height(nheight)
-            rect.set_y(np.min(self.current_case))
+            # rect.set_y(np.min(self.current_case))
+            rect.set_y(curlims[1][0])
             self.ax.add_patch(rect)
+            self.ax.set_xlim(curlims[0])
+            self.ax.set_ylim(curlims[1])
+
         self.dragDots.drawnrects = drawnrects
         for erect in drawnrects:
-            nheight = np.max(self.current_case) + abs(np.min(self.current_case)) + 0.5
+            curlims = (self.ax.get_xlim(), self.ax.get_ylim())
+            # nheight = np.max(self.current_case) + abs(np.min(self.current_case)) + 0.5
+            nheight = curlims[1][1] + abs(curlims[1][0]) + 0.5
             erect.set_height(nheight)
-            erect.set_y(np.min(self.current_case))
+            # erect.set_y(np.min(self.current_case))
+            erect.set_y(curlims[1][0])
             self.ax.add_patch(erect)
+            self.ax.set_xlim(curlims[0])
+            self.ax.set_ylim(curlims[1])
+
 
         #checks if user wants to draw a subplot and which type
         self.add_a_subplot(txt=txt)
+
+        #regressions and noise line is plotted if selected
+        if self.CheckVar1.get() == 1:
+            self.plotThoseRegressions()
+        if self.CheckVar2.get() == 1:
+            self.plotNoiseLine()
 
         #dots are hidden/shown according to user selection
         self.plotDots()
@@ -3013,7 +3323,7 @@ class PageFour(ttk.Frame):
         #canvas is finally updated to user
         self.fig.canvas.draw()
         self.controller.btn_lock = False
-        wd.cancel()
+        self.controller.cancelwd()
 
     def plotThoseRegressions(self):
         self.controller.btn_lock = True
@@ -3022,12 +3332,22 @@ class PageFour(ttk.Frame):
         if self.dragDots.ax2_type == "Zoom":
             xlim2 = self.ax2.get_xlim()
             ylim2 = self.ax2.get_ylim()
+
+        #reset both regression lists
+        for a in range(0, len(self.regression_list)):
+            self.regression_list[a][0].remove()
+        self.regression_list = []
+        for a in range(0, len(self.regression_list2)):
+            self.regression_list2[a][0].remove()
+        self.regression_list2 = []
+
         for exp_pops in self.exponential_pops:
             this_pop = self.ax.plot(exp_pops[0] , exponential_fit(exp_pops[0], *exp_pops[1]), color=self.plotsettings.peak_plot_colors["last"])
             self.regression_list.append(this_pop)
             if self.dragDots.ax2_type == "Zoom":
                 this_pop2 = self.ax2.plot(exp_pops[0] , exponential_fit(exp_pops[0], *exp_pops[1]), color=self.plotsettings.peak_plot_colors["last"])
                 self.regression_list2.append(this_pop2)
+
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
         if self.dragDots.ax2_type == "Zoom":
@@ -3039,9 +3359,29 @@ class PageFour(ttk.Frame):
         self.controller.btn_lock = True
         xlim = self.ax.get_xlim()
         ylim = self.ax.get_ylim()
-        self.noise_line = self.ax.plot([self.noises[2] for i in range(len(self.current_case))], color=self.plotsettings.peak_plot_colors["min"])
+
+        xlim2 = self.ax2.get_xlim()
+        ylim2 = self.ax2.get_ylim()
+
+        if self.noise_line is not None:
+            self.noise_line[0].remove()
+            self.noise_line = None
+        if self.noise_line_ax2 is not None:
+            self.noise_line_ax2[0].remove()
+            self.noise_line_ax2 = None
+
+        val = 0.0
+        if self.prevrenoise is not None:
+            val = self.prevrenoise
+
+        self.noise_line = self.ax.plot([self.noises[2] - val for i in range(len(self.current_case))], color=self.plotsettings.peak_plot_colors["min"])
+        if self.dragDots.ax2_type == "Zoom":
+            self.noise_line_ax2 = self.ax2.plot([self.noises[2] - val for i in range(len(self.current_case))], color=self.plotsettings.peak_plot_colors["min"])
         self.ax.set_xlim(xlim)
         self.ax.set_ylim(ylim)
+        if self.dragDots.ax2_type == "Zoom":
+            self.ax2.set_xlim(xlim2)
+            self.ax2.set_ylim(ylim2)
         self.controller.btn_lock = False
 
     def plotRegressions(self, event=None):
@@ -3065,8 +3405,12 @@ class PageFour(ttk.Frame):
         if C2_val == 1:
             self.plotNoiseLine()
         else:
-            self.noise_line[0].remove()
+            if self.noise_line is not None:
+                self.noise_line[0].remove()
+            if self.noise_line_ax2 is not None:
+                self.noise_line_ax2[0].remove()
             self.noise_line = None
+            self.noise_line_ax2 = None
         self.fig.canvas.draw()
         self.controller.btn_lock = False
 
@@ -3085,27 +3429,47 @@ class PageFive(ttk.Frame):
         self.current_tablevsb2 = None
         self.plotsettings = self.controller.plotsettings
 
-        for i in range(0,13):
+        for i in range(0,12):
             self.rowconfigure(i, weight=1)
         for i in range(0,3):
             self.columnconfigure(i, weight=1)
 
-        label = ttk.Label(self, text="Wave Parameters Plotting", font=controller.title_font)#, style="greyBackground.TLabel")
-        label.grid(row=0, column=1, rowspan=1)
+        label = ttk.Label(self, text="Wave Parameters Plotting", font=controller.title_font, anchor=tk.CENTER)#, style="greyBackground.TLabel")
+        label.grid(row=0, column=0, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
         #row 1
 
         self.changeval = tk.IntVar()
         self.changeval.set(0)
 
-        self.radio1 = ttk.Radiobutton(self, text = "Time", variable = self.changeval, value = 0, command=self.settabletype)#, style='greyBackground.TRadiobutton')
-        self.radio1.grid(row=1, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame1 = ttk.Frame(self)
 
-        self.radio2 = ttk.Radiobutton(self, text = "Speed", variable = self.changeval, value = 1, command=self.settabletype)#, style='greyBackground.TRadiobutton')
-        self.radio2.grid(row=1, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.radio1 = ttk.Radiobutton(self.frame1, text = "Time", variable = self.changeval, value = 0, command=self.settabletype)#, style='greyBackground.TRadiobutton')
+        self.radio1.grid(row=0, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
 
-        self.radio3 = ttk.Radiobutton(self, text = "Area", variable = self.changeval, value = 2, command=self.settabletype)#, style='greyBackground.TRadiobutton')
-        self.radio3.grid(row=1, column=2, sticky=tk.W+tk.E+tk.N+tk.S)
+        CreateToolTip(self.radio1, \
+    "Upper Table is updated with Time related variables for each Wave Point. Average Values for each Time related variable are shown in the Lower Table")
+
+        self.radio2 = ttk.Radiobutton(self.frame1, text = "Speed", variable = self.changeval, value = 1, command=self.settabletype)#, style='greyBackground.TRadiobutton')
+        self.radio2.grid(row=0, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        CreateToolTip(self.radio2, \
+    "Upper Table is updated with Speed related variables for each Wave Point. Average Values for each Speed related variable are shown in the Lower Table")
+
+
+        self.radio3 = ttk.Radiobutton(self.frame1, text = "Area", variable = self.changeval, value = 2, command=self.settabletype)#, style='greyBackground.TRadiobutton')
+        self.radio3.grid(row=0, column=2, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        CreateToolTip(self.radio3, \
+    "Upper Table is updated with Area related variables for each Wave Point. Average Values for each Area related variable are shown in the Lower Table")
+
+        self.frame1.grid(row=1, column=0, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+
+
+        for i in range(0,1):
+            self.frame1.rowconfigure(i, weight=1)
+        for i in range(0,3):
+            self.frame1.columnconfigure(i, weight=1)
 
 
         #row 2 to row 6
@@ -3245,26 +3609,49 @@ class PageFive(ttk.Frame):
         
         #row 11
 
-        button_go_analysis = ttk.Button(self, text="Quiver/Jet Plots",
-                           command=self.quiverjetgo)#, style="greyBackground.TButton")
-        button_go_analysis.grid(row=11, column=1)
-
         #row 12
-        self.frame5 = ttk.Frame(self)#, style="greyBackground.TFrame")
+        self.frame5 = ttk.Frame(self)
 
-        button_go_back = ttk.Button(self.frame5, text="Go back",
-                           command=lambda: controller.show_frame("PageFour", bckbtn=True))#, style="greyBackground.TButton")
-        button_go_back.grid(row=0, column=1)
+        # self.gotostartpage = tk.PhotoImage(file="icons/refresh-sharp.png")
+        # self.goback = tk.PhotoImage(file="icons/arrow-back-sharp.png")
+        # self.jetquiverpltimg = tk.PhotoImage(file="icons/layers-sharp.png")
 
-        button_go_start = ttk.Button(self.frame5, text="Go to the start page",
-                           command=lambda: controller.show_frame("StartPage"))#, style="greyBackground.TButton")
-        button_go_start.grid(row=0, column=3)
+        btn1frame = ttk.Frame(self.frame5)
+        btn1lbl = ttk.Label(btn1frame, text="Go back")
+        btn1lbl.grid(row=0, column=1)
+        button_go_back = ttk.Button(btn1frame, image=self.controller.goback,
+                           command=lambda: controller.show_frame("PageFour", bckbtn=True))
+        button_go_back.image =self.controller.goback
+        button_go_back.grid(row=0, column=0)
+        btn1frame.grid(row=0, column=1, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        
+        btn2frame = ttk.Frame(self.frame5)
+        btn2lbl = ttk.Label(btn2frame, text="Quiver/Jet Plots")
+        btn2lbl.grid(row=0, column=1)
+        button_go_analysis = ttk.Button(btn2frame, image=self.controller.jetquiverpltimg,
+                           command=self.quiverjetgo)#, style="greyBackground.TButton")
+        button_go_analysis.image =self.controller.jetquiverpltimg
+        button_go_analysis.grid(row=0, column=0)
+        btn2frame.grid(row=0, column=2, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        CreateToolTip(button_go_analysis, \
+    "Allows moving to the last analysis once a single Wave row is selected by clicking.")
+
+        btn3frame = ttk.Frame(self.frame5)
+        btn3lbl = ttk.Label(btn3frame, text="Go to the start page")
+        btn3lbl.grid(row=0, column=1)
+        button_go_start = ttk.Button(btn3frame, image=self.controller.gotostartpage,
+                           command=lambda: controller.show_frame("StartPage"))
+        button_go_start.image =self.controller.gotostartpage
+        button_go_start.grid(row=0, column=0)
+        btn3frame.grid(row=0, column=0, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
 
         for i in range(0,1):
             self.frame5.rowconfigure(i, weight=1)
-        for i in range(0,5):
+        for i in range(0,3):
             self.frame5.columnconfigure(i, weight=1)
-        self.frame5.grid(row=12, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame5.grid(row=11, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
     
     def init_vars(self):
         self.controller.btn_lock = True
@@ -3552,7 +3939,8 @@ class PageFive(ttk.Frame):
                 fname = r'%s' %fname
                 fname2 = fname.split(".")[0] + ".pickle"
                 filehandler = open(r'%s' %fname2 , 'wb') 
-                pickle.dump(pksobj, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                # pickle.dump(pksobj, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
+                pickle.dump(pksobj, filehandler, protocol=3)
                 filehandler.close()
             except Exception as e:
                 messagebox.showerror("Error", "Could not save Selected Waves file\n" + str(e))
@@ -3567,10 +3955,10 @@ class PageFive(ttk.Frame):
                     #QuiverJetProgress
                     self.savepeaks()
 
-                    wd = WaitDialogProgress(self, title='In Progress...')
-                    self.controller.update()
-                    wd.progress_bar.start()
-                    self.update_idletasks()
+                    self.controller.showwd()
+                    # self.controller.update()
+                    # wd.progress_bar.start()
+                    # self.update_idletasks()
 
                     current_row = int(self.current_tabletree.item(selected_items[0])["text"])
                     self.controller.current_peak = self.peaks[current_row]
@@ -3606,7 +3994,7 @@ class PageFive(ttk.Frame):
                         self.controller.current_maglist = np.array(self.controller.current_maglist)
                         self.controller.current_anglist = np.array(self.controller.current_anglist)
                         self.controller.btn_lock = False
-                        wd.cancel()
+                        self.controller.cancelwd()
                         self.controller.show_frame("PageSix")
                         return
                     elif self.controller.current_analysis.gtype == "Video":
@@ -3637,7 +4025,7 @@ class PageFive(ttk.Frame):
                         self.controller.current_maglist = np.array(self.controller.current_maglist)
                         self.controller.current_anglist = np.array(self.controller.current_anglist)
                         self.controller.btn_lock = False
-                        wd.cancel()
+                        self.controller.cancelwd()
                         self.controller.show_frame("PageSix")
                         return
                     elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
@@ -3666,7 +4054,7 @@ class PageFive(ttk.Frame):
                         self.controller.current_maglist = np.array(self.controller.current_maglist)
                         self.controller.current_anglist = np.array(self.controller.current_anglist)
                         self.controller.btn_lock = False
-                        wd.cancel()
+                        self.controller.cancelwd()
                         self.controller.show_frame("PageSix")
                         return
             messagebox.showerror("Error", "No Waves selected")
@@ -3833,7 +4221,7 @@ class PageSix(ttk.Frame):
         self.animation_status = False
         self.pressmovecid = None
 
-        for i in range(0,14):
+        for i in range(0,15):
             self.rowconfigure(i, weight=1)
         for i in range(0,3):
             self.columnconfigure(i, weight=1)
@@ -3859,17 +4247,33 @@ class PageSix(ttk.Frame):
         self.CheckBtnMerge = ttk.Checkbutton(self.frame_checks, text = "Plot. Image", variable = self.CheckMerge, \
                          onvalue = 1, offvalue = 0, command = self.init_viz)#, style="greyBackground.TCheckbutton")
 
+        CreateToolTip(self.CheckBtnMerge , \
+    "Adds current image to Figure.")
+
         self.CheckBtnJet = ttk.Checkbutton(self.frame_checks, text = "Plot. Jet", variable = self.CheckJet, \
                          onvalue = 1, offvalue = 0, command = self.init_viz)#, style="greyBackground.TCheckbutton")
+
+        CreateToolTip(self.CheckBtnJet, \
+    "Adds Speed Heatmap to Figure.")
 
         self.CheckBtnQuiver = ttk.Checkbutton(self.frame_checks, text = "Plot. Quiver", variable = self.CheckQuiver, \
                          onvalue = 1, offvalue = 0, command = self.init_viz)#, style="greyBackground.TCheckbutton")
 
+        CreateToolTip(self.CheckBtnQuiver, \
+    "Adds Quiver Plot to Figure.")
+
         self.CheckBtnLegend = ttk.Checkbutton(self.frame_checks, text = "Add. Legend", variable = self.CheckLegend, \
                          onvalue = 1, offvalue = 0, command = self.init_viz)#, style="greyBackground.TCheckbutton")
 
+
+        CreateToolTip(self.CheckBtnLegend, \
+    "Adds Legend to Figure if Jet or Quiver Plots are selected.")
+
         self.CheckBtnContour = ttk.Checkbutton(self.frame_checks, text = "Contour Figure", variable = self.CheckContour, \
                          onvalue = 1, offvalue = 0, command = self.init_viz)#, style="greyBackground.TCheckbutton")
+
+        CreateToolTip(self.CheckBtnContour, \
+    "Contours current Cell Jet/Quiver Plots. Contouring can be edited in the 'Advanced Configs' Menu at the Top Bar")
 
         self.CheckBtnMerge.grid(row=0, column=0, sticky=tk.NSEW)
         self.CheckBtnJet.grid(row=0, column=1, sticky=tk.NSEW)
@@ -3905,8 +4309,11 @@ class PageSix(ttk.Frame):
         self.frame_canvas.grid(row=3, column=0, rowspan=4, columnspan=3, sticky=tk.NSEW)
 
         self.fig2 = plt.figure(figsize=(3, 2), dpi=100, facecolor=self.controller.bgcolor)
-        self.fig2.tight_layout(rect=[0, 0.03, 1, 0.95])
-        self.gs2 = gridspec.GridSpec(1, 1, height_ratios=[3], hspace=0.4)
+        self.fig2.tight_layout()
+        self.fig2.subplots_adjust(top=0.85, bottom=0.25)
+        # self.fig2.tight_layout(rect=[0, 0.03, 0.8, 0.95])
+        # self.fig2.tight_layout(rect=[0, 0.03, 0.8, 0.95])
+        self.gs2 = gridspec.GridSpec(1, 1, height_ratios=[3], hspace=0.5)
 
         self.frame_canvas2 = ttk.Frame(self)#, style="greyBackground.TFrame")
         self.canvas2 = FigureCanvasTkAgg(self.fig2, master=self.frame_canvas2)  # A tk.DrawingArea.
@@ -3919,17 +4326,20 @@ class PageSix(ttk.Frame):
 
         self.slidervar = tk.IntVar()
         self.slider = ttk.Scale(self, from_=1, to=len(self.current_framelist), variable=self.slidervar, orient=tk.HORIZONTAL, command=self.update_frame)#, style="greyBackground.Horizontal.TScale")
-        self.slider.grid(row=11, column=0, columnspan=3, sticky=tk.NSEW)
+        self.slider.grid(row=12, column=0, columnspan=3, sticky=tk.NSEW)
 
         self.frame_3 = ttk.Frame(self)#, style="greyBackground.TFrame")
         
         self.startstopanimationbtn = ttk.Button(self.frame_3, command=self.startstopanimation)#, style="greyBackground.TButton")
         self.startstopanimationbtn.config(image=self.controller.playstopicon)#, width=30, height=30)
 
+        CreateToolTip(self.startstopanimationbtn, \
+    "Starts Figure animation for whole wave. Warning: Might lag at high FPS values")
+
         tlbl1 = ttk.Label(self.frame_3, text="Play/Stop:")#, style="greyBackground.TLabel")
         tlbl1.grid(row=0, column=0, sticky=tk.NSEW)
 
-        self.frame_3.grid(row=12, column=1, sticky=tk.NSEW)
+        self.frame_3.grid(row=13, column=1, sticky=tk.NSEW)
         for i in range(0,1):
             self.frame_3.rowconfigure(i, weight=1)
         
@@ -3938,32 +4348,48 @@ class PageSix(ttk.Frame):
         self.frame_4 = ttk.Frame(self)#, style="greyBackground.TFrame")
         self.fpsspin = tk.StringVar()
         self.fpsspin.set("1")
-        self.fps_spinner = ttk2.Spinbox(self.frame_4, from_=1, to=10000000, textvariable=self.fpsspin, increment=1, width=10, command=self.set_framerate)
+        self.fps_spinner = tk.Spinbox(self.frame_4, from_=1, to=10000000, textvariable=self.fpsspin, increment=1, width=10, command=self.set_framerate)
+
+        CreateToolTip(self.fps_spinner, \
+    "Sets Figure animation FPS. Warning: High FPS values might lag animation")
 
         tlbl2 =ttk.Label(self.frame_4, text="FPS:")#, style="greyBackground.TLabel")
         tlbl2.grid(row=0, column=0, sticky=tk.NSEW)
 
         self.fps_spinner.grid(row=0, column=1,pady=20, sticky=tk.NSEW)
-        self.frame_4.grid(row=12, column=2, sticky=tk.NSEW)
+        self.frame_4.grid(row=13, column=2, sticky=tk.NSEW)
         for i in range(0,1):
             self.frame_4.rowconfigure(i, weight=1)
 
         #row 12
-        self.frame5 = ttk.Frame(self)#, style="greyBackground.TFrame")
 
-        button_go_back = ttk.Button(self.frame5, text="Go back",
-                           command=lambda: controller.show_frame("PageFive"))#, style="greyBackground.TButton")
-        button_go_back.grid(row=0, column=1)
+        # self.gotostartpage = tk.PhotoImage(file="icons/refresh-sharp.png")
+        # self.goback = tk.PhotoImage(file="icons/arrow-back-sharp.png")
 
-        button_go_start = ttk.Button(self.frame5, text="Go to the start page",
-                           command=lambda: controller.show_frame("StartPage"))#, style="greyBackground.TButton")
-        button_go_start.grid(row=0, column=3)
+        self.frame5 = ttk.Frame(self)
+        btn1frame = ttk.Frame(self.frame5)
+        btn1lbl = ttk.Label(btn1frame, text="Go back")
+        btn1lbl.grid(row=0, column=1)
+        button_go_back = ttk.Button(btn1frame, image=self.controller.goback,
+                           command=lambda: controller.show_frame("PageFive"))
+        button_go_back.image=self.controller.goback
+        button_go_back.grid(row=0, column=0)
+        btn1frame.grid(row=0, column=3)
+
+        btn2frame = ttk.Frame(self.frame5)
+        btn2lbl = ttk.Label(btn2frame, text="Go to the start page")
+        btn2lbl.grid(row=0, column=1)
+        button_go_start = ttk.Button(btn2frame, image=self.controller.gotostartpage,
+                           command=lambda: controller.show_frame("StartPage"))
+        button_go_start.image=self.controller.gotostartpage
+        button_go_start.grid(row=0, column=0)
+        btn2frame.grid(row=0, column=1)
 
         for i in range(0,1):
             self.frame5.rowconfigure(i, weight=1)
         for i in range(0,5):
             self.frame5.columnconfigure(i, weight=1)
-        self.frame5.grid(row=13, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.frame5.grid(row=14, column=0, rowspan=1, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
 
     def update_config(self, etype, eval1):
         if etype == "current_windowX":
@@ -3986,6 +4412,22 @@ class PageSix(ttk.Frame):
             self.current_jetscalemax = eval1
         self.update_frame()
 
+    def update_all_settings(self, resultobj):
+        print("about to update window")
+        self.current_windowX = resultobj["current_windowX"]
+        self.current_windowY = resultobj["current_windowY"]
+        self.blur_size = resultobj["blur_size"]
+        self.kernel_dilation = resultobj["kernel_dilation"]
+        self.kernel_erosion = resultobj["kernel_erosion"]
+        self.kernel_smoothing_contours = resultobj["kernel_smoothing_contours"]
+        self.border_thickness = resultobj["border_thickness"]
+        self.current_jetscalemin = resultobj["minscale"]
+        self.current_jetscalemax = resultobj["maxscale"]
+        self.update_frame()
+        self.controller.btn_lock = True
+        self.delete_settings()
+        self.controller.btn_lock = False
+
     def delete_settings(self):
         self.advsettings = None
 
@@ -4007,19 +4449,6 @@ class PageSix(ttk.Frame):
                 ("maxscale", ("Scale Max.", self.current_jetscalemax)),
                 ("updatable_frame", self)
                 ])
-            if self.advsettings.result != None:
-                self.current_windowX = d.result["current_windowX"]
-                self.current_windowY = d.result["current_windowY"]
-                self.blur_size = d.result["blur_size"]
-                self.kernel_dilation = d.result["kernel_dilation"]
-                self.kernel_erosion = d.result["kernel_erosion"]
-                self.kernel_smoothing_contours = d.result["kernel_smoothing_contours"]
-                self.border_thickness = d.result["border_thickness"]
-                self.current_jetscalemin = d.result["minscale"]
-                self.current_jetscalemax = d.result["maxscale"]
-                self.update_frame()
-                self.controller.btn_lock = True
-                self.delete_settings()
             self.controller.btn_lock = False
 
     def update_frame(self, *args):
@@ -4035,13 +4464,16 @@ class PageSix(ttk.Frame):
         curlims = (self.ax2.get_xlim(), self.ax2.get_ylim())
         new_rect = Rectangle((0,0), 1, 1)
         new_rect.set_width(2 * self.half_time)
-        new_rect.set_height(np.max(self.current_peak.peakdata) + abs(np.min(self.current_peak.peakdata)) + 0.5)
+        # new_rect.set_height(np.max(self.current_peak.peakdata) + abs(np.min(self.current_peak.peakdata)) + 0.5)
+        new_rect.set_height(curlims[1][1] + abs(curlims[1][0]) + 0.5)
 
         if self.plotsettings.plotline_opts["absolute_time"] == False:
             zerotime = self.current_peak.firsttime
-            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, np.min(self.current_peak.peakdata)))
+            # new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, np.min(self.current_peak.peakdata)))
+            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, curlims[1][0]))
         else:
-            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, np.min(self.current_peak.peakdata)))
+            # new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, np.min(self.current_peak.peakdata)))
+            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, curlims[1][0]))
         
         new_rect.set_facecolor(self.plotsettings.peak_plot_colors['rect_color'])
 
@@ -4242,6 +4674,10 @@ class PageSix(ttk.Frame):
         img = self.current_framelist[self.current_frame]
         mag = np.array(self.controller.current_maglist[self.current_frame])
         mag = mag
+        
+        # mag = np.ma.masked_where(mag < 0.08, mag)
+        mag = np.ma.masked_where(mag < self.current_jetscalemin, mag)
+
         self.plot = None
 
         cmap = plt.cm.jet
@@ -4395,12 +4831,15 @@ class PageSix(ttk.Frame):
             framelist = sorted(files_grabbed)
             files_grabbed_now = framelist[self.controller.current_peak.first:(self.controller.current_peak.last+1)+1]
             self.ax2.set_title(files_grabbed_now[self.current_frame])
+            # pass
 
         elif self.controller.current_analysis.gtype == "Video":
             self.ax2.set_title(os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.current_frame))
+            # pass
 
         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
             self.ax2.set_title(os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.current_frame))
+            # pass
 
         self.ax2.set_xlabel("Time("+self.controller.current_timescale+")")
         self.ax2.set_ylabel("Average Speed("+self.controller.current_speedscale+")")
@@ -4430,12 +4869,16 @@ class PageSix(ttk.Frame):
         self.rect = None
         new_rect = Rectangle((0,0), 1, 1)
         new_rect.set_width(2 * self.half_time)
-        new_rect.set_height(np.max(self.current_peak.peakdata) + abs(np.min(self.current_peak.peakdata)) + 0.5)
+        # new_rect.set_height(np.max(self.current_peak.peakdata) + abs(np.min(self.current_peak.peakdata)) + 0.5)
+        new_rect.set_height(curlims[1][1] + abs(curlims[1][0]) + 0.5)
+
         if self.plotsettings.plotline_opts["absolute_time"] == True:
-            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, np.min(self.current_peak.peakdata)))
+            # new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, np.min(self.current_peak.peakdata)))
+            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time, curlims[1][0]))
         else:
             zerotime = self.current_peak.firsttime
-            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, np.min(self.current_peak.peakdata)))
+            # new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, np.min(self.current_peak.peakdata)))
+            new_rect.set_xy((self.current_peak.peaktimes[self.current_frame] - self.half_time - zerotime, curlims[1][0]))
 
         new_rect.set_facecolor(self.plotsettings.peak_plot_colors['rect_color'])
 
@@ -4675,6 +5118,8 @@ class PageSix(ttk.Frame):
         return menubar
 
 if __name__ == "__main__":
+    if _platform == "win32" or _platform == "win64":
+        multiprocessing.freeze_support()
     if _platform == "linux" or _platform == "linux2":
         # linux
         locale.setlocale(locale.LC_ALL, "en_US.UTF-8")

@@ -5,7 +5,7 @@ from tkinter import messagebox
 from tkinter import colorchooser
 from tkinter import filedialog
 from tkinter import ttk
-import ttk2
+#import ttk2
 from PIL import ImageTk
 from PIL import Image
 import pandas as pd
@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from customframe import ttkScrollFrame
+from sys import platform as _platform
 
 def load_img(imgpath, evwidth):
     img = Image.open(imgpath)
@@ -120,7 +121,7 @@ class HelpDialog(tkDialog.Dialog):
             "Fig 22 - Selecting processed Data Groups saved on Memory or Disk for Analysis.",
             "The Data Group’s Time vs Raw Average Speed data generated from the Dense Optical Flow algorithm can also be downloaded by either the Download Table Button or the Export Current Table Menu Button from the Export Menu.",
             "Fig 23 - Exporting processed Data Groups raw Data.",
-            "Both .CSV and .XLS exporting formats are supported and can be selected from a Pop up Window",
+            "Both .CSV and .XLS or .XLSX exporting formats are supported and can be selected from a Pop up Window",
             "Fig 24 - Pop up Window for selecting export table format."],
             "PageFour": ["Title Analysing Time vs Average Speed plot",
             "By either clicking the Start Analysis Button on the Start Analysis Screen, the Analysis Button on the Check Progress Screen or the Load Analysis Menu Button on the File Menu of the Top Bar, the user can navigate to the Wave Points Definition Screen.",
@@ -191,7 +192,7 @@ class HelpDialog(tkDialog.Dialog):
             "The Fast Fourier Transform is applied to the last created Plot Selection in the Plot if any has been previously selected.",
             "Fig 43 - FFT Sub-Plot Mode is now applied to the last Plot Selection created.",
             "Title Exporting Data",
-            "Multiple Data can be exported from this Screen if the user desires to do so. This includes the whole or individual Plot+Sub Plot images as well as their data. Supported exported figure data includes various possible formats according to the user’s computer matplotlib installation. Like the previous Screen, Data is exported in tabular format in either the .csv or .xls formats.",
+            "Multiple Data can be exported from this Screen if the user desires to do so. This includes the whole or individual Plot+Sub Plot images as well as their data. Supported exported figure data includes various possible formats according to the user’s computer matplotlib installation. Like the previous Screen, Data is exported in tabular format in either the .csv or .xls / .xlsx formats.",
             "Fig 44 - Export Menu in the Top Bar with several export options.",
             "Fig 45 - Pop Up Window for exporting Figures in Contraction Wave. After clicking the ok button, the user is prompted to select a file name and a folder for saving.",
             "Moving to the Next Analysis",
@@ -298,8 +299,9 @@ class AboutDialog(tkDialog.Dialog):
         ttk.Label(master, text='Version: 1.0Py\n').grid(row=1, column=1)
         ttk.Label(master, text='Scalzo, S.; Lima Afonso, M.Q.L.; Fonseca, N.J.;Jesus, I. C. G.; Alves, A. P.;Teixeira,V.P.;\nMarques, F.A.M.;Mesquita, O. N.; Kushmerick, C; Bleicher, L.;Agero, U.; Guatimosim, S.\n').grid(row=2, column=1)
         ttk.Label(master, text='To be published\n').grid(row=3, column=1)
-        ttk.Label(master, text='This software is registred under GPL3.0.\nContact: sergiosc1789 at gmail.com\n').grid(row=4, column=1)
-        ttk.Label(master, text='Third party copyrights are property of their respective owners.\n\nCopyright (C) 2000-2018, Intel Corporation, all rights reserved.\nCopyright (C) 2009-2011, Willow Garage Inc., all rights reserved.\nCopyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.\nCopyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.\nCopyright (C) 2015-2020, OpenCV Foundation, all rights reserved.\nCopyright (C) 2015-2016, Itseez Inc., all rights reserved.\nCopyright (C), MapsForge Version 1.0, all rights reserved.').grid(row=5, column=1)
+        ttk.Label(master, text='This software is registered under GPL3.0.\nContact: sergiosc1789 at gmail.com\n').grid(row=4, column=1)
+        ttk.Label(master, text='Third party copyrights are property of their respective owners.\n\nCopyright (C) 2020, Ionicons, Released under MIT License.\nCopyright (c) 2008-2012, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team, All rights reserved.\nCopyright (c) 2012-2013 Matplotlib Development Team; All Rights Reserved\nCopyright (C) 2000-2019, Intel Corporation, all rights reserved.\n Copyright (C) 2009-2011, Willow Garage Inc., all rights reserved.\n Copyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.\n Copyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.\n Copyright (C) 2015-2016, OpenCV Foundation, all rights reserved.\n Copyright (C) 2015-2016, Itseez Inc., all rights reserved.\n Copyright (C) 2019-2020, Xperience AI, all rights reserved.\nCopyright (C) 2018 Uwe Klimmek\nCopyright Regents of the University of California, Sun Microsystems, Inc., Scriptics Corporation, and other parties\nCopyright © 1997-2011 by Secret Labs AB\nCopyright © 1995-2011 by Fredrik Lundh\nCopyright © 2010-2020 by Alex Clark and contributors\nCopyright (c) 2013-2020, John McNamara <jmcnamara@cpan.org> All rights reserved.\nCopyright (c) 2009, Jay Loden, Dave Daeschler, Giampaolo Rodola, All rights reserved. \n Copyright (c) 2005, NumPy Developers\n Copyright (c) 2010-2020, PyInstaller Development Team\n Copyright (c) 2005-2009, Giovanni Bajo\n Based on previous work under copyright (c) 2002 McMillan Enterprises, Inc.\n Copyright © 2001, 2002 Enthought, Inc. All rights reserved. \n Copyright © 2003-2019 SciPy Developers. All rights reserved.\n ').grid(row=5, column=1)
+
         self.packbtns = False
 
     def validate(self):
@@ -316,10 +318,34 @@ class FolderSelectDialog(tkDialog.Dialog):
         print("class FolderSelectDialog def body creation")
         # tkDialog.Dialog.okbtn.pack_forget()
         # tkDialog.Dialog.cnbtn.pack_forget()
-        ttk.Label(master, text='Select Input Type:').grid(row=0, column=1)
-        ttk.Button(master, text="Folder", command=lambda: self.setresult("Folder")).grid(row=1, column=0)
-        ttk.Button(master, text="Video", command=lambda: self.setresult("Video")).grid(row=1, column=1)
-        ttk.Button(master, text="Compressed Tiff", command=lambda: self.setresult("Tiff Directory")).grid(row=1, column=2)
+        # ttk.Label(master, text='Select Input Type:').grid(row=0, column=1)
+
+        #PageOne Load Data Dialog
+        self.loadimgs = tk.PhotoImage(file="icons/images-sharp.png")
+        self.loadvids = tk.PhotoImage(file="icons/film-sharp.png")
+        self.loadtiff = tk.PhotoImage(file="icons/duplicate-sharp.png")
+
+        btn1cont = ttk.Frame(master)
+        ttk.Label(btn1cont, text="Image Folder").grid(row=0, column=1)
+        tbtn1 = ttk.Button(btn1cont, image=self.loadimgs, command=lambda: self.setresult("Folder"))
+        tbtn1.image = self.loadimgs
+        tbtn1.grid(row=0, column=0)
+        btn1cont.grid(row=0, column=0)
+        
+        btn2cont = ttk.Frame(master)
+        ttk.Label(btn2cont, text="Video File").grid(row=0, column=1)
+        tbtn2 = ttk.Button(btn2cont, image=self.loadvids, command=lambda: self.setresult("Video"))
+        tbtn2.image=self.loadvids
+        tbtn2.grid(row=0, column=0)
+        btn2cont.grid(row=0, column=1)
+
+        btn3cont = ttk.Frame(master)
+        ttk.Label(btn3cont, text="Tiff Directory").grid(row=0, column=1)
+        tbtn3 = ttk.Button(btn3cont, image=self.loadtiff, command=lambda: self.setresult("Tiff Directory"))
+        tbtn3.image=self.loadtiff
+        tbtn3.grid(row=0, column=0)
+        btn3cont.grid(row=0, column=2)
+
         self.packbtns = False
         self.result = None
 
@@ -675,21 +701,13 @@ class PlotSettingsProgress(tkDialog.Dialog):
         # return self.current_settings[k]
 
 class WaitDialogProgress(tkDialog.DialogBlockNonGrab):
+# class WaitDialogProgress(tkDialog.DialogNonBlock):
 
     def body(self, master):
         ttk.Label(master, text="Please wait until processing is done...").grid(row=0,column=0, columnspan=3)
-        self.progress_bar = ttk.Progressbar(master, style="", length=400, orient='horizontal', mode='indeterminate')
-        # self.progress_var = tk.DoubleVar()
-        # self.progress_var.set(0.0)
-        # self.progress_bar = ttk.Progressbar(master, style="", length=400, variable=self.progress_var, maximum=1)
-        self.progress_bar.grid(row=1, column=0, rowspan=1, columnspan=3, sticky="ew")
-        self.progress_bar.start()
-        self.update_idletasks()
-        # self.update()
 
     def validate(self):
         print("class AboutDialog def validate start")
-        self.progress_bar.stop()
         self.valid = False
         return 0
 
@@ -799,7 +817,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         #list_features = ["current_windowX", "current_windowY", "blur_size", "kernel_dilation", "kernel_erosion", "kernel_smoothing_contours", "border_thickness"]
         rown = 1
         ttk.Label(master,text=self.literals["current_windowX"][0]).grid(row=rown, column=0)
-        self.current_windowX_spin = ttk2.Spinbox(master, from_=self.literals["config"]["current_windowX"][0], to=self.literals["config"]["current_windowX"][1], increment=1, width=10, command=lambda: self.up_frame(self.current_windowX_spin, "current_windowX"))
+        self.current_windowX_spin = tk.Spinbox(master, from_=self.literals["config"]["current_windowX"][0], to=self.literals["config"]["current_windowX"][1], increment=1, width=10, command=lambda: self.up_frame(self.current_windowX_spin, "current_windowX"))
         self.current_windowX_spin.thistype = "current_windowX" 
         self.current_windowX_spin.grid(row=rown, column=1)
         self.current_windowX_spin.delete(0,"end")
@@ -808,7 +826,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["current_windowY"][0]).grid(row=rown, column=0)
-        self.current_windowY_spin = ttk2.Spinbox(master, from_=self.literals["config"]["current_windowY"][0], to=self.literals["config"]["current_windowY"][1], increment=1, width=10, command=lambda: self.up_frame(self.current_windowY_spin, "current_windowY"))
+        self.current_windowY_spin = tk.Spinbox(master, from_=self.literals["config"]["current_windowY"][0], to=self.literals["config"]["current_windowY"][1], increment=1, width=10, command=lambda: self.up_frame(self.current_windowY_spin, "current_windowY"))
         self.current_windowY_spin.thistype = "current_windowY" 
         self.current_windowY_spin.grid(row=rown, column=1)
         self.current_windowY_spin.delete(0,"end")
@@ -817,7 +835,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["blur_size"][0]).grid(row=rown, column=0)
-        self.blur_size_spin = ttk2.Spinbox(master, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=10, command=lambda: self.up_frame(self.blur_size_spin, "blur_size"))
+        self.blur_size_spin = tk.Spinbox(master, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=10, command=lambda: self.up_frame(self.blur_size_spin, "blur_size"))
         self.blur_size_spin.thistype = "blur_size" 
         self.blur_size_spin.grid(row=rown, column=1)
         self.blur_size_spin.delete(0,"end")
@@ -826,7 +844,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["kernel_dilation"][0]).grid(row=rown, column=0)
-        self.kernel_dilation_spin = ttk2.Spinbox(master, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_dilation_spin, "kernel_dilation"))
+        self.kernel_dilation_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_dilation_spin, "kernel_dilation"))
         self.kernel_dilation_spin.thistype = "kernel_dilation" 
         self.kernel_dilation_spin.grid(row=rown, column=1)
         self.kernel_dilation_spin.delete(0,"end")
@@ -835,7 +853,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
        
         rown += 1
         ttk.Label(master,text=self.literals["kernel_erosion"][0]).grid(row=rown, column=0)
-        self.kernel_erosion_spin = ttk2.Spinbox(master, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_erosion_spin, "kernel_erosion"))
+        self.kernel_erosion_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_erosion_spin, "kernel_erosion"))
         self.kernel_erosion_spin.thistype = "kernel_erosion" 
         self.kernel_erosion_spin.grid(row=rown, column=1)
         self.kernel_erosion_spin.delete(0,"end")
@@ -844,7 +862,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["kernel_smoothing_contours"][0]).grid(row=rown, column=0)
-        self.kernel_smoothing_contours_spin = ttk2.Spinbox(master, from_=self.literals["config"]["kernel_smoothing_contours"][0], to=self.literals["config"]["kernel_smoothing_contours"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_smoothing_contours_spin, "kernel_smoothing_contours"))
+        self.kernel_smoothing_contours_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_smoothing_contours"][0], to=self.literals["config"]["kernel_smoothing_contours"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_smoothing_contours_spin, "kernel_smoothing_contours"))
         self.kernel_smoothing_contours_spin.thistype = "kernel_smoothing_contours" 
         self.kernel_smoothing_contours_spin.grid(row=rown, column=1)
         self.kernel_smoothing_contours_spin.delete(0,"end")
@@ -853,7 +871,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["border_thickness"][0]).grid(row=rown, column=0)
-        self.border_thickness_spin = ttk2.Spinbox(master, from_=self.literals["config"]["border_thickness"][0], to=self.literals["config"]["border_thickness"][1], increment=1, width=10, command=lambda: self.up_frame(self.border_thickness_spin, "border_thickness"))
+        self.border_thickness_spin = tk.Spinbox(master, from_=self.literals["config"]["border_thickness"][0], to=self.literals["config"]["border_thickness"][1], increment=1, width=10, command=lambda: self.up_frame(self.border_thickness_spin, "border_thickness"))
         self.border_thickness_spin.thistype = "border_thickness"
         self.border_thickness_spin.grid(row=rown, column=1)
         self.border_thickness_spin.delete(0,"end")
@@ -862,7 +880,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["minscale"][0]).grid(row=rown, column=0)
-        self.minscale_spin = ttk2.Spinbox(master, from_=self.literals["config"]["minscale"][0], to=self.literals["config"]["minscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.minscale_spin, "minscale"))
+        self.minscale_spin = tk.Spinbox(master, from_=self.literals["config"]["minscale"][0], to=self.literals["config"]["minscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.minscale_spin, "minscale"))
         self.minscale_spin.thistype = "minscale"
         self.minscale_spin.grid(row=rown, column=1)
         self.minscale_spin.delete(0,"end")
@@ -871,7 +889,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["maxscale"][0]).grid(row=rown, column=0)
-        self.maxscale_spin = ttk2.Spinbox(master, from_=self.literals["config"]["maxscale"][0], to=self.literals["config"]["maxscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.maxscale_spin, "maxscale"))
+        self.maxscale_spin = tk.Spinbox(master, from_=self.literals["config"]["maxscale"][0], to=self.literals["config"]["maxscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.maxscale_spin, "maxscale"))
         self.maxscale_spin.thistype = "maxscale"
         self.maxscale_spin.grid(row=rown, column=1)
         self.maxscale_spin.delete(0,"end")
@@ -1003,8 +1021,11 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         print("class QuiverJetSettings def apply start")
         #save configs
         self.result = None
+        print("self.valid")
+        print(self.valid)
         if self.valid == True:
             self.result = {}
+            print(self.result)
             self.result["current_windowX"] = int(self.current_windowX_spin.get().replace(",", "."))
             self.result["current_windowY"] = int(self.current_windowY_spin.get().replace(",", "."))
             self.result["blur_size"] = int(self.blur_size_spin.get().replace(",", "."))
@@ -1013,7 +1034,9 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
             self.result["kernel_smoothing_contours"] = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
             self.result["border_thickness"] = int(self.border_thickness_spin.get().replace(",", "."))
             self.result["minscale"] = float(self.minscale_spin.get().replace(",", "."))
-            self.result["mascale"] = float(self.maxscale_spin.get().replace(",", "."))
+            self.result["maxscale"] = float(self.maxscale_spin.get().replace(",", "."))
+            print(self.result)
+            self.literals["updatable_frame"].update_all_settings(self.result)
         return True
 
 class AdjustNoiseDetectDialog(tkDialog.Dialog):
@@ -1033,7 +1056,7 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
                          onvalue = 1, offvalue = 0, command=self.showspin)
         
         self.spinlbl = ttk.Label(master, text= "Custom Value: ")
-        self.spinu = ttk2.Spinbox(master,from_=-10000000000, to=10000000000, increment=1, width=10)
+        self.spinu = tk.Spinbox(master,from_=-10000000000, to=10000000000, increment=1, width=10)
         
         self.spinu.bind('<Return>', lambda *args: self.validate())
 
@@ -1130,7 +1153,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.dpi = tk.StringVar()
         self.dpi.set("300")
         ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
-        self.dpispin = ttk2.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+        self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
         self.dpispin.grid(row=nrow, column=1)
         self.dpispin.bind('<Return>', lambda *args: self.validate())
 
@@ -1149,7 +1172,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.jpglabel = ttk.Label(master, text='JPG Quality:')
         self.jpglabel.grid(row=nrow, column=0)
         self.jpglabel.grid_forget()
-        self.qualityspin = ttk2.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
+        self.qualityspin = tk.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
         self.qualityspin.grid(row=nrow, column=1)
         self.qualityspin.bind('<Return>', lambda *args: self.validate())
 
@@ -1161,7 +1184,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.fpslabel = ttk.Label(master, text='Frames Per Second:')
         self.fpslabel.grid(row=nrow, column=0)
         self.fpslabel.grid_forget()
-        self.fpsnspin = ttk2.Spinbox(master, from_=1, to=9999, textvariable=self.fpsrun, increment=1, width=10)
+        self.fpsnspin = tk.Spinbox(master, from_=1, to=9999, textvariable=self.fpsrun, increment=1, width=10)
         self.fpsnspin.grid(row=nrow, column=1)
         self.fpsnspin.bind('<Return>', lambda *args: self.validate())
 
@@ -1266,7 +1289,7 @@ class SaveFigureDialog(tkDialog.Dialog):
         self.dpi = tk.StringVar()
         self.dpi.set("300")
         ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
-        self.dpispin = ttk2.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+        self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
         self.dpispin.grid(row=nrow, column=1)
         self.dpispin.bind('<Return>', lambda *args: self.validate())
         nrow+=1
@@ -1284,7 +1307,7 @@ class SaveFigureDialog(tkDialog.Dialog):
         self.jpglabel = ttk.Label(master, text='JPG Quality:')
         self.jpglabel.grid(row=nrow, column=0)
         self.jpglabel.grid_forget()
-        self.qualityspin = ttk2.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
+        self.qualityspin = tk.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
         self.qualityspin.grid(row=nrow, column=1)
         self.qualityspin.bind('<Return>', lambda *args: self.validate())
         self.qualityspin.grid_forget()
@@ -1363,7 +1386,10 @@ class SaveTableDialog(tkDialog.Dialog):
         self.formatvar = tk.StringVar(master)
 
         # Dictionary with options
-        self.formatchoices = { 'CSV','XLS'}
+        if _platform == "linux" or _platform == "linux2":
+            self.formatchoices = { 'CSV','XLS'}
+        else:
+            self.formatchoices = { 'CSV','XLSX'}
         self.formatvar.set('CSV') # set the default option
 
         ttk.OptionMenu(master, self.formatvar, "CSV", *self.formatchoices).grid(row = 0, column = 1)
@@ -1422,11 +1448,11 @@ class SaveTableDialog(tkDialog.Dialog):
                 os.remove(str(filename))
                 if format_sel == "CSV":
                     new_df.to_csv(str(filename),index=False)
-                elif format_sel == "XLS":
+                elif format_sel == "XLS" or format_sel == "XLSX":
                     sheet_n = "Data"
                     if "sheetnames" in self.literals.keys():
                         sheet_n = self.literals["sheetnames"]
-                    writer = pd.ExcelWriter(str(filename).split(".")[0] + ".xls", engine='xlsxwriter', mode='w')
+                    writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
                     # new_df.to_excel(str(fname.name), sheet_name=sheet_n,index=False, encoding='utf8')
                     new_df.to_excel(writer, sheet_name=sheet_n,index=False)#, encoding='utf8')
                     # # Add a header format.
@@ -1471,8 +1497,8 @@ class SaveTableDialog(tkDialog.Dialog):
                 writer = None
                 workbook = None
                 header_format = None
-                if format_sel == "XLS":
-                    writer = pd.ExcelWriter(str(filename).split(".")[0] + ".xls", engine='xlsxwriter', mode='w')
+                if format_sel == "XLS" or format_sel == "XLSX":
+                    writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
                     workbook = writer.book
                     header_format = workbook.add_format({
                         'bold': True,
@@ -1492,7 +1518,7 @@ class SaveTableDialog(tkDialog.Dialog):
                     new_df = pd.DataFrame(new_dict)
                     if format_sel == "CSV":
                         new_df.to_csv(str(filename).split(".")[0] + "_" + e_sheet + "." + str(filename).split(".")[1], index=False)
-                    elif format_sel == "XLS":
+                    elif format_sel == "XLS" or format_sel == "XLSX":
                         new_df.to_excel(writer, sheet_name=e_sheet,index=False)
                         worksheet = writer.sheets[e_sheet]
 
@@ -1507,7 +1533,7 @@ class SaveTableDialog(tkDialog.Dialog):
                         for col_num, value in enumerate(new_df.columns.values):
                             # worksheet.write(0, col_num + 1, value, header_format)
                             worksheet.write(0, col_num, value, header_format)
-                if format_sel == "XLS":
+                if format_sel == "XLS" or format_sel == "XLSX":
                     writer.save()
                 messagebox.showinfo(
                     "File saved",
@@ -1544,13 +1570,29 @@ class SummarizeTablesDialog(tkDialog.Dialog):
         # tframe.grid(row=1, column=0, rowspan=5, columnspan=3)
         tframe.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+        self.addtableimg = tk.PhotoImage(file="icons/add-sharp.png")
+        self.deltableimg = tk.PhotoImage(file="icons/close-sharp.png")
+
         bframe = ttk.Frame(self)
-        button_addgroup = ttk.Button(bframe, text="Add Table",
+
+        btn1frame = ttk.Frame(bframe)
+        btn1lbl = ttk.Label(btn1frame, text="Add Table")
+        btn1lbl.grid(row=0,column=1)
+        button_addgroup = ttk.Button(btn1frame, image=self.addtableimg,
                    command=self.add_table)
+        button_addgroup.image=self.addtableimg
         button_addgroup.grid(row=0, column=0, columnspan=1)
-        button_deletegroup = ttk.Button(bframe, text="Delete Table",
+        btn1frame.grid(row=0, column=0, columnspan=1)
+
+        btn2frame = ttk.Frame(bframe)
+        btn2lbl = ttk.Label(btn2frame, text="Delete Table")
+        btn2lbl.grid(row=0, column=1)
+        button_deletegroup = ttk.Button(btn2frame, image=self.deltableimg,
            command=self.delete_table)
-        button_deletegroup.grid(row=0, column=2, columnspan=1)
+        button_deletegroup.image=self.deltableimg
+        button_deletegroup.grid(row=0, column=0, columnspan=1)
+        btn2frame.grid(row=0, column=2, columnspan=1)
+
         for i in range(0,1):
             bframe.rowconfigure(i, weight=1)
         for i in range(0,3):
@@ -1567,7 +1609,7 @@ class SummarizeTablesDialog(tkDialog.Dialog):
     def add_table(self, event=None):
         print("class SummarizeTablesDialog def add_table start")
         print("class SummarizeTablesDialog def add_table open file dialog selection")
-        filenames = filedialog.askopenfilenames(parent=self,title='Choose Data Tables to Summarize:',filetypes = (("XLS Files","*.xls"),))
+        filenames = filedialog.askopenfilenames(parent=self,title='Choose Data Tables to Summarize:',filetypes = (("XLS Files","*.xls"),("XLSX Files","*.xlsx")))
         print("class SummarizeTablesDialog def add_table open file dialog done")
         print("filenames")
         print(filenames)
@@ -1657,7 +1699,10 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                 for value in values:
                     areaavgdf[key].append(value)
         try:
-            fname = filedialog.asksaveasfile(defaultextension=".xls")
+            format_do = ".xlsx"
+            if _platform == "linux" or _platform == "linux2":
+                format_do = ".xls"
+            fname = filedialog.asksaveasfile(defaultextension=format_do)
             if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
                 return
             fname.close()
@@ -1666,7 +1711,8 @@ class SummarizeTablesDialog(tkDialog.Dialog):
             os.remove(str(filename))
             print("filename")
             print(filename)
-            writer = pd.ExcelWriter(str(filename).split(".")[0] + ".xls", engine='xlsxwriter', mode='w')
+
+            writer = pd.ExcelWriter(str(filename).split(".")[0] + format_do, engine='xlsxwriter', mode='w')
             workbook = writer.book
             header_format = workbook.add_format({
                 'bold': True,
@@ -1731,7 +1777,7 @@ class SavGolDialog(tkDialog.Dialog):
 
         ttk.Label(master, text='Window Length:').grid(row=0, column=0)
 
-        self.e1 = ttk2.Spinbox(master, from_=self.literals["windowstart"], to=self.literals["maxvalues"], increment=1, width=10)
+        self.e1 = tk.Spinbox(master, from_=self.literals["windowstart"], to=self.literals["maxvalues"], increment=1, width=10)
         self.e1.grid(row=0, column=1)
         self.e1.bind('<Return>', lambda *args: self.validate())
 
@@ -1739,7 +1785,7 @@ class SavGolDialog(tkDialog.Dialog):
         
         ttk.Label(master, text='Polynomial Order:').grid(row=1, column=0)
 
-        self.e2 = ttk2.Spinbox(master, from_=self.literals["polystart"], to=self.literals["maxvalues"], increment=1, width=10)
+        self.e2 = tk.Spinbox(master, from_=self.literals["polystart"], to=self.literals["maxvalues"], increment=1, width=10)
         self.e2.grid(row=1, column=1)
         self.e2.bind('<Return>', lambda *args: self.validate())
 
@@ -1785,7 +1831,7 @@ class NpConvDialog(tkDialog.Dialog):
 
         ttk.Label(master, text='Window Length:').grid(row=0, column=0)
 
-        self.e1 = ttk2.Spinbox(master, from_=self.literals["windowstart"], to=self.literals["maxvalues"], increment=1, width=10)
+        self.e1 = tk.Spinbox(master, from_=self.literals["windowstart"], to=self.literals["maxvalues"], increment=1, width=10)
         self.e1.grid(row=0, column=1)
         self.e1.bind('<Return>', lambda *args: self.validate())
 
@@ -1834,7 +1880,7 @@ class FourierConvDialog(tkDialog.Dialog):
         print("class FourierConvDialog def body creation")
         ttk.Label(master, text="% of Frequencies kept:").grid(row=0, column=0)
 
-        self.e1 = ttk2.Spinbox(master, from_=self.literals["freqstart"], to=self.literals["maxvalues"], increment=0.1, width=10)
+        self.e1 = tk.Spinbox(master, from_=self.literals["freqstart"], to=self.literals["maxvalues"], increment=0.1, width=10)
         self.e1.grid(row=0, column=1)
         self.e1.bind('<Return>', lambda *args: self.validate())
 

@@ -135,6 +135,7 @@ class DialogBlockNonGrab(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.cancel)
         self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
                                   parent.winfo_rooty()+50))
+        self.wait_visibility(self)
 
     # construction hooks
     def body(self, master):
@@ -143,21 +144,6 @@ class DialogBlockNonGrab(tk.Toplevel):
         pass
 
     # standard button semantics
-
-    def ok(self, event=None):
-        print("ok")
-        if not self.validate():
-            print("invalid")
-            self.initial_focus.focus_set() # put focus back
-            return
-
-        self.withdraw()
-        self.update_idletasks()
-
-        self.apply()
-
-        self.cancel()
-
 
     def cancel(self, event=None):
         self.validate()
@@ -238,7 +224,7 @@ class DialogNonBlock(tk.Toplevel):
         self.cnbtn = ttk.Button(box, text="Cancel", width=10, command=self.cancel)
         self.cnbtn.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.bind("<Return>", self.ok)
+        # self.bind("<Return>", self.ok)
         self.bind("<Escape>", self.cancel)
 
         box.pack()

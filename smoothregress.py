@@ -56,6 +56,8 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
     if cutoff_val == None:
         cutoff_val = np.median(current_case)
         cutoff_val = float("{:.3f}".format(cutoff_val))
+    print("cutoff_val")
+    print(cutoff_val)
 
     # gvf, case_classes = jenks_until(current_case, False, cutoff=cutoff_val)
     gvf = cutoff_val
@@ -136,6 +138,8 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
 
     #max noise is extracted
     max_filtered_noise = np.max(filtered_noise_values)
+    print("max_noise")
+    print(max_noise)
     return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_noise_areas, filtered_noise_indexes, filtered_noise_values, max_filtered_noise, cutoff_val
 
 
