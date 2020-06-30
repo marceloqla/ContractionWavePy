@@ -3255,7 +3255,7 @@ class PageFour(ttk.Frame):
             self.dotsize = fdots[0].get_markersize()
             self.double_dotsize = fdots[0].get_markersize() * 2
         else:
-            forced_dot = self.ax.plot(0, 0, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+            forced_dot = self.ax.plot(0, 0, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
             self.dotsize = forced_dot[0].get_markersize()
             self.double_dotsize = forced_dot[0].get_markersize() * 2
             forced_dot[0].remove()
@@ -3864,19 +3864,19 @@ class PageFive(ttk.Frame):
             curRow = int(curItemDecomp["text"])
             if self.plotsettings.plotline_opts["absolute_time"] == True:
                 self.mainplotartist = self.ax.plot(self.peaks[curRow].peaktimes, self.peaks[curRow].peakdata, color=self.plotsettings.peak_plot_colors["main"])
-                self.ax.plot(self.peaks[curRow].firsttime, self.peaks[curRow].firstvalue, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
-                self.ax.plot(self.peaks[curRow].secondtime, self.peaks[curRow].secondvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-                self.ax.plot(self.peaks[curRow].thirdtime, self.peaks[curRow].thirdvalue, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
-                self.ax.plot(self.peaks[curRow].fourthtime, self.peaks[curRow].fourthvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-                self.ax.plot(self.peaks[curRow].fifthtime, self.peaks[curRow].fifthvalue, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+                self.ax.plot(self.peaks[curRow].firsttime, self.peaks[curRow].firstvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+                self.ax.plot(self.peaks[curRow].secondtime, self.peaks[curRow].secondvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+                self.ax.plot(self.peaks[curRow].thirdtime, self.peaks[curRow].thirdvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
+                self.ax.plot(self.peaks[curRow].fourthtime, self.peaks[curRow].fourthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+                self.ax.plot(self.peaks[curRow].fifthtime, self.peaks[curRow].fifthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
             else:
                 zerotime = self.peaks[curRow].firsttime
                 self.mainplotartist = self.ax.plot([ttime - zerotime for ttime in self.peaks[curRow].peaktimes], self.peaks[curRow].peakdata, color=self.plotsettings.peak_plot_colors["main"])
-                self.ax.plot(self.peaks[curRow].firsttime - zerotime, self.peaks[curRow].firstvalue, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
-                self.ax.plot(self.peaks[curRow].secondtime - zerotime, self.peaks[curRow].secondvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-                self.ax.plot(self.peaks[curRow].thirdtime - zerotime, self.peaks[curRow].thirdvalue, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
-                self.ax.plot(self.peaks[curRow].fourthtime - zerotime, self.peaks[curRow].fourthvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-                self.ax.plot(self.peaks[curRow].fifthtime - zerotime, self.peaks[curRow].fifthvalue, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+                self.ax.plot(self.peaks[curRow].firsttime - zerotime, self.peaks[curRow].firstvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+                self.ax.plot(self.peaks[curRow].secondtime - zerotime, self.peaks[curRow].secondvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+                self.ax.plot(self.peaks[curRow].thirdtime - zerotime, self.peaks[curRow].thirdvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
+                self.ax.plot(self.peaks[curRow].fourthtime - zerotime, self.peaks[curRow].fourthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+                self.ax.plot(self.peaks[curRow].fifthtime - zerotime, self.peaks[curRow].fifthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
         except ValueError:
             pass
 
@@ -4846,19 +4846,19 @@ class PageSix(ttk.Frame):
 
         if self.plotsettings.plotline_opts["absolute_time"] == True:
             self.mainplotartist = self.ax2.plot(self.current_peak.peaktimes, self.current_peak.peakdata, color=self.plotsettings.peak_plot_colors["main"])
-            self.ax2.plot(self.current_peak.firsttime, self.current_peak.firstvalue, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
-            self.ax2.plot(self.current_peak.secondtime, self.current_peak.secondvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-            self.ax2.plot(self.current_peak.thirdtime, self.current_peak.thirdvalue, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
-            self.ax2.plot(self.current_peak.fourthtime, self.current_peak.fourthvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-            self.ax2.plot(self.current_peak.fifthtime, self.current_peak.fifthvalue, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+            self.ax2.plot(self.current_peak.firsttime, self.current_peak.firstvalue, , linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+            self.ax2.plot(self.current_peak.secondtime, self.current_peak.secondvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            self.ax2.plot(self.current_peak.thirdtime, self.current_peak.thirdvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
+            self.ax2.plot(self.current_peak.fourthtime, self.current_peak.fourthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            self.ax2.plot(self.current_peak.fifthtime, self.current_peak.fifthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
         else:
             zerotime = self.current_peak.firsttime
             self.mainplotartist = self.ax2.plot([ttime - zerotime for ttime in self.current_peak.peaktimes], self.current_peak.peakdata, color=self.plotsettings.peak_plot_colors["main"])
-            self.ax2.plot(self.current_peak.firsttime - zerotime, self.current_peak.firstvalue, "o", color=self.plotsettings.peak_plot_colors["first"], picker=5)
-            self.ax2.plot(self.current_peak.secondtime - zerotime, self.current_peak.secondvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-            self.ax2.plot(self.current_peak.thirdtime - zerotime, self.current_peak.thirdvalue, "o", color=self.plotsettings.peak_plot_colors["min"], picker=5)
-            self.ax2.plot(self.current_peak.fourthtime - zerotime, self.current_peak.fourthvalue, "o", color=self.plotsettings.peak_plot_colors["max"], picker=5)
-            self.ax2.plot(self.current_peak.fifthtime - zerotime, self.current_peak.fifthvalue, "o", color=self.plotsettings.peak_plot_colors["last"], picker=5)
+            self.ax2.plot(self.current_peak.firsttime - zerotime, self.current_peak.firstvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+            self.ax2.plot(self.current_peak.secondtime - zerotime, self.current_peak.secondvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            self.ax2.plot(self.current_peak.thirdtime - zerotime, self.current_peak.thirdvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
+            self.ax2.plot(self.current_peak.fourthtime - zerotime, self.current_peak.fourthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
+            self.ax2.plot(self.current_peak.fifthtime - zerotime, self.current_peak.fifthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["last"], picker=5)
 
         self.half_time = self.current_peak.peaktimes[1] - self.current_peak.peaktimes[0]
 

@@ -596,12 +596,12 @@ class MoveDragHandler(object):
 
     def add_dot_at_last(self, newtype):
         if self.selectdotarea == None and self.selectloc != None:
-            newdot = self.ax.plot(self.selectloc[0], self.selectloc[1], "o", color=self.colorify[newtype])
+            newdot = self.ax.plot(self.selectloc[0], self.selectloc[1], linewidth=2, fillstyle='none', "o", color=self.colorify[newtype])
             newdot[0].pointtype = newtype
             if self.ax2_type == "Zoom":
                 xlim = self.ax2.get_xlim()
                 ylim = self.ax2.get_ylim()
-                newdot2 = self.ax2.plot(self.selectloc[0], self.selectloc[1], "o", color=self.colorify[newtype])
+                newdot2 = self.ax2.plot(self.selectloc[0], self.selectloc[1], linewidth=2, fillstyle='none', "o", color=self.colorify[newtype])
                 newdot2[0].pointtype = newtype
                 self.ax2.set_xlim(xlim)
                 self.ax2.set_ylim(ylim)
