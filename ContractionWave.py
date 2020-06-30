@@ -4846,7 +4846,7 @@ class PageSix(ttk.Frame):
 
         if self.plotsettings.plotline_opts["absolute_time"] == True:
             self.mainplotartist = self.ax2.plot(self.current_peak.peaktimes, self.current_peak.peakdata, color=self.plotsettings.peak_plot_colors["main"])
-            self.ax2.plot(self.current_peak.firsttime, self.current_peak.firstvalue, , linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
+            self.ax2.plot(self.current_peak.firsttime, self.current_peak.firstvalue, linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["first"], picker=5)
             self.ax2.plot(self.current_peak.secondtime, self.current_peak.secondvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
             self.ax2.plot(self.current_peak.thirdtime, self.current_peak.thirdvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["min"], picker=5)
             self.ax2.plot(self.current_peak.fourthtime, self.current_peak.fourthvalue, "o", linewidth=2, fillstyle='none', color=self.plotsettings.peak_plot_colors["max"], picker=5)
