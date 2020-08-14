@@ -5,6 +5,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from tkinter import messagebox
 from peakdetectpure import peakdet
+from matplotlib.artist import Artist
 
 class PeaksObj(object):
     def __init__(self):
@@ -12,6 +13,8 @@ class PeaksObj(object):
         self.thisgroup = None
         self.thisframes = None
         self.peaks = []
+        self.mag_sindex = None
+        self.mag_findex = None
         print("class PeaksObj def init end")
     def convert_timescales_all(self, timescale):
         print("class PeaksObj def convert_timescales_all start")
@@ -200,7 +203,7 @@ class MoveDragHandler(object):
 
     This is a simple example, which works for Text objects only
     """
-    def __init__(self, master, currentgroup = None, FPS=None, pixel_val = None, figure=None, ax=None, data=[], selectCMenu=None, areaCMenu=None, areaNMenu=None, colorify = None, plotconf=None, noiseindexes = [], dsizes=(None,None), ax2baseline=None, ax2grid=None) :
+    def __init__(self, master, currentgroup = None, FPS=None, pixel_val = None, figure=None, ax=None, data=[], selectCMenu=None, areaCMenu=None, areaNMenu=None, colorify = None, plotconf=None, noiseindexes = [], dsizes=(None,None), ax2baseline=None, ax2grid=None, deltafft=None) :
         """ Create a new drag handler and connect it to the figure's event system."""
         self.master = master
         #Figure, Ax, Plot Data, Click Mode, Right Click Menus
@@ -277,6 +280,21 @@ class MoveDragHandler(object):
         self.mode = "edit"
         self.ax2baseline = ax2baseline
         self.ax2grid = ax2grid
+
+        self.zoomed = False
+        self.lockzoom = False
+        self.zoomrect = None
+        self.zoomrectx0 = None
+        self.zoomrecty0 = None
+        self.zoomrectx1 = None
+        self.zoomrecty1 = None
+        self.x0 = None
+        self.x1 = None
+        self.y0 = None
+        self.y1 = None
+        self.axcurlims = (None, None)
+        self.ax2curlims = (None, None)
+        self.delta_fft = deltafft
 
     def get_rectangles_data(self):
         if not self.drawnrects:
@@ -438,7 +456,6 @@ class MoveDragHandler(object):
         # print("SET DONE")
         # print("")
 
-
     def example_function(self, event=None):
         print("Hi!")   
     
@@ -503,6 +520,14 @@ class MoveDragHandler(object):
             #No function
             print(self.mode + " " + self.ax2_type)
             return
+        
+        elif self.mode == "zoom" and event.inaxes == self.ax:
+            self.on_press_zoom(event)
+            return
+        elif self.mode == "zoom" and event.inaxes == self.ax2:
+            self.on_press_zoom(event)
+            return
+
         return
 
     def on_motion_event(self, event):
@@ -555,6 +580,15 @@ class MoveDragHandler(object):
             #No function
             print(self.mode + " " + self.ax2_type)
             return
+            return
+        
+        elif self.mode == "zoom" and event.inaxes == self.ax:
+            self.on_motion_zoom(event)
+            return
+        elif self.mode == "zoom" and event.inaxes == self.ax2:
+            self.on_motion_zoom(event)
+            return
+        
         return
 
     def on_release_event(self, event):
@@ -592,6 +626,15 @@ class MoveDragHandler(object):
             #No function
             print(self.mode + " " + self.ax2_type)
             return
+            return
+        
+        elif self.mode == "zoom" and event.inaxes == self.ax:
+            self.on_release_zoom(event)
+            return
+        elif self.mode == "zoom" and event.inaxes == self.ax2:
+            self.on_release_zoom(event)
+            return
+        
         return
 
     def add_dot_at_last(self, newtype):
@@ -615,6 +658,10 @@ class MoveDragHandler(object):
             self.selectloc = None
             messagebox.showerror("Error", "Dot already exists at this position")
             return False
+        self.selectdotarea = None
+        self.selectloc = None
+        return False
+
 
     def change_dot_at_last(self, newtype):
         if self.selectdotarea != None:
@@ -642,6 +689,10 @@ class MoveDragHandler(object):
             self.selectdotarea = None
             self.selectloc = None
             return False
+        self.selectdotarea = None
+        self.selectloc = None
+        return False
+
 
     def remove_dot_at_last(self):
         if self.selectdotarea != None:
@@ -667,6 +718,10 @@ class MoveDragHandler(object):
             self.selectdotarea = None
             self.selectloc = None
             return False
+        self.selectdotarea = None
+        self.selectloc = None
+        return False
+
 
     def on_press_moveevent(self, event, thisax):
         print("on_press_moveevent")
@@ -1077,7 +1132,13 @@ class MoveDragHandler(object):
                         if (nrectstart >= rstart and nrectstart <= rend) or (nrectend >= rstart and nrectend <= rend) or (nrectstart <= rstart and nrectend >= rend):
                             nstarts.append(rstart)
                             nends.append(rend)
-                            self.drawnrects[i].remove()
+                            try:
+                                self.drawnrects[i].remove()
+                            except Exception as e:
+                                print("### PLEASE SEND ME TO DEV ###")
+                                print(e)
+                                print("### PLEASE SEND ME TO DEV ###")
+
                         else:
                             redraw.append(self.drawnrects[i])
                         i += 1
@@ -1125,8 +1186,8 @@ class MoveDragHandler(object):
         if self.ax2_type == "Zoom":
             print("def drawAx2 rectangle selection about to check")
             curlims = None
-            self.ax2.set_xlabel("Time("+ self.master.current_timescale +")")
-            self.ax2.set_ylabel("Average Speed("+ self.master.current_speedscale+")")
+            self.ax2.set_xlabel("Time ("+ self.master.current_timescale +")")
+            self.ax2.set_ylabel("Average Speed ("+ self.master.current_speedscale+")")
             if len(self.drawnrects) > 0:
                 print("def drawAx2 rectangle selection exist")
                 rect_to = self.drawnrects[-1]
@@ -1189,6 +1250,7 @@ class MoveDragHandler(object):
 
                 self.master.current_frame.plotRegressions()
                 self.master.current_frame.plotMeanNoise()
+                self.master.current_frame.plotMaxfiltering()
                 self.ax2.set_xlim(curlims[0])
                 self.ax2.set_ylim(curlims[1])
 
@@ -1251,12 +1313,13 @@ class MoveDragHandler(object):
             t = np.linspace(0, len(ax2_data), len(ax2_data), endpoint=True)
             
 
-            cut_fft = int(len(AmpFFT) * 0.4)
-            delta_fft = np.mean(AmpFFT[:cut_fft])
-            delta_fft = float("{:.3f}".format(delta_fft))
+            cut_fft = int(len(AmpFFT) * 0.3)
+            if self.delta_fft == None:
+                self.delta_fft = np.mean(AmpFFT[:cut_fft])
+            self.delta_fft = float("{:.3f}".format(self.delta_fft))
 
             # delta is average from detected maximum values to closest baseline minimum / 2
-            maxtab, mintab = peakdet(AmpFFT, delta_fft)
+            maxtab, mintab = peakdet(AmpFFT, self.delta_fft)
 
             # freq = np.fft.fftfreq(ax2_data.shape[-1])
             freq = np.fft.fftfreq(ax2_data.shape[-1], d=t[1])
@@ -1268,8 +1331,10 @@ class MoveDragHandler(object):
 
             maxes_x = []
             maxes_x = [freq[i] for i in maxes[1:]]
+            maxes_x = [maxes_x[0]]
             maxes_y = []
             maxes_y = [AmpFFT[i] for i in maxes[1:]]
+            maxes_y = [maxes_y[0]]
 
             self.ax2.set_xlabel("Frequency (Hz)");
             self.ax2.set_ylabel("Amplitude Density");
@@ -1281,10 +1346,19 @@ class MoveDragHandler(object):
                 if fdot == False:
                     curc = self.colorify["fft_selection"]
                     fdot = True
-                dot = self.ax2.plot(x, y, "o", color=curc, picker=5)
-            self.ax2.set_title("Frequency: " + "{:.3f}".format(maxes_x[0]) )
+                # dot = self.ax2.plot(x, y, "o", color=curc, picker=1)
+                dot = self.ax2.plot(x, y, "o", linewidth=2, fillstyle='none', color=curc, picker=3)
+                
+            self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) )
 
             # self.ax2.plot(maxes_x, maxes_y, "o", color=self.colorify["fft"])
+            if self.ax2grid != None:
+                self.ax2grid.remove()
+                self.ax2grid = None
+            if self.plotconf["grid"] == True:
+                self.ax2grid = self.ax2.grid(linestyle="-", color=self.plotconf["grid_color"], alpha=0.5)
+            else:
+                self.ax2.grid(False)
 
             xlim_end = self.ax2.get_xlim()[1]
             self.ax2.set_xlim(0, xlim_end)
@@ -1295,8 +1369,8 @@ class MoveDragHandler(object):
             self.figure.canvas.draw()            
 
         elif self.ax2_type == "PeakNoise":
-            self.ax2.set_xlabel("Time("+ self.master.current_timescale +")")
-            self.ax2.set_ylabel("Average Speed("+ self.master.current_speedscale+")")
+            self.ax2.set_xlabel("Time ("+ self.master.current_timescale +")")
+            self.ax2.set_ylabel("Average Speed ("+ self.master.current_speedscale+")")
 
             # if self.ax2baseline != None:
             #     self.ax2baseline.remove()
@@ -1413,7 +1487,7 @@ class MoveDragHandler(object):
         self.ax2.set_title("")
         selected = None
         for child in self.ax2.get_children():
-            if isinstance(child, Line2D) and child.contains(event)[0] and child.get_marker() == "o":
+            if isinstance(child, Line2D) and child.contains(event)[0] and child.get_marker() == "o" and selected == None:
                 child.set_color(self.colorify["fft_selection"])
                 selected = child
                 # break
@@ -1591,7 +1665,89 @@ class MoveDragHandler(object):
                 self.figure.canvas.draw()
                 self.locknoiserect = False
 
+    def reset_zoom_variables(self):
+        if self.zoomrect != None:
+            self.zoomrect.remove()
+            self.zoomrect = None
+        self.zoomrectx0 = None
+        self.zoomrecty0 = None
+        self.zoomrectx1 = None
+        self.zoomrecty1 = None
+        self.x0 = None
+        self.x1 = None
+        self.y0 = None
+        self.y1 = None
+        
+    def on_press_zoom(self, event):
+        self.reset_zoom_variables()
+        if event.button == 1 and event.dblclick == False and self.lockzoom == False and event.xdata is not None and event.ydata is not None:
+            self.lockzoom = True
+            self.zoomrectx0 = event.xdata
+            self.zoomrecty0 = event.ydata
+            return
+        elif event.button == 1 and event.dblclick == True:
+            self.lockzoom = False
+            self.zoomed = False
+            if self.zoomrect != None:
+                self.zoomrect.remove()
+                self.zoomrect = None
+            if event.inaxes == self.ax:
+                self.ax.set_xlim(self.axcurlims[0])
+                self.ax.set_ylim(self.axcurlims[1])
+            if event.inaxes == self.ax2:
+                self.ax2.set_xlim(self.ax2curlims[0])
+                self.ax2.set_ylim(self.ax2curlims[1])
+            #get master original zoom and return to original state on selected axis zoom
+            self.figure.canvas.draw()
+            return
+        elif self.lockzoom == True:
+            self.lockzoom = False
+        return
 
+    def on_motion_zoom(self, event):
+        if self.lockzoom == True and event.xdata != None and event.ydata != None and self.zoomrectx0 != None and self.zoomrecty0 != None:
+            curlims = (event.inaxes.get_xlim(), event.inaxes.get_ylim())
+            self.zoomrectx1 = event.xdata
+            self.zoomrecty1 = event.ydata
+            
+            self.x0 = self.zoomrectx0
+            self.x1 = self.zoomrectx1
+            if self.zoomrectx1 < self.zoomrectx0:
+                self.x0 = self.zoomrectx1
+                self.x1 = self.zoomrectx0
+            xwidth = self.x1 - self.x0
+
+            self.y0 = self.zoomrecty0
+            self.y1 = self.zoomrecty1
+            if self.zoomrecty1 < self.zoomrecty0:
+                self.y0 = self.zoomrecty1
+                self.y1 = self.zoomrecty0
+            yheight = self.y1 - self.y0
+
+            new_zrect = Rectangle((self.x0,self.y0), xwidth, yheight, fill=False, alpha=1)
+            if self.zoomrect:
+                self.zoomrect.remove()
+            self.zoomrect = None
+            self.zoomrect = event.inaxes.add_patch(new_zrect)
+
+            event.inaxes.set_xlim(curlims[0])
+            event.inaxes.set_ylim(curlims[1])
+
+            self.figure.canvas.draw()
+            return
+        elif self.lockzoom == True:
+            self.lockzoom = False
+            self.reset_zoom_variables()
+        return
+
+    def on_release_zoom(self, event):
+        if self.lockzoom == True and event.xdata != None and event.ydata != None and self.zoomrectx0 != None and self.zoomrecty0 != None and self.zoomrectx1 != None and self.zoomrecty1 != None:
+            event.inaxes.set_xlim((self.x0, self.x1))
+            event.inaxes.set_ylim((self.y0, self.y1))
+            self.figure.canvas.draw()
+        self.reset_zoom_variables()
+        self.lockzoom = False
+        return
 #https://stackoverflow.com/questions/12052379/matplotlib-draw-a-selection-area-in-the-shape-of-a-rectangle-with-the-mouse
 #https://stackoverflow.com/questions/48446351/distinguish-button-press-event-from-drag-and-zoom-clicks-in-matplotlib
 #https://stackoverflow.com/questions/12014210/tkinter-app-adding-a-right-click-context-menu

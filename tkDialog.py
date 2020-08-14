@@ -8,9 +8,11 @@ class Dialog(tk.Toplevel):
         tk.Toplevel.__init__(self, parent)
         self.transient(parent)
         self.configure(background=parent.controller._get_bg_color())
-
+        
+        self.thistitle = ""
         if title:
             self.title(title)
+            self.thistitle = title
         if literals:
             self.literals = {}
             for littuple in literals:
@@ -36,15 +38,32 @@ class Dialog(tk.Toplevel):
         if self.packbtns == True:
             self.okbtn.pack(side=tk.LEFT, padx=5, pady=5)
             self.cnbtn.pack(side=tk.LEFT, padx=5, pady=5)
+        self.wait_visibility()
         self.grab_set()
 
         if not self.initial_focus:
             self.initial_focus = self
 
         self.protocol("WM_DELETE_WINDOW", self.cancel)
+        w = parent.winfo_rootx()+int(parent.winfo_width()/2) - int(self.winfo_reqwidth()/2)
+        h = parent.winfo_rooty()+int(parent.winfo_height()/2)- int(self.winfo_reqheight()/2)
+        self.geometry("+%d+%d" % (w,h))
 
-        self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
-                                  parent.winfo_rooty()+50))
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+int(parent.winfo_width()/2),
+                                #   parent.winfo_rooty()+int(parent.winfo_height()/2)  )  )
+
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+                                #   parent.winfo_rooty()+50))
+
+        # width = parent.winfo_width()
+        # frm_width = parent.winfo_rootx() - parent.winfo_x()
+        # win_width = width + 2 * frm_width
+        # height = parent.winfo_height()
+        # titlebar_height = parent.winfo_rooty() - parent.winfo_y()
+        # win_height = height + titlebar_height + frm_width
+        # x = parent.winfo_screenwidth() // 2 - win_width // 2
+        # y = parent.winfo_screenheight() // 2 - win_height // 2
+        # self.geometry("+%d+%d" % (x, y))
 
         self.initial_focus.focus_set()
 
@@ -133,8 +152,13 @@ class DialogBlockNonGrab(tk.Toplevel):
         body.pack(padx=5, pady=5)
 
         self.protocol("WM_DELETE_WINDOW", self.cancel)
-        self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
-                                  parent.winfo_rooty()+50))
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+        #                           parent.winfo_rooty()+50))
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+int(parent.winfo_width()/2),
+                                #   parent.winfo_rooty()+int(parent.winfo_height()/2)  )  )
+        w = parent.winfo_rootx()+int(parent.winfo_width()/2) - int(self.winfo_reqwidth()/2)
+        h = parent.winfo_rooty()+int(parent.winfo_height()/2)- int(self.winfo_reqheight()/2)
+        self.geometry("+%d+%d" % (w,h))
         self.wait_visibility(self)
 
     # construction hooks
@@ -199,9 +223,15 @@ class DialogNonBlock(tk.Toplevel):
 
         self.protocol("WM_DELETE_WINDOW", self.ok)
 
-        self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
-                                  parent.winfo_rooty()+50))
+        
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+                                #   parent.winfo_rooty()+50))
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+int(parent.winfo_width()/2),
+                                #   parent.winfo_rooty()+int(parent.winfo_height()/2)  )  )
 
+        w = parent.winfo_rootx()+int(parent.winfo_width()/2) - int(self.winfo_reqwidth()/2)
+        h = parent.winfo_rooty()+int(parent.winfo_height()/2)- int(self.winfo_reqheight()/2)
+        self.geometry("+%d+%d" % (w,h))
         # self.initial_focus.focus_set()
 
     #
@@ -250,7 +280,10 @@ class DialogNonBlock(tk.Toplevel):
 
         # put focus back to the parent window
         self.parent.focus_set()
-        self.literals["updatable_frame"].delete_settings()
+        if self.literals["frame_type"] == "settings":
+            self.literals["updatable_frame"].delete_settings()
+        elif self.literals["frame_type"] == "legexport":
+            self.literals["updatable_frame"].delete_legend()
         self.destroy()
 
     #
@@ -293,9 +326,14 @@ class DialogNonBlockMax(tk.Toplevel):
         self.resizable(False, False)
         
         self.protocol("WM_DELETE_WINDOW", self.ok)
-
-        self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
-                                  parent.winfo_rooty()+50))
+        
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+50,
+        #                           parent.winfo_rooty()+50))
+        # self.geometry("+%d+%d" % (parent.winfo_rootx()+int(parent.winfo_width()/2),
+                                #   parent.winfo_rooty()+int(parent.winfo_height()/2)  )  )
+        w = parent.winfo_rootx()+int(parent.winfo_width()/2) - int(self.winfo_reqwidth()/2)
+        h = parent.winfo_rooty()+int(parent.winfo_height()/2)- int(self.winfo_reqheight()/2)
+        self.geometry("+%d+%d" % (w,h))
 
     #
     # construction hooks

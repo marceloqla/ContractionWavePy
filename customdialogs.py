@@ -56,7 +56,7 @@ class HelpDialog(tkDialog.Dialog):
             "Fig 63 - Plot Settings Menu at the Top Bar options.",
             "Editing a Plot setting allows the user to change colors for any of the Wave Points, Lines, Selection Areas, to select whether a horizontal baseline is drawn at each plot at 0.0 and whether a grid is drawn in each plot and to customize the baseline and grid colors. Time units can be changed between Seconds and Milliseconds.",
             "Fig 64 - Editing Plot Settings option Pop Up Window.",
-            "The Peak Absolute (in relation to the whole analysis) or Relative time (starting at 0.0) can be displayed in the Visualizing Wave Parameters and the Jet and Quiver Plots window also according to the user’s preference.",
+            "The Wave Absolute (in relation to the whole analysis) or Relative time (starting at 0.0) can be displayed in the Visualizing Wave Parameters and the Jet and Quiver Plots window also according to the user’s preference.",
             "Saving or Loading a Plot Setting prompts the user to select a filename or directory for their respective operation. The window plots are automatically refreshed after a new Plot Setting is loaded."
             ],
             
@@ -545,43 +545,30 @@ class SelectPresetDialog(tkDialog.Dialog):
         else:
             self.result = None
 
+class CustomYesNo(tkDialog.Dialog):
+    def body(self, master):
+        ttk.Label(master, text=self.thistitle, font=('Helvetica', 12)).grid(row=0, column=0)
+        self.result = False
+        pass
+
+    def validate(self):
+        self.valid = True
+        return 1
+    
+    def apply(self):
+        self.result = True
+
 class PlotSettingsProgress(tkDialog.Dialog):
 
     def body(self, master):
         print("class PlotSettingsProgress def body creation")
-        ttk.Label(master, text='Edit Plot Settings:').grid(row=0, column=0, columnspan=2)
-        keytextconversion = {
-            "main": 'Set Plot Line Color',
-            "first":'Set First Dots Color',
-            "max":'Set Max Dots Color',
-            "min":'Set Min Dots Color',
-            "last":'Set Last Dots Color',
-            "fft": 'Set FFT Dots Color',
-            "fft_selection": 'Set FFT Sel. Dot Color',
-            "noise_true": 'Set Noise Dots Color',
-            "noise_false": 'Set Wave Dots Color',
-            "rect_color": 'Set Sel. Areas Color'
-        }
         self.current_settings = self.literals["plotsettingscolors"]
         self.current_lineopts = self.literals["plotsettingsline"]
-        i = 0
-        #i = 1
-        for j, k in enumerate(sorted(self.current_settings.keys())):
-            coln = 1
-            if j % 2 == 0:
-                i += 1
-                coln = 0
-            thisButton = ttk.Button(master, text=keytextconversion[k],width=20)
-            thisButton.texttype = k
-            thisButton.bind("<Button-1>", self.change_color)
-            thisButton.grid(row=i, column=coln)
-            # i += 1
-        i += 1
-        print("create sep")
-        sep = ttk.Separator(master, orient='horizontal')
-        sep.grid(row=i, column=0, columnspan=2, sticky="ew", ipadx=20)
-        i += 1
-        # for l in sorted(self.current_lineopts.keys()):
+        rowindex = 0
+
+        ttk.Label(master, text='Graph Settings:', font=('Helvetica', 14)).grid(row=rowindex, column=0, columnspan=2)
+        rowindex += 1
+
         checklvarstatus = 0
         if self.current_lineopts["zero"] == True:
             checklvarstatus = 1
@@ -589,14 +576,14 @@ class PlotSettingsProgress(tkDialog.Dialog):
         self.thisCheck_line_var.set(checklvarstatus)
         self.thisCheck_line = ttk.Checkbutton(master, text="Plot X Axis Baseline", variable = self.thisCheck_line_var,width=20)
         self.thisCheck_line.texttype = "zero"
-        self.thisCheck_line.grid(row=i, column=0)
+        self.thisCheck_line.grid(row=rowindex, column=0)
 
         self.zeroButton = ttk.Button(master, text="Baseline Color",width=20)
         self.zeroButton.texttype = "zero_color"
         self.zeroButton.bind("<Button-1>", self.change_color2)
-        self.zeroButton.grid(row=i, column=1)
+        self.zeroButton.grid(row=rowindex, column=1)
+        rowindex += 1
 
-        i += 1
         checkgvarstatus = 0
         if self.current_lineopts["grid"] == True:
             checkgvarstatus = 1
@@ -604,13 +591,13 @@ class PlotSettingsProgress(tkDialog.Dialog):
         self.thisCheck_grid_var.set(checkgvarstatus)
         self.thisCheck_grid = ttk.Checkbutton(master, text="Plot Gridlines", variable = self.thisCheck_grid_var,width=20)
         self.thisCheck_grid.texttype = "grid"
-        self.thisCheck_grid.grid(row=i, column=0)
+        self.thisCheck_grid.grid(row=rowindex, column=0)
 
         self.gridButton = ttk.Button(master, text="Gridlines Color",width=20)
         self.gridButton.texttype = "grid_color"
         self.gridButton.bind("<Button-1>", self.change_color2)
-        self.gridButton.grid(row=i, column=1)
-        i += 1
+        self.gridButton.grid(row=rowindex, column=1)
+        rowindex += 1
 
         self.TimeSelect = tk.StringVar()
         self.full_time_dict = {
@@ -625,24 +612,64 @@ class PlotSettingsProgress(tkDialog.Dialog):
         self.TimeSelect.set(fkey)
         self.optmenu = ttk.OptionMenu(master, self.TimeSelect, "Seconds", *sorted(self.full_time_dict.keys()), command=self.set_timetype)
         self.optmenu.texttype = "time_unit"
-        ttk.Label(master, text="Used Time Unit:").grid(row=i, column=0, columnspan=2)
-        i+=1
-        self.optmenu.grid(row=i, column=0, columnspan=2)
+        ttk.Label(master, text="Used Time Unit:").grid(row=rowindex, column=0, columnspan=2)
+        rowindex+=1
+        self.optmenu.grid(row=rowindex, column=0, columnspan=2)
         self.TimeSelect.set(fkey)
-        i+=1
+        rowindex+=1
 
         checkavarstatus = 0
         if self.current_lineopts["absolute_time"] == True:
             checkavarstatus = 1
         self.thisCheck_absolute_var = tk.IntVar()
         self.thisCheck_absolute_var.set(checkavarstatus)
-        self.thisCheck_absolute = ttk.Checkbutton(master, text="Peak Absolute Time", variable = self.thisCheck_absolute_var,width=20)
+        self.thisCheck_absolute = ttk.Checkbutton(master, text="Wave absolute time", variable = self.thisCheck_absolute_var,width=20)
         self.thisCheck_absolute.texttype = "absolute_time"
-        self.thisCheck_absolute.grid(row=i, column=0, columnspan=2)
+        self.thisCheck_absolute.grid(row=rowindex, column=0, columnspan=2)
+        rowindex+=1
+
+        checkavarstatus2 = 0
+        if self.current_lineopts["show_dots"] == True:
+            checkavarstatus2 = 1
+        self.thisCheck_dots_var = tk.IntVar()
+        self.thisCheck_dots_var.set(checkavarstatus2)
+        self.thisCheck_dots = ttk.Checkbutton(master, text="Plot dots of interest", variable = self.thisCheck_dots_var,width=20)
+        self.thisCheck_dots.texttype = "show_dots"
+        self.thisCheck_dots.grid(row=rowindex, column=0, columnspan=2)
+        rowindex+=1
+
+        sep = ttk.Separator(master, orient='horizontal')
+        sep.grid(row=rowindex, column=0, columnspan=2, sticky="ew", ipadx=20, ipady=1)
+        rowindex += 1
+
+        ttk.Label(master, text='Color Settings:', font=('Helvetica', 14)).grid(row=rowindex, column=0, columnspan=2)
+        rowindex += 1
+
+        keytextconversion = {
+            "main": 'Set Plot Line Color',
+            "first":'Set First Dots Color',
+            "max":'Set Max Dots Color',
+            "min":'Set Min Dots Color',
+            "last":'Set Last Dots Color',
+            "fft": 'Set FFT Dots Color',
+            "fft_selection": 'Set FFT Sel. Dot Color',
+            "noise_true": 'Set Noise Dots Color',
+            "noise_false": 'Set Wave Dots Color',
+            "rect_color": 'Set Sel. Areas Color',
+            "gvf": 'Set Max. Filtering Line Color'
+        }
+        for j, k in enumerate(sorted(self.current_settings.keys())):
+            coln = 1
+            if j % 2 == 0:
+                rowindex += 1
+                coln = 0
+            thisButton = ttk.Button(master, text=keytextconversion[k],width=20)
+            thisButton.texttype = k
+            thisButton.bind("<Button-1>", self.change_color)
+            thisButton.grid(row=rowindex, column=coln)
+        rowindex += 1
 
         print("class PlotSettingsProgress def body created")
-
-        # self.current_lineopts 
 
     def change_color(self, event):
         print("class PlotSettingsProgress def change_color started")
@@ -687,6 +714,10 @@ class PlotSettingsProgress(tkDialog.Dialog):
             self.current_lineopts["absolute_time"] = True
         else:
             self.current_lineopts["absolute_time"] = False
+        if self.thisCheck_dots_var.get() == 1:
+            self.current_lineopts["show_dots"] = True
+        else:
+            self.current_lineopts["show_dots"] = False
         print("class PlotSettingsProgress def validate done")
         return 1
 
@@ -724,7 +755,7 @@ class QuiverJetMaximize(tkDialog.DialogNonBlockMax):
 
         # self.figmax = plt.figure(figsize=(4, 3), dpi=100 ,facecolor=master.cget('bg'), edgecolor="None")
         # self.mbg = master.cget('bg')
-        self.figmax = plt.figure(figsize=(4, 3), dpi=100 ,facecolor="black", edgecolor="None")
+        self.figmax = plt.figure(figsize=(4, 3), dpi=300 ,facecolor="black", edgecolor="None")
         
         self.gsmax = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.2)
         
@@ -750,7 +781,7 @@ class QuiverJetMaximize(tkDialog.DialogNonBlockMax):
         print("class QuiverJetMaximize def body done")
 
     def set_figure(self, figx, figy):
-        self.figmax.set_size_inches(figx/100, figy/100, forward=True)
+        self.figmax.set_size_inches(figx/300, figy/300, forward=True)
         self.figmax.axes[0].set_position(self.gs_nobordermax[0].get_position(self.figmax))
         self.canvasmax.get_tk_widget().config(width=figx)
         self.canvasmax.get_tk_widget().config(height=figy)
@@ -814,9 +845,10 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
     def body(self, master):
         print("class QuiverJetSettings def body creation")
-        ttk.Label(master, text='Advanced Configurations:').grid(row=0, column=0, rowspan=1)
+        ttk.Label(master, text='Vector Spacing:', font=('Helvetica', 14) ).grid(row=0, column=0, rowspan=1, columnspan=2)
         #list_features = ["current_windowX", "current_windowY", "blur_size", "kernel_dilation", "kernel_erosion", "kernel_smoothing_contours", "border_thickness"]
         rown = 1
+
         ttk.Label(master,text=self.literals["current_windowX"][0]).grid(row=rown, column=0)
         self.current_windowX_spin = tk.Spinbox(master, from_=self.literals["config"]["current_windowX"][0], to=self.literals["config"]["current_windowX"][1], increment=1, width=10, command=lambda: self.up_frame(self.current_windowX_spin, "current_windowX"))
         self.current_windowX_spin.thistype = "current_windowX" 
@@ -834,7 +866,16 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         self.current_windowY_spin.insert(0,self.literals["current_windowY"][1])
         self.current_windowY_spin.bind('<Return>', lambda *args: self.up_frame(self.current_windowY_spin, "current_windowY"))
 
+        
         rown += 1
+        
+        sep = ttk.Separator(master, orient='horizontal')
+        sep.grid(row=rown, column=0, columnspan=2, sticky="ew", ipadx=20, ipady=1)
+        rown += 1
+
+        ttk.Label(master, text='Image Filtering:',  font=('Helvetica', 14)  ).grid(row=rown, column=0, rowspan=1, columnspan=2)
+        rown += 1
+
         ttk.Label(master,text=self.literals["blur_size"][0]).grid(row=rown, column=0)
         self.blur_size_spin = tk.Spinbox(master, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=10, command=lambda: self.up_frame(self.blur_size_spin, "blur_size"))
         self.blur_size_spin.thistype = "blur_size" 
@@ -845,7 +886,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
 
         rown += 1
         ttk.Label(master,text=self.literals["kernel_dilation"][0]).grid(row=rown, column=0)
-        self.kernel_dilation_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_dilation_spin, "kernel_dilation"))
+        self.kernel_dilation_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=2, width=10, command=lambda: self.up_frame(self.kernel_dilation_spin, "kernel_dilation"))
         self.kernel_dilation_spin.thistype = "kernel_dilation" 
         self.kernel_dilation_spin.grid(row=rown, column=1)
         self.kernel_dilation_spin.delete(0,"end")
@@ -854,7 +895,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
        
         rown += 1
         ttk.Label(master,text=self.literals["kernel_erosion"][0]).grid(row=rown, column=0)
-        self.kernel_erosion_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=1, width=10, command=lambda: self.up_frame(self.kernel_erosion_spin, "kernel_erosion"))
+        self.kernel_erosion_spin = tk.Spinbox(master, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=2, width=10, command=lambda: self.up_frame(self.kernel_erosion_spin, "kernel_erosion"))
         self.kernel_erosion_spin.thistype = "kernel_erosion" 
         self.kernel_erosion_spin.grid(row=rown, column=1)
         self.kernel_erosion_spin.delete(0,"end")
@@ -880,7 +921,32 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         self.border_thickness_spin.bind('<Return>', lambda *args: self.up_frame(self.border_thickness_spin, "border_thickness"))
 
         rown += 1
-        ttk.Label(master,text=self.literals["minscale"][0]).grid(row=rown, column=0)
+        ttk.Label(master,text=self.literals["jetalpha"][0]).grid(row=rown, column=0)
+        self.jetalpha_spin = tk.Spinbox(master, from_=self.literals["config"]["jetalpha"][0], to=self.literals["config"]["jetalpha"][1], increment=0.1, width=10, command=lambda: self.up_frame(self.jetalpha_spin, "jetalpha"))
+        self.jetalpha_spin.thistype = "jetalpha"
+        self.jetalpha_spin.grid(row=rown, column=1)
+        self.jetalpha_spin.delete(0,"end")
+        self.jetalpha_spin.insert(0,self.literals["jetalpha"][1])
+        self.jetalpha_spin.bind('<Return>', lambda *args: self.up_frame(self.jetalpha_spin, "jetalpha"))
+        rown += 1
+
+        ttk.Label(master,text=self.literals["quiveralpha"][0]).grid(row=rown, column=0)
+        self.quiveralpha_spin = tk.Spinbox(master, from_=self.literals["config"]["quiveralpha"][0], to=self.literals["config"]["quiveralpha"][1], increment=0.1, width=10, command=lambda: self.up_frame(self.quiveralpha_spin, "quiveralpha"))
+        self.quiveralpha_spin.thistype = "quiveralpha"
+        self.quiveralpha_spin.grid(row=rown, column=1)
+        self.quiveralpha_spin.delete(0,"end")
+        self.quiveralpha_spin.insert(0,self.literals["quiveralpha"][1])
+        self.quiveralpha_spin.bind('<Return>', lambda *args: self.up_frame(self.quiveralpha_spin, "quiveralpha"))
+        rown += 1
+        
+        sep2 = ttk.Separator(master, orient='horizontal')
+        sep2.grid(row=rown, column=0, columnspan=2, sticky="ew", ipadx=20, ipady=1)
+        rown += 1
+
+        ttk.Label(master, text='Scale Normalization:', font=('Helvetica', 14) ).grid(row=rown, column=0, rowspan=1, columnspan=2)
+        rown += 1
+
+        ttk.Label(master,text=self.literals["minscale"][0] + " (μm/s)").grid(row=rown, column=0)
         self.minscale_spin = tk.Spinbox(master, from_=self.literals["config"]["minscale"][0], to=self.literals["config"]["minscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.minscale_spin, "minscale"))
         self.minscale_spin.thistype = "minscale"
         self.minscale_spin.grid(row=rown, column=1)
@@ -889,7 +955,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         self.minscale_spin.bind('<Return>', lambda *args: self.up_frame(self.minscale_spin, "minscale"))
 
         rown += 1
-        ttk.Label(master,text=self.literals["maxscale"][0]).grid(row=rown, column=0)
+        ttk.Label(master,text=self.literals["maxscale"][0] + " (μm/s)").grid(row=rown, column=0)
         self.maxscale_spin = tk.Spinbox(master, from_=self.literals["config"]["maxscale"][0], to=self.literals["config"]["maxscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.maxscale_spin, "maxscale"))
         self.maxscale_spin.thistype = "maxscale"
         self.maxscale_spin.grid(row=rown, column=1)
@@ -897,22 +963,56 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         self.maxscale_spin.insert(0,self.literals["maxscale"][1])
         self.maxscale_spin.bind('<Return>', lambda *args: self.up_frame(self.maxscale_spin, "maxscale"))
         
+        rown += 1
+        mval = 0
+        if self.literals["plotmax"] == True:
+            mval = 1
+        self.checkbutton_max_val = tk.IntVar(value=mval)
+        self.checkbutton_max = ttk.Checkbutton(master, text = "Add Scale Max. to legend:", variable = self.checkbutton_max_val, \
+                         onvalue = 1, offvalue = 0, command=lambda: self.up_frame(self.checkbutton_min, "plotmax"))
+        self.checkbutton_max.thistype = "plotmax"
+        self.checkbutton_max.grid(row=rown, column=0, columnspan=2)
+        
+        rown += 1
+        ttk.Label(master,text=self.literals["defminscale"][0] + " (μm/s)").grid(row=rown, column=0)
+        self.defminscale_spin = tk.Spinbox(master, from_=self.literals["config"]["defminscale"][0], to=self.literals["config"]["defminscale"][1], increment=1, width=10, command=lambda: self.up_frame(self.defminscale_spin, "defminscale"))
+        self.defminscale_spin.thistype = "defminscale"
+        self.defminscale_spin.grid(row=rown, column=1)
+        self.defminscale_spin.delete(0,"end")
+        self.defminscale_spin.insert(0,self.literals["defminscale"][1])
+        self.defminscale_spin.bind('<Return>', lambda *args: self.up_frame(self.defminscale_spin, "defminscale"))
+
+        rown += 1
+        mival = 0
+        if self.literals["plotmin"] == True:
+            mival = 1
+        self.checkbutton_min_val = tk.IntVar(value=mival)
+        self.checkbutton_min = ttk.Checkbutton(master, text = "Add Scale Min. to legend:", variable = self.checkbutton_min_val, \
+                         onvalue = 1, offvalue = 0, command=lambda: self.up_frame(self.checkbutton_min, "plotmin"))
+        self.checkbutton_min.thistype = "plotmin"
+        self.checkbutton_min.grid(row=rown, column=0, columnspan=2)
+
         print("class QuiverJetSettings def body creation done")
         
         # tk.Label(master, text=literals[k][0]).grid(row=rown, column=0)
         # tk.Spinbox(master, from_=self.literals["config"][k][0], to=self.literals["config"][k][0], increment=1, width=10).grid(row=rown, column=1)
 
     def up_frame(self, current, event=None):
-        #TODO: CORRECT THIS
         print("class QuiverJetSettings def up_frame")
         if event != None:
             print("class QuiverJetSettings def up_frame event")
             print(event)
             valid = self.validate()
             if valid == True:
-                self.literals["updatable_frame"].update_config(event,int(current.get().replace(",", ".")))
-            # print(event.widget)
-            # print(event.widget.thistype)
+                if event not in ["jetalpha", "quiveralpha", "plotmax", "plotmin"]:
+                    self.literals["updatable_frame"].update_config(event,int(current.get().replace(",", ".")))
+                elif event not in ["jetalpha", "quiveralpha"]:
+                    if event == "plotmin":
+                        self.literals["updatable_frame"].update_config(event,bool(self.checkbutton_min_val.get()))
+                    elif event == "plotmax":
+                        self.literals["updatable_frame"].update_config(event,bool(self.checkbutton_max_val.get()))
+                else:
+                    self.literals["updatable_frame"].update_config(event,float(current.get().replace(",", ".")))
         # self.literals["updatable_frame"].update_frame()
         # self.literals["updatable_frame"].update()
         pass
@@ -958,7 +1058,14 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
                     "Bad input",
                     "Illegal values, please try again"
                 )
-                return 0   
+                return 0  
+            if kernel_dilation_spin_val % 2 == 0:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0 
             kernel_erosion_spin_val = int(self.kernel_erosion_spin.get().replace(",", "."))
             if kernel_erosion_spin_val < self.literals["config"]["kernel_erosion"][0] or kernel_erosion_spin_val > self.literals["config"]["kernel_erosion"][1]:
                 self.valid = False
@@ -966,7 +1073,14 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
                     "Bad input",
                     "Illegal values, please try again"
                 )
-                return 0  
+                return 0   
+            if kernel_erosion_spin_val % 2 == 0:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0 
             kernel_smoothing_contours_spin_val = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
             if kernel_smoothing_contours_spin_val < self.literals["config"]["kernel_smoothing_contours"][0] or kernel_smoothing_contours_spin_val > self.literals["config"]["kernel_smoothing_contours"][1]:
                 self.valid = False
@@ -992,6 +1106,14 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
                     "Illegal values, please try again"
                 )
                 return 0
+            defminscale_val = float(self.defminscale_spin.get().replace(",", "."))
+            if defminscale_val < self.literals["config"]["defminscale"][0] or defminscale_val > self.literals["config"]["defminscale"][1]:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0
             maxscale_val = float(self.maxscale_spin.get().replace(",", "."))
             if maxscale_val < self.literals["config"]["maxscale"][0] or maxscale_val > self.literals["config"]["maxscale"][1]:
                 self.valid = False
@@ -1000,7 +1122,23 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
                     "Illegal values, please try again"
                 )
                 return 0
-            if maxscale_val <= minscale_val:
+            if maxscale_val <= minscale_val or maxscale_val <= defminscale_val:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0
+            jetalpha_val = float(self.jetalpha_spin.get().replace(",", "."))
+            if jetalpha_val < self.literals["config"]["jetalpha"][0] or jetalpha_val > self.literals["config"]["jetalpha"][1]:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0
+            quiveralpha_val = float(self.quiveralpha_spin.get().replace(",", "."))
+            if quiveralpha_val < self.literals["config"]["quiveralpha"][0] or quiveralpha_val > self.literals["config"]["quiveralpha"][1]:
                 self.valid = False
                 messagebox.showwarning(
                     "Bad input",
@@ -1035,19 +1173,123 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
             self.result["kernel_smoothing_contours"] = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
             self.result["border_thickness"] = int(self.border_thickness_spin.get().replace(",", "."))
             self.result["minscale"] = float(self.minscale_spin.get().replace(",", "."))
+            self.result["defminscale"] = float(self.defminscale_spin.get().replace(",", "."))
             self.result["maxscale"] = float(self.maxscale_spin.get().replace(",", "."))
+            self.result["jetalpha"] = float(self.jetalpha_spin.get().replace(",", "."))
+            self.result["quiveralpha"] = float(self.quiveralpha_spin.get().replace(",", "."))
+            self.result["plotmax"] = bool(self.checkbutton_max_val.get())
+            self.result["plotmin"] = bool(self.checkbutton_min_val.get())
             print(self.result)
             self.literals["updatable_frame"].update_all_settings(self.result)
         return True
+
+class AdjustDeltaFFTDialog(tkDialog.Dialog):
+    def body(self, master):
+        rown = 0
+        self.spindeltafftlbl = ttk.Label(master, text= 'FFT peak detection Delta:')
+        self.spindeltafftlbl.grid(row=rown, column=0)
+        rown += 1
+        self.spindeltafft = tk.Spinbox(master, from_=-10000000000, to=10000000000, increment=0.5, width=10)
+        self.spindeltafft.grid(row=rown, column=0)
+        self.spindeltafft.delete(0,"end")
+        self.spindeltafft.insert(0,self.literals["delta_fft"])
+        self.spindeltafft.bind('<Return>', lambda *args: self.validate())
+        rown += 1
+
+    def validate(self):
+        #nothing to validate
+        fvalue = float(self.spindeltafft.get().replace(",", "."))
+        if fvalue <  -10000000000 or fvalue > 10000000000:
+            self.valid = False
+            messagebox.showwarning(
+                "Bad input",
+                "Illegal values, please try again"
+            )
+            return 0 
+        self.valid = True
+        return 1
+    
+    def apply(self):
+        self.result = float(self.spindeltafft.get().replace(",", "."))
+        
+
+class AdjustExponentialDialog(tkDialog.Dialog):
+    def body(self, master):
+        self.result = None
+        self.smoothdict = {
+            "always": "Always",
+            "Always": "always",
+            "never": "Never",
+            "Never": "never",
+            "noisecriteria": "High noise",
+            "High noise": "noisecriteria"
+        }
+        expconfigs = self.literals["exponentialsettings"]
+        if len(expconfigs) > 1:
+            self.endnoisecriteria = expconfigs[0]
+            self.smoothbeforeregression = expconfigs[1]
+            self.noiseratio = expconfigs[2]
+            self.local_minimum_check = expconfigs[3]
+        else:
+            self.endnoisecriteria = 0.9
+            self.smoothbeforeregression = "noisecriteria"
+            self.noiseratio = 1.0
+            self.local_minimum_check = True
+
+        rown = 0
+        self.spinmaxlbl = ttk.Label(master, text= 'Wave Max Filter area % for regression:')
+        self.spinmaxlbl.grid(row=rown, column=0)
+        rown += 1
+        self.spinmaxbox = tk.Spinbox(master, from_=0, to=1.0, increment=0.05, width=10)
+        self.spinmaxbox.grid(row=rown, column=0)
+        self.spinmaxbox.delete(0,"end")
+        self.spinmaxbox.insert(0,self.endnoisecriteria)
+        self.spinmaxbox.bind('<Return>', lambda *args: self.validate())
+        rown += 1
+
+        ttk.Label(master, text='Denoise before exponential:').grid(row=rown, column=0)
+        rown += 1
+        self.formatvar = tk.StringVar(master)
+        self.formatchoices = {'Always', 'Never', 'High noise only'}
+        self.formatvar.set(self.smoothdict[self.smoothbeforeregression]) # set the default option
+        self.smoothmenu = ttk.OptionMenu(master, self.formatvar, self.smoothdict[self.smoothbeforeregression], *self.formatchoices)
+        self.smoothmenu.grid(row=rown, column=0)
+        rown += 1
+        # self.noiseratiolbl = ttk.Label(master, text= 'Maximum local max/min frequency in Wave Max Filter area allowed:')
+        # self.noiseratiobox = tk.Spinbox(master, from_=-10000000000, to=10000000000, increment=0.5, width=10)
+        # self.noiseratiobox.bind('<Return>', lambda *args: self.validate())
+
+        self.local_minimum_check_var = tk.IntVar(value=1)
+        if self.local_minimum_check == False:
+            self.local_minimum_check_var.set(0)
+        self.local_minimum_check_ttk = ttk.Checkbutton(master, text = "Last point must be local minimum", variable = self.local_minimum_check_var, \
+                         onvalue = 1, offvalue = 0)
+        self.local_minimum_check_ttk.grid(row=rown, column=0)
+
+    def validate(self):
+        #nothing to validate
+        fvalue = float(self.spinmaxbox.get().replace(",", "."))
+        if fvalue <  0 or fvalue > 1:
+            self.valid = False
+            messagebox.showwarning(
+                "Bad input",
+                "Illegal values, please try again"
+            )
+            return 0 
+        self.valid = True
+        return 1
+    
+    def apply(self):
+        self.result = [float(self.spinmaxbox.get().replace(",", ".")) , self.smoothdict[self.formatvar.get()] , self.noiseratio , bool(self.local_minimum_check_var.get())]
 
 class AdjustNoiseDetectDialog(tkDialog.Dialog):
 
     def body(self, master):
         print("class AdjustNoiseDetectDialog def body creation")
-        ttk.Label(master, text='Noise Advanced Parameters:').grid(row=0, column=0)
-        self.checkfvar = tk.IntVar(value=self.literals["noiseareasfiltering"])
-        self.checkf = ttk.Checkbutton(master, text = "Noise Areas Min. Size filtering", variable = self.checkfvar, \
-                         onvalue = 1, offvalue = 0)
+        # ttk.Label(master, text='Noise Advanced Parameters:').grid(row=0, column=0)
+        # self.checkfvar = tk.IntVar(value=self.literals["noiseareasfiltering"])
+        # self.checkf = ttk.Checkbutton(master, text = "Noise Areas Min. Size filtering", variable = self.checkfvar, \
+        #                  onvalue = 1, offvalue = 0)
         self.check_d_var = tk.IntVar(value=self.literals["noisedecrease"])
         self.checkd = ttk.Checkbutton(master, text = "Decrease Avg. Noise from Plot", variable = self.check_d_var, \
                          onvalue = 1, offvalue = 0, command=self.hidespin)
@@ -1065,13 +1307,16 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
         print(self.literals["noisedecreasevalue"])
         self.spinu.delete(0,"end")
         self.spinu.insert(0,self.literals["noisedecreasevalue"])
+        rown = 0
+        # self.checkf.grid(row=rown, column=0, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
+        # rown += 1
+        self.checkd.grid(row=rown, column=0, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
+        rown += 1
+        self.checku.grid(row=rown, column=0, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S)
+        rown += 1
 
-        self.checkf.grid(row=1, column=0)
-        self.checkd.grid(row=2, column=0)
-        self.checku.grid(row=3, column=0)
-
-        self.spinlbl.grid(row=4, column=0)
-        self.spinu.grid(row=4, column=1)
+        self.spinlbl.grid(row=rown, column=0, sticky=tk.W+tk.E+tk.N+tk.S)
+        self.spinu.grid(row=rown, column=1, sticky=tk.W+tk.E+tk.N+tk.S)
         if self.check_u_var.get() == 0:
             self.spinlbl.grid_forget()
             self.spinu.grid_forget()
@@ -1121,10 +1366,10 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
         print("class AdjustNoiseDetectDialog def apply start")
         #save configs
         self.result = {}
-        if self.checkfvar.get() == 1:
-            self.result["adjustnoisevar"] = True
-        else:
-            self.result["adjustnoisevar"]= False
+        # if self.checkfvar.get() == 1:
+        #     self.result["adjustnoisevar"] = True
+        # else:
+            # self.result["adjustnoisevar"]= False
         if self.check_d_var.get() == 1:
             self.result["noisedecrease"] = True
         else:
@@ -1143,6 +1388,8 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         print("class SaveFigureVideoDialog def body creation")
         nrow = 0
         ttk.Label(master, text='Output Format:').grid(row=nrow, column=0)
+
+
         self.formatvar = tk.StringVar(master)
         self.formatchoices = []
         self.formatchoices.extend(self.literals["formats"])
@@ -1151,22 +1398,38 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.optmenu = ttk.OptionMenu(master, self.formatvar, "png", *self.formatchoices, command=self.format_detection)
         self.optmenu.grid(row = nrow, column = 1)
         nrow += 1
-        self.dpi = tk.StringVar()
-        self.dpi.set("300")
-        ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
-        self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
-        self.dpispin.grid(row=nrow, column=1)
-        self.dpispin.bind('<Return>', lambda *args: self.validate())
 
+        self.heightvar = tk.StringVar()
+        self.heightvar.set(str(self.literals["height"]))
+        ttk.Label(master, text='Height (Pixels):').grid(row=nrow, column=0)
+        self.heightspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.heightvar, increment=1, width=10)
+        self.heightspin.grid(row=nrow, column=1)
+        self.heightspin.bind('<Return>', lambda *args: self.validate())
         nrow+=1
-        self.bboxvar = tk.StringVar(master)
-        self.bboxvar.set('None')
-        if self.literals["bbox"] == 1:
-            self.bboxformatchoices = {"None", "tight"}
-            ttk.Label(master, text='Bbox Type:').grid(row=nrow, column=0)
-            self.bboxoptmenu = ttk.OptionMenu(master, self.bboxvar, "None", *self.bboxformatchoices)
-            self.bboxoptmenu.grid(row = nrow, column = 1)
-            nrow+=1
+
+        self.widthvar = tk.StringVar()
+        self.widthvar.set(str(self.literals["width"]))
+        ttk.Label(master, text='Width (Pixels):').grid(row=nrow, column=0)
+        self.widthspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.widthvar, increment=1, width=10)
+        self.widthspin.grid(row=nrow, column=1)
+        self.widthspin.bind('<Return>', lambda *args: self.validate())
+        nrow+=1
+
+        self.dpi = tk.StringVar()
+        self.dpi.set(str(self.literals["dpi"]))
+        # ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
+        # self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+        # self.dpispin.grid(row=nrow, column=1)
+        # self.dpispin.bind('<Return>', lambda *args: self.validate())
+        # nrow+=1
+
+        # self.dpi = tk.StringVar()
+        # self.dpi.set("300")
+        # ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
+        # self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+        # self.dpispin.grid(row=nrow, column=1)
+        # self.dpispin.bind('<Return>', lambda *args: self.validate())
+        # nrow+=1
 
         self.quality = tk.StringVar()
         self.quality.set("70.0")
@@ -1176,7 +1439,6 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.qualityspin = tk.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
         self.qualityspin.grid(row=nrow, column=1)
         self.qualityspin.bind('<Return>', lambda *args: self.validate())
-
         self.qualityspin.grid_forget()
         nrow+=1
 
@@ -1188,7 +1450,6 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.fpsnspin = tk.Spinbox(master, from_=1, to=9999, textvariable=self.fpsrun, increment=1, width=10)
         self.fpsnspin.grid(row=nrow, column=1)
         self.fpsnspin.bind('<Return>', lambda *args: self.validate())
-
         self.fpsnspin.grid_forget()
 
     def format_detection(self, args=None):
@@ -1211,8 +1472,23 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
     def validate(self):
         print("class SaveFigureVideoDialog def validate start")
         try:
+            heightf= int(self.heightvar.get())
+            if heightf < 0:
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                self.valid = False
+                return 0
+            widthf= int(self.widthvar.get())
+            if widthf < 0:
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                self.valid = False
+                return 0
             first= int(self.dpi.get())
-            #third = int(self.e3var.get())
             if first < 0:
                 messagebox.showwarning(
                     "Bad input",
@@ -1256,6 +1532,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
             self.result = {}
             fname = filedialog.asksaveasfile(defaultextension="." + self.formatvar.get())
             if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
+                self.result = None
                 return
             fname.close()
             fnamename = str(fname.name)
@@ -1268,11 +1545,9 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
             self.result["name"] = str(filename).split(".")[0] + "." + self.formatvar.get()
             self.result["format"] = self.formatvar.get()
             self.result["dpi"] = int(self.dpi.get())
+            self.result["width"] = int(self.widthvar.get())
+            self.result["height"] = int(self.heightvar.get())
             self.result["quality"] = float(self.quality.get())
-            bboxv = self.bboxvar.get()
-            if bboxv == "None":
-                bboxv = None
-            self.result["bbox"] = bboxv
 
 class SaveFigureDialog(tkDialog.Dialog):
 
@@ -1280,20 +1555,54 @@ class SaveFigureDialog(tkDialog.Dialog):
         print("class SaveFigureDialog def body creation")
 
         nrow = 0
+
+        if "height" in self.literals.keys():
+            ttk.Label(master, text='Obs: Output dimensions refer to the full plot image size.').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            ttk.Label(master, text='As such, the Legend dimensions will be resized during exporting').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            self.previewheight = ttk.Label(master, text='Legend preview height: ' + self.literals["pheight"] + 'px').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            self.previewwidth = ttk.Label(master, text='Legend preview width: ' + self.literals["pwidth"] + 'px').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+
         ttk.Label(master, text='Figure Format:').grid(row=nrow, column=0)
+
         self.formatvar = tk.StringVar(master)
         self.formatchoices = self.literals["formats"]
         self.formatvar.set('png')
         self.optmenu = ttk.OptionMenu(master, self.formatvar, "png", *self.formatchoices, command=self.jpg_detection)
         self.optmenu.grid(row = nrow, column = 1)
         nrow += 1
+        
         self.dpi = tk.StringVar()
-        self.dpi.set("300")
-        ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
-        self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
-        self.dpispin.grid(row=nrow, column=1)
-        self.dpispin.bind('<Return>', lambda *args: self.validate())
-        nrow+=1
+        if "dpi" in self.literals.keys():
+             self.dpi.set(str(self.literals["dpi"]))
+        else:
+            self.dpi.set("300")
+        if "height" in self.literals.keys():
+            self.heightvar = tk.StringVar()
+            self.heightvar.set(str(self.literals["height"]))
+            ttk.Label(master, text='Full Image Height (Pixels):').grid(row=nrow, column=0)
+            self.heightspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.heightvar, increment=1, width=10)
+            self.heightspin.grid(row=nrow, column=1)
+            self.heightspin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+        if "width" in self.literals.keys():
+            self.widthvar = tk.StringVar()
+            self.widthvar.set(str(self.literals["width"]))
+            ttk.Label(master, text='Full Image (Pixels):').grid(row=nrow, column=0)
+            self.widthspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.widthvar, increment=1, width=10)
+            self.widthspin.grid(row=nrow, column=1)
+            self.widthspin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+        else:
+            ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
+            self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+            self.dpispin.grid(row=nrow, column=1)
+            self.dpispin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+
         self.bboxvar = tk.StringVar(master)
         self.bboxvar.set('None')
         if self.literals["bbox"] == 1:
@@ -1328,7 +1637,6 @@ class SaveFigureDialog(tkDialog.Dialog):
         print("class SaveFigureDialog def validate start")
         try:
             first= int(self.dpi.get())
-            #third = int(self.e3var.get())
             if first < 0:
                 messagebox.showwarning(
                     "Bad input",
@@ -1336,6 +1644,26 @@ class SaveFigureDialog(tkDialog.Dialog):
                 )
                 self.valid = False
                 return 0
+            if "height" in self.literals.keys():
+                heightf= int(self.heightvar.get())
+                if heightf < 0:
+                    messagebox.showwarning(
+                        "Bad input",
+                        "Illegal values, please try again"
+                    )
+                    self.valid = False
+                    return 0
+            if "width" in self.literals.keys():
+                widthf= int(self.widthvar.get())
+                if widthf < 0:
+                    messagebox.showwarning(
+                        "Bad input",
+                        "Illegal values, please try again"
+                    )
+                    self.valid = False
+                    return 0
+            if "height" in self.literals.keys() and "width" in self.literals.keys():
+                newwidth, newheight = self.literals["updatable_frame"].get_cax_size(int(self.widthvar.get()), int(self.heightvar.get()))
             if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
                 second = float(self.quality.get())
                 if second < 1 or second > 100:
@@ -1363,6 +1691,7 @@ class SaveFigureDialog(tkDialog.Dialog):
             self.result = {}
             fname = filedialog.asksaveasfile(defaultextension="." + self.formatvar.get())
             if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
+                self.result = None
                 return
             fname.close()
             fnamename = str(fname.name)
@@ -1372,10 +1701,182 @@ class SaveFigureDialog(tkDialog.Dialog):
             self.result["format"] = self.formatvar.get()
             self.result["dpi"] = int(self.dpi.get())
             self.result["quality"] = float(self.quality.get())
+            if "width" in self.literals.keys():
+                self.result["width"] = int(self.widthvar.get())
+            if "height" in self.literals.keys():
+                self.result["height"] = int(self.heightvar.get())
+
             bboxv = self.bboxvar.get()
             if bboxv == "None":
                 bboxv = None
             self.result["bbox"] = bboxv
+
+class SaveLegendDialog(tkDialog.DialogNonBlock):
+
+    def body(self, master):
+        print("class SaveFigureDialog def body creation")
+
+        nrow = 0
+
+        if "height" in self.literals.keys():
+            ttk.Label(master, text='Obs: Output dimensions refer to the full plot image size.').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            ttk.Label(master, text='As such, the Legend dimensions will be resized during exporting').grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            self.previewheight = ttk.Label(master, text='Legend preview height: ' + self.literals["pheight"] + 'px')
+            self.previewheight.grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+            self.previewwidth = ttk.Label(master, text='Legend preview width: ' + self.literals["pwidth"] + 'px')
+            self.previewwidth.grid(row=nrow, column=0, columnspan=2)
+            nrow += 1
+
+        ttk.Label(master, text='Figure Format:').grid(row=nrow, column=0)
+
+        self.formatvar = tk.StringVar(master)
+        self.formatchoices = self.literals["formats"]
+        self.formatvar.set('png')
+        self.optmenu = ttk.OptionMenu(master, self.formatvar, "png", *self.formatchoices, command=self.jpg_detection)
+        self.optmenu.grid(row = nrow, column = 1)
+        nrow += 1
+        
+        self.dpi = tk.StringVar()
+        if "dpi" in self.literals.keys():
+             self.dpi.set(str(self.literals["dpi"]))
+        else:
+            self.dpi.set("300")
+        if "height" in self.literals.keys():
+            self.heightvar = tk.StringVar()
+            self.heightvar.set(str(self.literals["height"]))
+            ttk.Label(master, text='Full Image Height (Pixels):').grid(row=nrow, column=0)
+            self.heightspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.heightvar, increment=1, width=10, command=self.validate)
+            self.heightspin.grid(row=nrow, column=1)
+            self.heightspin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+        if "width" in self.literals.keys():
+            self.widthvar = tk.StringVar()
+            self.widthvar.set(str(self.literals["width"]))
+            ttk.Label(master, text='Full Image (Pixels):').grid(row=nrow, column=0)
+            self.widthspin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.widthvar, increment=1, width=10, command=self.validate)
+            self.widthspin.grid(row=nrow, column=1)
+            self.widthspin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+        else:
+            ttk.Label(master, text='Dots Per Inch (DPI):').grid(row=nrow, column=0)
+            self.dpispin = tk.Spinbox(master, from_=1, to=2147483646, textvariable=self.dpi, increment=1, width=10)
+            self.dpispin.grid(row=nrow, column=1)
+            self.dpispin.bind('<Return>', lambda *args: self.validate())
+            nrow+=1
+
+        self.bboxvar = tk.StringVar(master)
+        self.bboxvar.set('None')
+        if self.literals["bbox"] == 1:
+            self.bboxformatchoices = {"None", "tight"}
+            ttk.Label(master, text='Bbox Type:').grid(row=nrow, column=0)
+            self.bboxoptmenu = ttk.OptionMenu(master, self.bboxvar, "None", *self.bboxformatchoices)
+            self.bboxoptmenu.grid(row = nrow, column = 1)
+            nrow+=1
+
+        self.quality = tk.StringVar()
+        self.quality.set("70.0")
+        self.jpglabel = ttk.Label(master, text='JPG Quality:')
+        self.jpglabel.grid(row=nrow, column=0)
+        self.jpglabel.grid_forget()
+        self.qualityspin = tk.Spinbox(master, from_=1, to=100, textvariable=self.quality, increment=1, width=10)
+        self.qualityspin.grid(row=nrow, column=1)
+        self.qualityspin.bind('<Return>', lambda *args: self.validate())
+        self.qualityspin.grid_forget()
+
+    def jpg_detection(self, args=None):
+        print("args")
+        print(args)
+        self.formatvar.set(args)
+        if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
+            self.jpglabel.grid(row=3, column=0)
+            self.qualityspin.grid(row=3, column=1)
+        else:        
+            self.jpglabel.grid_forget()
+            self.qualityspin.grid_forget()
+
+    def validate(self):
+        print("class SaveFigureDialog def validate start")
+        try:
+            first= int(self.dpi.get())
+            if first < 0:
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                self.valid = False
+                return 0
+            if "height" in self.literals.keys():
+                heightf= int(self.heightvar.get())
+                if heightf < 0:
+                    messagebox.showwarning(
+                        "Bad input",
+                        "Illegal values, please try again"
+                    )
+                    self.valid = False
+                    return 0
+            if "width" in self.literals.keys():
+                widthf= int(self.widthvar.get())
+                if widthf < 0:
+                    messagebox.showwarning(
+                        "Bad input",
+                        "Illegal values, please try again"
+                    )
+                    self.valid = False
+                    return 0
+            if "height" in self.literals.keys() and "width" in self.literals.keys():
+                newwidth, newheight = self.literals["updatable_frame"].get_cax_size(int(self.widthvar.get()), int(self.heightvar.get()))
+                self.previewheight['text'] = 'Legend preview height: ' + str(int(newheight)) + 'px'
+                self.previewwidth['text'] = 'Legend preview width: ' + str(int(newwidth)) + 'px'
+            if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
+                second = float(self.quality.get())
+                if second < 1 or second > 100:
+                    messagebox.showwarning(
+                        "Bad input",
+                        "Illegal values, please try again"
+                    )
+                    self.valid = False
+                    return 0
+            self.valid = True
+            return 1
+        except ValueError:
+            messagebox.showwarning(
+                "Bad input",
+                "Illegal values, please try again"
+            )
+            self.valid = False
+            return 0
+
+    def apply(self):
+        print("class SaveFigureDialog def apply start")
+        #save configs
+        self.result = None
+        if self.valid == True:
+            self.result = {}
+            fname = filedialog.asksaveasfile(defaultextension="." + self.formatvar.get())
+            if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
+                self.result = None
+                return
+            fname.close()
+            fnamename = str(fname.name)
+            filename = r'%s' %fnamename
+            os.remove(str(filename))
+            self.result["name"] = str(filename).split(".")[0] + "." + self.formatvar.get()
+            self.result["format"] = self.formatvar.get()
+            self.result["dpi"] = int(self.dpi.get())
+            self.result["quality"] = float(self.quality.get())
+            if "width" in self.literals.keys():
+                self.result["width"] = int(self.widthvar.get())
+            if "height" in self.literals.keys():
+                self.result["height"] = int(self.heightvar.get())
+
+            bboxv = self.bboxvar.get()
+            if bboxv == "None":
+                bboxv = None
+            self.result["bbox"] = bboxv
+            self.literals["updatable_frame"].runexport(self.result)
 
 class SaveTableDialog(tkDialog.Dialog):
 

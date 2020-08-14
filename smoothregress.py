@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from lineardetectpack import generate_bfderivative_full
+from lineardetectpack import generate_bfderivative_full, noise_signal_linear_regression
 from jenksdetectpack import jenks_until
 from peakdetectpure import peakdet
 from scipy.optimize import curve_fit
@@ -42,6 +42,17 @@ def smooth_scipy(data, window_size, window_type='flat'):
     y = np.convolve(w/w.sum(),s,mode='valid')
     return y[math.ceil((window_size/2)-1):-math.ceil(window_size/2)]
 
+def noise_definition(data):
+    largs = noise_signal_linear_regression(data)
+    if largs != False:
+        ftoplot, ltoplot, xintersect, yintersect, xintersect_dot, yintersect_value = largs
+        belowthresholdvalues = [e for e in sorted(data) if e < yintersect_value]
+        return np.mean(belowthresholdvalues)
+    else:
+        #cutoff from avg first 25% lowest values
+        sorted_data = sorted(data)
+        sorted_data_25perc = sorted_data[: int(len(sorted_data) / 4)]
+        return np.mean(sorted_data_25perc)
 
 def _1gaussian(x, amp1,cen1,sigma1):
     return amp1*(1/(sigma1*(np.sqrt(2*np.pi))))*(np.exp((-1.0/2.0)*(((x-cen1)/sigma1)**2)))
@@ -53,6 +64,10 @@ def _2gaussian(x, amp1,cen1,sigma1, amp2,cen2,sigma2):
 # def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
 def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=None):
     #TODO: Write up noise detection separately and pass args to peak_detection
+    print("current_case")
+    print(current_case)
+    print("pre_cutoff_val")
+    print(cutoff_val)
     if cutoff_val == None:
         cutoff_val = np.median(current_case)
         cutoff_val = float("{:.3f}".format(cutoff_val))
@@ -120,37 +135,50 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
     #get mean noise area size
     mean_noise_area_size = np.mean([len(a) for a in noise_areas])
 
-    filtered_noise_areas = []
+    filtered_maxfilter_areas = []
     if filter_noise_area == True:
         #filter noise areas by mean excluding first and last areas
-        filtered_noise_areas = [noise_areas[0]]
-        filtered_noise_areas.extend([a for a in noise_areas[1:-1] if len(a) > mean_noise_area_size])
-        filtered_noise_areas.append(noise_areas[-1])
+        filtered_maxfilter_areas = [noise_areas[0]]
+        filtered_maxfilter_areas.extend([a for a in noise_areas[1:-1] if len(a) > mean_noise_area_size])
+        filtered_maxfilter_areas.append(noise_areas[-1])
     else:
-        filtered_noise_areas = noise_areas.copy()
+        filtered_maxfilter_areas = noise_areas.copy()
 
     #plot filtered noise areas
-    filtered_noise_indexes = []
-    for a in filtered_noise_areas:
-        filtered_noise_indexes.extend(a)
+    filtered_maxfilter_indexes = []
+    for a in filtered_maxfilter_areas:
+        filtered_maxfilter_indexes.extend(a)
 
-    filtered_noise_values = [current_case[i] for i in filtered_noise_indexes]
+    filtered_maxfilter_values = [current_case[i] for i in filtered_maxfilter_indexes]
 
     #max noise is extracted
-    max_filtered_noise = np.max(filtered_noise_values)
+    max_filtered_noise = np.max(filtered_maxfilter_values)
     print("max_noise")
     print(max_noise)
-    return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_noise_areas, filtered_noise_indexes, filtered_noise_values, max_filtered_noise, cutoff_val
+    return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val
 
 
 # def peak_detection(current_case, filter_noise_area=True, delta=False, stop_condition_perc=False, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
-def peak_detection(current_case, delta=False, stop_condition_perc=False, nargs=[]):
-    non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_noise_areas, filtered_noise_indexes, filtered_noise_values, max_filtered_noise, cutoff_val = nargs
+def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc=False, nargs=[]):
+    non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val = nargs
     #0                  1                       2                           3               4                   5                       6           7          8        9       10              11                  12              13                  14                      15                      16                  17
-    # non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_noise_areas, filtered_noise_indexes, filtered_noise_values, max_filtered_noise = noise_detection(current_case, filter_noise_area=filter_noise_area, added_noise_dots=added_noise_dots, removed_noise_dots=removed_noise_dots, cutoff_val=cutoff_val)
+    # non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise = noise_detection(current_case, filter_noise_area=filter_noise_area, added_noise_dots=added_noise_dots, removed_noise_dots=removed_noise_dots, cutoff_val=cutoff_val)
     # print("non_noise_points")
     # print(non_noise_points)
     #delta is calculated based on mean of peak points divided by 3
+    
+    if len(expconfigs) > 1:
+        endnoisecriteria = expconfigs[0]
+        smoothbeforeregression = expconfigs[1]
+        noiseratio = expconfigs[2]
+        local_minimum_check = expconfigs[3]
+        pass
+    else:
+        endnoisecriteria = 0.9
+        smoothbeforeregression = "noisecriteria"
+        noiseratio = 1.0
+        local_minimum_check = True
+
     if delta == False:
         delta = np.mean(non_noise_points_values) / 3
         delta = float("{:.3f}".format(delta))
@@ -209,65 +237,145 @@ def peak_detection(current_case, delta=False, stop_condition_perc=False, nargs=[
         try:
             #max_2 = current_case[maxtab[i+1]]
             max_2_i = maxtab[i+1]
-        except IndexError:
+        except IndexError as e:
+            print(e)
             break
 
+        range_maxfilter = []
         try:
             #noise_above = [a for a in noise_points_indexes if a > max_2_i][0]
-            filtered_noise_area_above = [a for a in filtered_noise_areas if a[0] > max_2_i][0]
-            filtered_noise_area_above_start = filtered_noise_area_above[0]
-            filtered_noise_area_above_middle_p = int(np.median(filtered_noise_area_above))
-            filtered_noise_area_first_25 = int(np.quantile(filtered_noise_area_above, 0.9))
-            #filtered_noise_area_first_25_values = current_case[filtered_noise_area_above_start:filtered_noise_area_first_25]
-            filtered_noise_area_minmax = [i for i in range(filtered_noise_area_above_start,filtered_noise_area_first_25) if i in all_local_minimums or i in all_local_maximums]
-            filtered_noise_area_minmax_perc = len(filtered_noise_area_minmax) / len(filtered_noise_values)
-        except IndexError:
+            filtered_maxfilter_area_above = [a for a in filtered_maxfilter_areas if a[0] > max_2_i][0]
+            filtered_maxfilter_area_above_start = filtered_maxfilter_area_above[0]
+            filtered_maxfilter_area_above_middle_p = int(np.median(filtered_maxfilter_area_above))
+            filtered_maxfilter_area_endpoint = int(np.quantile(filtered_maxfilter_area_above, endnoisecriteria))
+            #filtered_maxfilter_area_endpoint_values = current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint]
+            range_maxfilter = range(filtered_maxfilter_area_above_start,filtered_maxfilter_area_endpoint)
+            # filtered_maxfilter_area_minmax = [i for i in range(filtered_maxfilter_area_above_start,filtered_maxfilter_area_endpoint) if i in all_local_minimums or i in all_local_maximums]
+            filtered_maxfilter_area_minmax = [i for i in range_maxfilter if i in all_local_minimums or i in all_local_maximums]
+            filtered_maxfilter_area_minmax_perc = len(filtered_maxfilter_area_minmax) / len(filtered_maxfilter_values)
+        except IndexError as e:
+            print(e)
             break
 
-        after_mins = current_case[filtered_noise_area_above_start:filtered_noise_area_first_25]
+        after_mins = current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint]
         #exponential regression done here
 
         valuesfit = None
-        do_not = False
+        auto_mode = False
         if stop_condition_perc == False:
-            do_not = True
-            stop_condition_perc = 0.05
+            auto_mode = True
+            # stop_condition_perc = 0.05
+            # stop_condition_perc = 0.90
+            stop_condition_perc = 0.15
+        
+        valuesfit = after_mins
+        if smoothbeforeregression == "always":
+            print("always selected, smoothing going to be done")
+            smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+            print(len(valuesfit))
+            print(len(smoothed_vals))
+            if len(valuesfit) != len(smoothed_vals):
+                valuesfit = smoothed_vals[2:]
+            else:
+                valuesfit = smoothed_vals.copy()
+            # valuesfit = smoothed_vals[2:-2]
+            print(len(valuesfit))
 
-        if filtered_noise_area_minmax_perc > 1.0:
-            smoothed_vals = smooth_data(current_case[filtered_noise_area_above_start:filtered_noise_area_first_25], 2)
-            valuesfit = smoothed_vals[2:]
-        else:
-            if do_not == True:
-                stop_condition_perc = 0.01
-            valuesfit = after_mins
+        elif smoothbeforeregression == "noisecriteria":
+            print("noise criteria selected, verifying smoothing")
+            if filtered_maxfilter_area_minmax_perc > noiseratio:
+                print("smoothing done")
+                smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+                print(len(valuesfit))
+                print(len(smoothed_vals))
+                if len(valuesfit) != len(smoothed_vals):
+                    valuesfit = smoothed_vals[2:]
+                else:
+                    valuesfit = smoothed_vals.copy()
+            elif auto_mode == True:
+                # stop_condition_perc = 0.01
+                # stop_condition_perc = 0.95
+                stop_condition_perc = 0.20
+        elif smoothbeforeregression == "never":
+            print("never selected, skipping smoothing")
+            pass
 
-        valuesfitx = np.array(range(filtered_noise_area_above_start,filtered_noise_area_first_25))
-        valuesfitx_highdef = np.linspace(max_2_i, filtered_noise_area_first_25, 100)
+        #TODO MORE HERE
+        # if filtered_maxfilter_area_minmax_perc > 1.0:
+        #     smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+        #     valuesfit = smoothed_vals[2:]
+        # else:
+        #     if auto_mode == True:
+        #         stop_condition_perc = 0.01
+        #     valuesfit = after_mins
 
-        # try:
+        #Sanity check
         after_point = None
-        if len(valuesfit) > 2:
-            popt, pcov = curve_fit(exponential_fit, valuesfitx, valuesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
-            exponential_pops.append((valuesfitx_highdef, popt))
-            # plt.plot(valuesfitx_highdef , exponential_fit(valuesfitx_highdef, *popt), color="purple")
-
-            after_point = filtered_noise_area_above_start-1
-            prev_new_y_value = exponential_fit(after_point, *popt)
-            for j in range(after_point+1, filtered_noise_area_first_25):
-                after_point = j
-                new_y_value = exponential_fit(after_point, *popt)
-                ratio_new_old = 1.0 - (new_y_value / prev_new_y_value)
-                # if (new_y_value <= mean_noise or ratio_new_old <= 0.05) and j in all_local_minimums and new_y_value < max_filtered_noise:
-                # if ratio_new_old <= stop_condition_perc and j in all_local_minimums and new_y_value < max_filtered_noise:
-                if ratio_new_old <= stop_condition_perc and j in all_local_minimums:
-                # if new_y_value <= mean_noise and j in all_local_minimums:
-                    break
-                prev_new_y_value = new_y_value
-        elif len(valuesfit) >= 1:
-            after_point = range(filtered_noise_area_above_start,filtered_noise_area_first_25)[valuesfit.index(np.min(valuesfit))]
-        else:
+        if len(valuesfit) == 0:
+            print("no values available for exponential inference (insufficient)")
             i += 1
             continue
+        elif len(valuesfit) < 2:
+            print("Single value available for exponential inference (insufficient)")
+            print("afterpoint is single value")
+            after_point = range_maxfilter[valuesfit.index(np.min(valuesfit))]
+        elif len(valuesfit) > 2:
+            print("multple values available for exponential inference")
+
+            #x values created for real data and for high definition data
+            valuesfitx = np.array(range_maxfilter)
+            valuesfitx_highdef = np.linspace(max_2_i, filtered_maxfilter_area_endpoint, 100)
+
+            #curve fit for exponential function. high def data appended as well
+            popt, pcov = curve_fit(exponential_fit, valuesfitx, valuesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
+            exponential_pops.append((valuesfitx_highdef, popt))
+
+            #integral of values for exponential are done
+            total_area = np.trapz([exponential_fit(point, *popt) for point in range_maxfilter])
+            print("total_area")
+            print(total_area)
+            current_area = 0.0
+            for point in range_maxfilter:
+                after_point = point
+                exponential_speed_value = exponential_fit(point, *popt)
+                current_area += exponential_speed_value
+                is_local_minimum = point in all_local_minimums
+                if (current_area / total_area) >= stop_condition_perc and local_minimum_check == False:
+                    break
+                elif (current_area / total_area) >= stop_condition_perc and local_minimum_check == True and is_local_minimum == True:
+                    break
+            print("last point has been defined as: " + str(after_point) + " for perc == " + str(current_area))
+        if after_point is None:
+            i += 1
+            continue
+
+
+        # valuesfitx = np.array(range(filtered_maxfilter_area_above_start,filtered_maxfilter_area_endpoint))
+        # valuesfitx_highdef = np.linspace(max_2_i, filtered_maxfilter_area_endpoint, 100)
+
+        # after_point = None
+        # if len(valuesfit) > 2:
+        #     popt, pcov = curve_fit(exponential_fit, valuesfitx, valuesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
+        #     exponential_pops.append((valuesfitx_highdef, popt))
+        #     # plt.plot(valuesfitx_highdef , exponential_fit(valuesfitx_highdef, *popt), color="purple")
+
+        #     after_point = filtered_maxfilter_area_above_start-1
+        #     prev_new_y_value = exponential_fit(after_point, *popt)
+        #     for j in range(after_point+1, filtered_maxfilter_area_endpoint):
+        #         after_point = j
+        #         new_y_value = exponential_fit(after_point, *popt)
+        #         ratio_new_old = 1.0 - (new_y_value / prev_new_y_value)
+        #         # if (new_y_value <= mean_noise or ratio_new_old <= 0.05) and j in all_local_minimums and new_y_value < max_filtered_noise:
+        #         # if ratio_new_old <= stop_condition_perc and j in all_local_minimums and new_y_value < max_filtered_noise:
+        #         if ratio_new_old <= stop_condition_perc and j in all_local_minimums:
+        #         # if new_y_value <= mean_noise and j in all_local_minimums:
+        #             break
+        #         prev_new_y_value = new_y_value
+        # elif len(valuesfit) >= 1:
+        #     after_point = range(filtered_maxfilter_area_above_start,filtered_maxfilter_area_endpoint)[valuesfit.index(np.min(valuesfit))]
+        # else:
+        #     i += 1
+        #     continue
         
         if len(previous_mins) >= 1:
             f_point = previous_mins[-1]
@@ -298,7 +406,7 @@ def peak_detection(current_case, delta=False, stop_condition_perc=False, nargs=[
             i += 1
             continue
 
-        maxtab_skip_point = sorted([m for m in maxtab if m > filtered_noise_area_above_middle_p])
+        maxtab_skip_point = sorted([m for m in maxtab if m > filtered_maxfilter_area_above_middle_p])
 
         if len(maxtab_skip_point) > 0:
             i = maxtab.index(maxtab_skip_point[0])
@@ -306,4 +414,4 @@ def peak_detection(current_case, delta=False, stop_condition_perc=False, nargs=[
             break
 
 
-    return (f_points, s_f_points, t_points, l_points), (mean_noise, std_noise, max_noise, filtered_noise_indexes), exponential_pops, (delta, stop_condition_perc, cutoff_val)
+    return (f_points, s_f_points, t_points, l_points), (mean_noise, std_noise, max_noise, filtered_maxfilter_indexes), exponential_pops, (delta, stop_condition_perc, cutoff_val)
