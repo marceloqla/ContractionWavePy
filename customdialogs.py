@@ -295,12 +295,14 @@ class HelpDialog(tkDialog.Dialog):
 class AboutDialog(tkDialog.Dialog):
     def body(self, master):
         print("class AboutDialog def body creation")
-        ttk.Label(master, text='ContractionWave: Free Tool to easy visualize, quantify and analyze cell contractility\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=0, column=1)
-        ttk.Label(master, text='Version: 1.0Py\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=1, column=1)
-        ttk.Label(master, text='Sergio Scalzo; Marcelo Afonso; Neli Fonseca; Itamar Couto Guedes de Jesus; Ana Paula Alves; Carolina A. T. F. Mendonça, Vanessa Pereira Teixeira; Anderson Kenedy Santos; Diogo Biagi; Estela Crunivel; Maria Jose Campagnole-Santos.; Flavio Marques; Oscar Mesquita; Christopher Kushmerick; Lucas Bleicher; Ubirajara Agero; Silvia Guatimosim\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=2, column=1)
+        ttk.Label(master, text='CONTRACTIONWAVE: open software to process, analyze and visualize cellular contractility\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=0, column=1)
+        ttk.Label(master, text='Version: 1.20c\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=1, column=1)
+        # ttk.Label(master, text='Sergio Scalzo; Marcelo Afonso; Neli Fonseca; Itamar Couto Guedes de Jesus; Ana Paula Alves; Carolina A. T. F. Mendonça, Vanessa Pereira Teixeira; Anderson Kenedy Santos; Diogo Biagi; Estela Crunivel; Maria Jose Campagnole-Santos.; Flavio Marques; Oscar Mesquita; Christopher Kushmerick; Lucas Bleicher; Ubirajara Agero; Silvia Guatimosim\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=2, column=1)
+        names = "Sérgio Scalzo; Marcelo Q. L. Afonso; Néli J. da Fonseca Jr; Itamar Guedes de Jesus; Ana Paula Alves; Carolina A. T. F. Mendonça, Vanessa Pereira Teixeira; Diogo Biagi; Estela Cruvinel; Anderson Kenedy Santos; Kiany Miranda; Flavio A.M. Marques; Oscar Mesquita; Christopher Kushmerick; Maria José Campagnole-Santos; Ubirajara Agero; Silvia Guatimosim"
+        ttk.Label(master, text=names+'\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=2, column=1)
         # ttk.Label(master, text='Scalzo, S.; Lima Afonso, M.Q.L.; Fonseca, N.J.;Jesus, I. C. G.; Alves, A. P.;Teixeira,V.P.;\nMarques, F.A.M.;Mesquita, O. N.; Kushmerick, C; Bleicher, L.;Agero, U.; Guatimosim, S.\n').grid(row=2, column=1)
         ttk.Label(master, text='To be published\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=3, column=1)
-        ttk.Label(master, text='This software is registered under GPL3.0.\nContact: sergiosc1789 at gmail.com\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=4, column=1)
+        ttk.Label(master, text='This software is registered under GPL3.0.\nContact: contractionwave at gmail.com\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=4, column=1)
         ttk.Label(master, wraplength=800, anchor="w", justify=tk.LEFT, text='Third party copyrights are property of their respective owners.\n\nCopyright (C) 2020, Ionicons, Released under MIT License.\nCopyright (c) 2008-2012, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team, All rights reserved.\nCopyright (c) 2012-2013 Matplotlib Development Team; All Rights Reserved\nCopyright (C) 2000-2019, Intel Corporation, all rights reserved.\nCopyright (C) 2009-2011, Willow Garage Inc., all rights reserved.\nCopyright (C) 2009-2016, NVIDIA Corporation, all rights reserved.\nCopyright (C) 2010-2013, Advanced Micro Devices, Inc., all rights reserved.\nCopyright (C) 2015-2016, OpenCV Foundation, all rights reserved.\nCopyright (C) 2015-2016, Itseez Inc., all rights reserved.\nCopyright (C) 2019-2020, Xperience AI, all rights reserved.\nCopyright (C) 2018 Uwe Klimmek\nCopyright Regents of the University of California, Sun Microsystems, Inc., Scriptics Corporation, and other parties\nCopyright © 1997-2011 by Secret Labs AB\nCopyright © 1995-2011 by Fredrik Lundh\nCopyright © 2010-2020 by Alex Clark and contributors\nCopyright (c) 2013-2020, John McNamara <jmcnamara@cpan.org> All rights reserved.\nCopyright (c) 2009, Jay Loden, Dave Daeschler, Giampaolo Rodola, All rights reserved. \nCopyright (c) 2005, NumPy Developers\nCopyright (c) 2010-2020, PyInstaller Development Team\nCopyright (c) 2005-2009, Giovanni Bajo\n Based on previous work under copyright (c) 2002 McMillan Enterprises, Inc.\nCopyright © 2001, 2002 Enthought, Inc. All rights reserved. \nCopyright © 2003-2019 SciPy Developers. All rights reserved.\n ').grid(row=5, column=1)
 
         self.packbtns = False
@@ -1221,8 +1223,8 @@ class AdjustExponentialDialog(tkDialog.Dialog):
             "Always": "always",
             "never": "Never",
             "Never": "never",
-            "noisecriteria": "High noise",
-            "High noise": "noisecriteria"
+            "noisecriteria": "Noisy areas",
+            "Noisy areas": "noisecriteria"
         }
         expconfigs = self.literals["exponentialsettings"]
         if len(expconfigs) > 1:
@@ -1232,12 +1234,14 @@ class AdjustExponentialDialog(tkDialog.Dialog):
             self.local_minimum_check = expconfigs[3]
         else:
             self.endnoisecriteria = 0.9
-            self.smoothbeforeregression = "noisecriteria"
+            # self.smoothbeforeregression = "noisecriteria"
+            self.smoothbeforeregression = "never"
             self.noiseratio = 1.0
-            self.local_minimum_check = True
+            # self.local_minimum_check = True
+            self.local_minimum_check = False
 
         rown = 0
-        self.spinmaxlbl = ttk.Label(master, text= 'Wave Max Filter area % for regression:')
+        self.spinmaxlbl = ttk.Label(master, text= 'Fraction of Wave Max Area:')
         self.spinmaxlbl.grid(row=rown, column=0)
         rown += 1
         self.spinmaxbox = tk.Spinbox(master, from_=0, to=1.0, increment=0.05, width=10)
@@ -1247,10 +1251,10 @@ class AdjustExponentialDialog(tkDialog.Dialog):
         self.spinmaxbox.bind('<Return>', lambda *args: self.validate())
         rown += 1
 
-        ttk.Label(master, text='Denoise before exponential:').grid(row=rown, column=0)
+        ttk.Label(master, text='Data smoothing before regression:').grid(row=rown, column=0)
         rown += 1
         self.formatvar = tk.StringVar(master)
-        self.formatchoices = {'Always', 'Never', 'High noise only'}
+        self.formatchoices = {'Always', 'Never', 'Noisy areas'}
         self.formatvar.set(self.smoothdict[self.smoothbeforeregression]) # set the default option
         self.smoothmenu = ttk.OptionMenu(master, self.formatvar, self.smoothdict[self.smoothbeforeregression], *self.formatchoices)
         self.smoothmenu.grid(row=rown, column=0)
@@ -1262,7 +1266,7 @@ class AdjustExponentialDialog(tkDialog.Dialog):
         self.local_minimum_check_var = tk.IntVar(value=1)
         if self.local_minimum_check == False:
             self.local_minimum_check_var.set(0)
-        self.local_minimum_check_ttk = ttk.Checkbutton(master, text = "Last point must be local minimum", variable = self.local_minimum_check_var, \
+        self.local_minimum_check_ttk = ttk.Checkbutton(master, text = "Stop only at local minimum", variable = self.local_minimum_check_var, \
                          onvalue = 1, offvalue = 0)
         self.local_minimum_check_ttk.grid(row=rown, column=0)
 
@@ -1282,7 +1286,8 @@ class AdjustExponentialDialog(tkDialog.Dialog):
     def apply(self):
         self.result = [float(self.spinmaxbox.get().replace(",", ".")) , self.smoothdict[self.formatvar.get()] , self.noiseratio , bool(self.local_minimum_check_var.get())]
 
-class AdjustNoiseDetectDialog(tkDialog.Dialog):
+# class AdjustNoiseDetectDialog(tkDialog.Dialog):
+class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
 
     def body(self, master):
         print("class AdjustNoiseDetectDialog def body creation")
@@ -1299,9 +1304,9 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
                          onvalue = 1, offvalue = 0, command=self.showspin)
         
         self.spinlbl = ttk.Label(master, text= "Custom Value: ")
-        self.spinu = tk.Spinbox(master,from_=-10000000000, to=10000000000, increment=1, width=10)
-        
-        self.spinu.bind('<Return>', lambda *args: self.validate())
+        self.spinu = tk.Spinbox(master,from_=-10000000000, to=10000000000, increment=1, width=10, command=self.updateplot)
+        # self.spinu.bind('<Return>', lambda *args: self.validate())
+        self.spinu.bind('<Return>', lambda *args: self.updateplot())
 
         print('self.literals["noisedecreasevalue"]')
         print(self.literals["noisedecreasevalue"])
@@ -1321,7 +1326,28 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
             self.spinlbl.grid_forget()
             self.spinu.grid_forget()
         print("class AdjustNoiseDetectDialog def body created")
-    
+
+    def updateplot(self):
+        self.validate()
+        if self.valid == True:
+            self.result = {}
+            # if self.checkfvar.get() == 1:
+            #     self.result["adjustnoisevar"] = True
+            # else:
+                # self.result["adjustnoisevar"]= False
+            if self.check_d_var.get() == 1:
+                self.result["noisedecrease"] = True
+            else:
+                self.result["noisedecrease"] = False
+            if self.check_u_var.get() == 1:
+                self.result["userdecrease"] = True
+                self.result["noisevalue"] = float(self.spinu.get().replace(",", "."))
+            else:
+                self.result["userdecrease"] = False
+                self.result["noisevalue"] = None
+            self.literals["updatable_frame"].adjustnoiseupdate(self.result)
+        pass
+
     def showspin(self):
         print("class AdjustNoiseDetectDialog def showspin start")
         if self.check_u_var.get() == 0:
@@ -1331,6 +1357,7 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
             self.check_d_var.set(0)
             self.spinlbl.grid(row=4, column=0)
             self.spinu.grid(row=4, column=1)
+        self.updateplot()
         print("class AdjustNoiseDetectDialog def showspin end")
 
     def hidespin(self):
@@ -1344,6 +1371,7 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
             self.check_u_var.set(0)
             self.spinu.grid_forget()
             self.spinlbl.grid_forget()
+        self.updateplot()
         print("class AdjustNoiseDetectDialog def hidespin end")
 
     def validate(self):
@@ -1365,22 +1393,26 @@ class AdjustNoiseDetectDialog(tkDialog.Dialog):
     def apply(self):
         print("class AdjustNoiseDetectDialog def apply start")
         #save configs
-        self.result = {}
-        # if self.checkfvar.get() == 1:
-        #     self.result["adjustnoisevar"] = True
-        # else:
-            # self.result["adjustnoisevar"]= False
-        if self.check_d_var.get() == 1:
-            self.result["noisedecrease"] = True
-        else:
-            self.result["noisedecrease"] = False
-        if self.check_u_var.get() == 1:
-            self.result["userdecrease"] = True
-            self.result["noisevalue"] = float(self.spinu.get().replace(",", "."))
-        else:
-            self.result["userdecrease"] = False
-            self.result["noisevalue"] = None
-        print("class AdjustNoiseDetectDialog def apply done")
+        print("self.valid")
+        print(self.valid)
+        if self.valid == True:
+            self.result = {}
+            # if self.checkfvar.get() == 1:
+            #     self.result["adjustnoisevar"] = True
+            # else:
+                # self.result["adjustnoisevar"]= False
+            if self.check_d_var.get() == 1:
+                self.result["noisedecrease"] = True
+            else:
+                self.result["noisedecrease"] = False
+            if self.check_u_var.get() == 1:
+                self.result["userdecrease"] = True
+                self.result["noisevalue"] = float(self.spinu.get().replace(",", "."))
+            else:
+                self.result["userdecrease"] = False
+                self.result["noisevalue"] = None
+            print("class AdjustNoiseDetectDialog def apply done")
+            self.literals["updatable_frame"].adjustnoiseupdate(self.result, True)
 
 class SaveFigureVideoDialog(tkDialog.Dialog):
 

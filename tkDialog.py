@@ -284,6 +284,8 @@ class DialogNonBlock(tk.Toplevel):
             self.literals["updatable_frame"].delete_settings()
         elif self.literals["frame_type"] == "legexport":
             self.literals["updatable_frame"].delete_legend()
+        elif self.literals["frame_type"] == "settings2":
+            self.literals["updatable_frame"].closeadjustnoise()
         self.destroy()
 
     #

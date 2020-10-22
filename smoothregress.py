@@ -64,12 +64,16 @@ def _2gaussian(x, amp1,cen1,sigma1, amp2,cen2,sigma2):
 # def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
 def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=None):
     #TODO: Write up noise detection separately and pass args to peak_detection
-    print("current_case")
-    print(current_case)
+    # print("current_case")
+    # print(current_case)
     print("pre_cutoff_val")
     print(cutoff_val)
     if cutoff_val == None:
-        cutoff_val = np.median(current_case)
+        # cutoff_val = np.median(current_case)
+        # cutoff_val = float("{:.3f}".format(cutoff_val))
+        n = int(len(current_case) * 0.3)
+        vi = np.argsort(current_case)[-n:]
+        cutoff_val = np.mean([current_case[a] for a in vi])
         cutoff_val = float("{:.3f}".format(cutoff_val))
     print("cutoff_val")
     print(cutoff_val)
@@ -98,7 +102,8 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
         noise_points = [(e, i) for i,e in enumerate(current_case) if case_classes[i] == 1 or int(i) in added_noise_dots]
     else:
         noise_points = [(e, i) for i,e in enumerate(current_case) if case_classes[i] == 1]
-
+    print("noise_points")
+    print(noise_points)
     if len(noise_points) < 2:
         return None
 
@@ -159,7 +164,7 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
 
 
 # def peak_detection(current_case, filter_noise_area=True, delta=False, stop_condition_perc=False, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
-def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc=False, nargs=[]):
+def peak_detection(current_case, original_case=False, delta=False, expconfigs=[], stop_condition_perc=False, nargs=[]):
     non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val = nargs
     #0                  1                       2                           3               4                   5                       6           7          8        9       10              11                  12              13                  14                      15                      16                  17
     # non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise = noise_detection(current_case, filter_noise_area=filter_noise_area, added_noise_dots=added_noise_dots, removed_noise_dots=removed_noise_dots, cutoff_val=cutoff_val)
@@ -175,9 +180,11 @@ def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc
         pass
     else:
         endnoisecriteria = 0.9
-        smoothbeforeregression = "noisecriteria"
+        # smoothbeforeregression = "noisecriteria"
+        smoothbeforeregression = "never"
         noiseratio = 1.0
-        local_minimum_check = True
+        # local_minimum_check = True
+        local_minimum_check = False
 
     if delta == False:
         delta = np.mean(non_noise_points_values) / 3
@@ -265,19 +272,31 @@ def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc
         if stop_condition_perc == False:
             auto_mode = True
             # stop_condition_perc = 0.05
-            # stop_condition_perc = 0.90
-            stop_condition_perc = 0.15
+            stop_condition_perc = 0.35
+            # stop_condition_perc = 0.15
+
+        ovaluesfit = None
+        if original_case:
+            ovaluesfit = original_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint]
         
         valuesfit = after_mins
         if smoothbeforeregression == "always":
             print("always selected, smoothing going to be done")
-            smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+            # smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+            smoothed_vals = smooth_data(valuesfit, 2)
             print(len(valuesfit))
             print(len(smoothed_vals))
             if len(valuesfit) != len(smoothed_vals):
                 valuesfit = smoothed_vals[2:]
             else:
                 valuesfit = smoothed_vals.copy()
+            if original_case:
+                osmoothed_vals = smooth_data(ovaluesfit, 2)
+                if len(ovaluesfit) != len(osmoothed_vals):
+                    ovaluesfit = osmoothed_vals[2:]
+                else:
+                    ovaluesfit = osmoothed_vals.copy()
+
             # valuesfit = smoothed_vals[2:-2]
             print(len(valuesfit))
 
@@ -285,17 +304,25 @@ def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc
             print("noise criteria selected, verifying smoothing")
             if filtered_maxfilter_area_minmax_perc > noiseratio:
                 print("smoothing done")
-                smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+                # smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
+                smoothed_vals = smooth_data(valuesfit, 2)
                 print(len(valuesfit))
                 print(len(smoothed_vals))
                 if len(valuesfit) != len(smoothed_vals):
                     valuesfit = smoothed_vals[2:]
                 else:
                     valuesfit = smoothed_vals.copy()
+                if original_case:
+                    osmoothed_vals = smooth_data(ovaluesfit, 2)
+                    if len(ovaluesfit) != len(osmoothed_vals):
+                        ovaluesfit = osmoothed_vals[2:]
+                    else:
+                        ovaluesfit = osmoothed_vals.copy()
             elif auto_mode == True:
                 # stop_condition_perc = 0.01
                 # stop_condition_perc = 0.95
-                stop_condition_perc = 0.20
+                # stop_condition_perc = 0.20
+                stop_condition_perc = 0.35
         elif smoothbeforeregression == "never":
             print("never selected, skipping smoothing")
             pass
@@ -327,23 +354,62 @@ def peak_detection(current_case, delta=False, expconfigs=[], stop_condition_perc
             valuesfitx_highdef = np.linspace(max_2_i, filtered_maxfilter_area_endpoint, 100)
 
             #curve fit for exponential function. high def data appended as well
+            print("try exponential fit")
             popt, pcov = curve_fit(exponential_fit, valuesfitx, valuesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
+            opopt, opcov = None, None
+            if original_case:
+                opopt, opcov = curve_fit(exponential_fit, valuesfitx, ovaluesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
+                opopt[0] = popt[0]
+                opopt[1] = popt[1]
+            
+            print("exponential fit not found")
             exponential_pops.append((valuesfitx_highdef, popt))
 
             #integral of values for exponential are done
-            total_area = np.trapz([exponential_fit(point, *popt) for point in range_maxfilter])
+            total_area = 0.0
+            if original_case:
+                total_area = np.trapz([exponential_fit(point, *opopt) for point in range_maxfilter])
+            else:
+                total_area = np.trapz([exponential_fit(point, *popt) for point in range_maxfilter])
+            print("range_maxfilter")
+            print(range_maxfilter)
             print("total_area")
             print(total_area)
             current_area = 0.0
+            print("stop_condition_perc")
+            print(stop_condition_perc)
+            stop_percentual = total_area * stop_condition_perc
+            print("stop_percentual")
+            print(stop_percentual)
+            print("popt")
+            print(popt)
+            print("opopt")
+            print(opopt)
+            print("")
+            print("")
             for point in range_maxfilter:
+                print("iteration")
                 after_point = point
-                exponential_speed_value = exponential_fit(point, *popt)
+                print("point")
+                print(point)
+                if original_case:
+                    exponential_speed_value = exponential_fit(point, *opopt)
+                else:
+                    exponential_speed_value = exponential_fit(point, *popt)
                 current_area += exponential_speed_value
+                # range_summation = range(range_maxfilter[0], point+1)
+                # print("range_summation")
+                # print(range_summation)
+                # current_area = np.trapz([exponential_fit(a, *popt) for a in range_summation])
+                print("current_area")
+                print(current_area)
                 is_local_minimum = point in all_local_minimums
-                if (current_area / total_area) >= stop_condition_perc and local_minimum_check == False:
+                if current_area >= stop_percentual and local_minimum_check == False:
                     break
-                elif (current_area / total_area) >= stop_condition_perc and local_minimum_check == True and is_local_minimum == True:
+                elif current_area >= stop_percentual and local_minimum_check == True and is_local_minimum == True:
                     break
+            print("")
+            print("")
             print("last point has been defined as: " + str(after_point) + " for perc == " + str(current_area))
         if after_point is None:
             i += 1

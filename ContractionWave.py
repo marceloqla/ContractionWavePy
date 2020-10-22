@@ -96,6 +96,17 @@ used_separator = "/"
 
 img_opencv = (".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".pbm", ".pgm", ".ppm", ".sr", ".ras", ".tiff", ".tif")
 
+# formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+
+# def setup_logger(name, log_file, level=logging.INFO):
+#     """To setup as many loggers as you want"""
+#     handler = logging.FileHandler(log_file)        
+#     handler.setFormatter(formatter)
+#     logger = logging.getLogger(name)
+#     logger.setLevel(level)
+#     logger.addHandler(handler)
+#     return logger
+
 def full_extent(ax, pad=0.0):
     """Get the full extent of an axes, including axes labels, tick labels, and
     titles."""
@@ -120,6 +131,8 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
     pixel_val = object_to_flow.pixelsize
     global filesprocessed
     queueobj.put(stamp+" TIME "+ " ".join(["--", "---", "--:--:--"]) )
+    # processinglogger.info(stamp+" "+object_to_flow.name+" TIME "+ " ".join(["--", "---", "--:--:--"]) + " " + str(dt.datetime.now()) )
+    processinglogger.write(stamp+" "+object_to_flow.name+" TIME "+ " ".join(["--", "---", "--:--:--"]) + " " + str(dt.datetime.now()) +"\n" )
     if object_to_flow.gtype == "Folder":
         global img_opencv
         files_grabbed = [x for x in os.listdir(object_to_flow.gpath) if os.path.isdir(x) == False and str(x).lower().endswith(img_opencv)]
@@ -144,6 +157,10 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             meanval = abs(mag.mean() * fps * pixel_val)
             meanval = float("{:.3f}".format(meanval))
 
+            # processinglogger.info(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now()) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now()) +"\n")
+            # processinglogger.info(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (len(files_grabbed)-1)) + " " + str(dt.datetime.now()) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (len(files_grabbed)-1)) + " " + str(dt.datetime.now()) +"\n")
             queueobj.put(stamp+" MEANS "+ str(j) +" " +str(meanval))
             queueobj.put(stamp+" PROGRESS "+str((j+1) / (len(files_grabbed)-1)))
 
@@ -155,7 +172,8 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
 
             lefttime = testimated-telapsed  # in seconds
             queueobj.put(stamp+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) )
-
+            # processinglogger.info(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) +"\n")
     elif object_to_flow.gtype == "Video":
         vc = cv2.VideoCapture(r'%s' % object_to_flow.gpath)
         _, frame1 = vc.read()
@@ -179,6 +197,10 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
 
             queueobj.put(stamp+" MEANS "+ str(j) +" " +str(meanval))
             queueobj.put(stamp+" PROGRESS "+str((j+1) / (total_frames-1)))
+            # processinglogger.info(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now()) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now()) +"\n")
+            # processinglogger.info(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (total_frames-1)) + " " + str(dt.datetime.now()) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (total_frames-1)) + " " + str(dt.datetime.now()) +"\n")
 
             telapsed = time.time() - starttime
             testimated = (telapsed/(j+1))*(total_frames)
@@ -187,8 +209,12 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             lefttime = testimated-telapsed  # in seconds
 
             queueobj.put(stamp+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) )
+            # processinglogger.info(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) + " " + str(dt.datetime.now())  )
+            processinglogger.write(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) + " " + str(dt.datetime.now())  +"\n")
+            
             frame1 = frame2.copy()
             j += 1
+        vc.release()
         pass
     elif object_to_flow.gtype == "Tiff Directory":
         _, images = cv2.imreadmulti(r'%s' % object_to_flow.gpath, None, cv2.IMREAD_COLOR)
@@ -214,6 +240,11 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             queueobj.put(stamp+" MEANS "+ str(j) +" " +str(meanval))
             queueobj.put(stamp+" PROGRESS "+str((j+1) / (len(images)-1)))
 
+            # processinglogger.info(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now()))
+            processinglogger.write(stamp+" "+object_to_flow.name+" MEANS "+ str(j) +" " +str(meanval) + " " + str(dt.datetime.now())+"\n")
+            # processinglogger.info(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (len(images)-1)) + " " + str(dt.datetime.now()))
+            processinglogger.write(stamp+" "+object_to_flow.name+" PROGRESS "+str((j+1) / (len(images)-1)) + " " + str(dt.datetime.now())+"\n")
+
             telapsed = time.time() - starttime
             testimated = (telapsed/(j+1))*(len(images))
 
@@ -222,7 +253,11 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
 
             lefttime = testimated-telapsed  # in seconds
             queueobj.put(stamp+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)]) )
+            # processinglogger.info(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)])  + " " + str(dt.datetime.now()) )
+            processinglogger.write(stamp+" "+object_to_flow.name+" TIME "+ " ".join([str(int(telapsed)), str(int(lefttime)), str(finishtime)])  + " " + str(dt.datetime.now()) +"\n")
     queueobj.put(stamp+" TIME "+ " ".join(["--", "---", "--:--:--"]) )
+    # processinglogger.info(stamp+" "+object_to_flow.name+" TIME "+ " ".join(["--", "---", "--:--:--"])  + " " + str(dt.datetime.now()) )
+    processinglogger.write(stamp+" "+object_to_flow.name+" TIME "+ " ".join(["--", "---", "--:--:--"])  + " " + str(dt.datetime.now()) +"\n")
 
 def update_running_tasks():
     global running_tasks, ncores, processingdeque
@@ -380,11 +415,13 @@ def get_Frames_Folder_Number(folderpath):
 def get_Frames_Video(videopath):
     cap = cv2.VideoCapture(r'%s' %videopath)
     total_frames = cap.get(7)
+    cap.release()
     return total_frames
 
 def get_Video_FPS(videopath):
     cap = cv2.VideoCapture(r'%s' %videopath)
     fps = cap.get(5)
+    cap.release()
     return int(fps)
 
 def get_Frames_CTiff(tiffpath):
@@ -430,7 +467,6 @@ class AnalysisGroup(object):
 
         #Run Flow Return Variables
         self.mag_means = []
-
 
     def set_valtype(self, valtype, valthis):
         print("class AnalysisGroup setting: " + valtype + " to: " + str(valthis))
@@ -806,14 +842,46 @@ class SampleApp(tk1.ThemedTk):
     def focus_out_menu(self, event=None):
         pass
 
-    def mouse_function(self, event=None):
+    def mouse_function(self, event=None, closethis=False):
+        print("mouse click tracker")
         if self.popuplock == True:
-            if (event.widget != self.currentpopup):
+            print("popup lock is on")
+            if closethis == True:
+                if self.currentpopup is not None:
+                    self.currentpopup.grab_release()
+                    self.currentpopup.unpost()
+                    self.current_frame.focus_set()               
+            elif (event.widget != self.currentpopup):
+                print("current widget is not current popup, unposting")
                 self.currentpopup.grab_release()
                 self.currentpopup.unpost()
                 event.widget.focus_set()
+            if (self.current_frame.fname == "PageOne" and self.currentpopup is not None):
+                if self.currentpopup == self.current_frame.popup_menu:
+                    self.current_frame.focus_out_menu()
+            elif (self.current_frame.fname == "PageFour" and self.currentpopup is not None):
+                print("event triggered on pagefour")
+                if self.currentpopup == self.current_frame.selectCMenu:
+                    print("selectCMenu")
+                    self.current_frame.popupCFocusOut()
+                elif self.currentpopup == self.current_frame.areaCMenu:
+                    print("areaCMenu")
+                    self.current_frame.popupFocusOut()
+                elif self.currentpopup == self.current_frame.areaNMenu:
+                    print("areaNMenu")
+                    self.current_frame.popupNFocusOut()
+                else:
+                    print("Error: no menu found")
+            elif (self.current_frame.fname == "PageFive" and self.currentpopup is not None):
+                if self.currentpopup == self.current_frame.peakRowSelectMenu:
+                    print("pagefive popup")
+                    self.current_frame.focus_out_menu()
+                else:
+                    print("Error: no menu found")
+            print("unsetting popup stuff")
             self.popuplock = False
             self.currentpopup = None
+        return
 
     def show_frame(self, page_name, firsto=False, bckbtn=None):
         if self.btn_lock == False:
@@ -913,6 +981,7 @@ class SampleApp(tk1.ThemedTk):
                 validate = frame.init_vars()
                 frame.settabletype()
             if page_name == "PageSix":
+                print("about to init last page")
                 validate = frame.init_vars()
                 frame.init_viz()
                 frame.init_ax2()
@@ -1128,7 +1197,7 @@ class SampleApp(tk1.ThemedTk):
                     if not os.path.exists('savedgroups'):
                         os.makedirs('savedgroups/')
                     try:
-                        filehandler = open("savedgroups/" + etask + ".pickle" , 'wb') 
+                        filehandler = open("savedgroups/" + doneg.name + "_" + etask + ".pickle" , 'wb') 
                         # pickle.dump(doneg, filehandler, protocol=pickle.HIGHEST_PROTOCOL)
                         pickle.dump(doneg, filehandler, protocol=3)
                         filehandler.close()
@@ -1325,7 +1394,7 @@ class PageOne(ttk.Frame):
         self.separator_adv1.grid(row=rown,column=0,columnspan=4, sticky="ew") 
         rown+=1
 
-        self.separator_lbl = ttk.Label(self.rframe,  text="Experimental Settings: ")#, style='greyBackground.TLabel')
+        self.separator_lbl = ttk.Label(self.rframe,  text="Basic Settings: ")#, style='greyBackground.TLabel')
         self.separator_lbl.grid(row=rown,column=0,columnspan=4) 
 
         rown+=1
@@ -1342,6 +1411,20 @@ class PageOne(ttk.Frame):
         self.rlabel5_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel5_AnswerVar, validate="focusout", validatecommand=lambda: self.validatefloat(self.rlabel5_AnswerBox, self.rlabel5_AnswerVar, "pixelsize"))
         self.rlabel5.grid(row=rown, column=2, columnspan=1)
         self.rlabel5_AnswerBox.grid(row=rown, column=3, columnspan=1)
+
+        rown+=1
+
+        self.rlabel8 = ttk.Label(self.rframe, text="Winsize: ")#, style='greyBackground.TLabel')
+        self.rlabel8_AnswerVar = tk.StringVar()
+        self.rlabel8_AnswerBox = tk.Entry(self.rframe, width=5, textvariable=self.rlabel8_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel8_AnswerBox, self.rlabel8_AnswerVar, "winsize"))
+        self.rlabel8.grid(row=rown, column=0, columnspan=1)
+        self.rlabel8_AnswerBox.grid(row=rown, column=1, columnspan=1)
+
+        self.rlabel10 = ttk.Label(self.rframe, text="Poly N: ")#, style='greyBackground.TLabel')
+        self.rlabel10_AnswerVar = tk.StringVar()
+        self.rlabel10_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel10_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel10_AnswerBox, self.rlabel10_AnswerVar, "poly_n"))
+        self.rlabel10.grid(row=rown, column=2, columnspan=1)
+        self.rlabel10_AnswerBox.grid(row=rown, column=3, columnspan=1)
 
         rown+=1
 
@@ -1369,11 +1452,17 @@ class PageOne(ttk.Frame):
         rown +=1
 
         #6th row
-        self.rlabel8 = ttk.Label(self.rframe, text="Winsize: ")#, style='greyBackground.TLabel')
-        self.rlabel8_AnswerVar = tk.StringVar()
-        self.rlabel8_AnswerBox = tk.Entry(self.rframe, width=5, textvariable=self.rlabel8_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel8_AnswerBox, self.rlabel8_AnswerVar, "winsize"))
-        self.rlabel8.grid(row=rown, column=0, columnspan=1)
-        self.rlabel8_AnswerBox.grid(row=rown, column=1, columnspan=1)
+        # self.rlabel8 = ttk.Label(self.rframe, text="Winsize: ")#, style='greyBackground.TLabel')
+        # self.rlabel8_AnswerVar = tk.StringVar()
+        # self.rlabel8_AnswerBox = tk.Entry(self.rframe, width=5, textvariable=self.rlabel8_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel8_AnswerBox, self.rlabel8_AnswerVar, "winsize"))
+        # self.rlabel8.grid(row=rown, column=0, columnspan=1)
+        # self.rlabel8_AnswerBox.grid(row=rown, column=1, columnspan=1)
+
+        self.rlabel11 = ttk.Label(self.rframe, text="Poly Sigma: ")#, style='greyBackground.TLabel')
+        self.rlabel11_AnswerVar = tk.StringVar()
+        self.rlabel11_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel11_AnswerVar, validate="focusout", validatecommand=lambda: self.validatefloat(self.rlabel11_AnswerBox, self.rlabel11_AnswerVar, "poly_sigma"))
+        self.rlabel11.grid(row=rown, column=0, columnspan=1)
+        self.rlabel11_AnswerBox.grid(row=rown, column=1, columnspan=1)
 
         self.rlabel9 = ttk.Label(self.rframe, text="Iterations: ")#, style='greyBackground.TLabel')
         self.rlabel9_AnswerVar = tk.StringVar()
@@ -1381,20 +1470,20 @@ class PageOne(ttk.Frame):
         self.rlabel9.grid(row=rown, column=2, columnspan=1)  
         self.rlabel9_AnswerBox.grid(row=rown, column=3, columnspan=1)
 
-        rown+=1
+        # rown+=1
 
         #7th row
-        self.rlabel10 = ttk.Label(self.rframe, text="Poly N: ")#, style='greyBackground.TLabel')
-        self.rlabel10_AnswerVar = tk.StringVar()
-        self.rlabel10_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel10_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel10_AnswerBox, self.rlabel10_AnswerVar, "poly_n"))
-        self.rlabel10.grid(row=rown, column=0, columnspan=1)
-        self.rlabel10_AnswerBox.grid(row=rown, column=1, columnspan=1)
+        # self.rlabel10 = ttk.Label(self.rframe, text="Poly N: ")#, style='greyBackground.TLabel')
+        # self.rlabel10_AnswerVar = tk.StringVar()
+        # self.rlabel10_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel10_AnswerVar, validate="focusout", validatecommand=lambda: self.validateinteger(self.rlabel10_AnswerBox, self.rlabel10_AnswerVar, "poly_n"))
+        # self.rlabel10.grid(row=rown, column=0, columnspan=1)
+        # self.rlabel10_AnswerBox.grid(row=rown, column=1, columnspan=1)
 
-        self.rlabel11 = ttk.Label(self.rframe, text="Poly Sigma: ")#, style='greyBackground.TLabel')
-        self.rlabel11_AnswerVar = tk.StringVar()
-        self.rlabel11_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel11_AnswerVar, validate="focusout", validatecommand=lambda: self.validatefloat(self.rlabel11_AnswerBox, self.rlabel11_AnswerVar, "poly_sigma"))
-        self.rlabel11.grid(row=rown, column=2, columnspan=1)
-        self.rlabel11_AnswerBox.grid(row=rown, column=3, columnspan=1)
+        # self.rlabel11 = ttk.Label(self.rframe, text="Poly Sigma: ")#, style='greyBackground.TLabel')
+        # self.rlabel11_AnswerVar = tk.StringVar()
+        # self.rlabel11_AnswerBox = ttk.Entry(self.rframe, width=5, textvariable=self.rlabel11_AnswerVar, validate="focusout", validatecommand=lambda: self.validatefloat(self.rlabel11_AnswerBox, self.rlabel11_AnswerVar, "poly_sigma"))
+        # self.rlabel11.grid(row=rown, column=2, columnspan=1)
+        # self.rlabel11_AnswerBox.grid(row=rown, column=3, columnspan=1)
 
         for i in range(0,rown+1):
             self.rframe.rowconfigure(i, weight=1)
@@ -1403,7 +1492,7 @@ class PageOne(ttk.Frame):
 
         self.menu_index = None
         self.popup_menu = tk.Menu(self, tearoff=0)
-        self.popup_menu.add_command(label="Close")
+        self.popup_menu.add_command(label="Close", command=self.closepmenu)
         self.popup_menu.add_command(label="Rename",
                                     command=self.setName)
         self.popup_menu.add_command(label="Add to Preset",
@@ -1527,6 +1616,8 @@ class PageOne(ttk.Frame):
 
     def apply_to_all(self):
         for ind_u in range(len(self.analysisgroups)):
+            self.analysisgroups[ind_u].set_valtype("FPS", self.selectedgroup.get_valtype("FPS"))
+            self.analysisgroups[ind_u].set_valtype("pixelsize", self.selectedgroup.get_valtype("pixelsize"))
             self.analysisgroups[ind_u].set_valtype("pyr_scale", self.selectedgroup.get_valtype("pyr_scale"))
             self.analysisgroups[ind_u].set_valtype("levels", self.selectedgroup.get_valtype("levels"))
             self.analysisgroups[ind_u].set_valtype("winsize", self.selectedgroup.get_valtype("winsize"))
@@ -1552,6 +1643,9 @@ class PageOne(ttk.Frame):
             filehandler_go2.close()
         except Exception as e:
             messagebox.showerror("Error", "Could not save default file\n" + str(e))
+    
+    def closepmenu(self, event=None):
+        self.controller.mouse_function(closethis=True)
 
     def focus_out_menu(self, event=None):
         self.popup_menu.grab_release()
@@ -1603,6 +1697,7 @@ class PageOne(ttk.Frame):
                 messagebox.showinfo("File Saved", "User Preset File saved successfully!")
             except Exception as e:
                 messagebox.showerror("Error", "Could not save Preset file\n" + str(e))
+        self.controller.mouse_function(closethis=True)
 
     def open_preset(self, event=None):
         d = SelectPresetDialog(self, title='Select from a previous Pre-Set:', literals=[
@@ -1618,6 +1713,7 @@ class PageOne(ttk.Frame):
             if self.analysisgroups[self.menu_index] == self.selectedgroup:
                 self.listbox.select_set(self.menu_index) #Sets focus on item
                 self.listbox.event_generate("<<ListboxSelect>>")
+        self.controller.mouse_function(closethis=True)
 
     def clear_all(self):
         self.listbox.delete(0,'end')
@@ -1642,6 +1738,8 @@ class PageOne(ttk.Frame):
                 self.rframe.grid_remove()
                 self.rframeshow = False
                 self.menu_index = None
+        self.controller.mouse_function(closethis=True)
+        return
 
     def setName(self, event=None):
         self.selectedgroup = self.analysisgroups[self.menu_index]
@@ -1655,6 +1753,8 @@ class PageOne(ttk.Frame):
             if self.selectedgroup == self.analysisgroups[self.menu_index]:
                 self.rlabel1_AnswerBox['text'] = str(self.analysisgroups[self.menu_index].name)
         self.menu_index = None
+        self.controller.mouse_function(closethis=True)
+        return
 
     def validateinteger(self, eventsource, varthis, valtype):
         if self.controller.current_frame.fname == self.fname:
@@ -1668,6 +1768,9 @@ class PageOne(ttk.Frame):
                         eventsource.insert(0,str(prev_value))
                         return False
                 self.selectedgroup.set_valtype(valtype, strval)
+                # if valtype == "FPS":
+                    # for ind_u in range(len(self.analysisgroups)):
+                        # self.analysisgroups[ind_u].set_valtype(valtype, strval)
                 self.analysisgroups[self.currentselind].set_valtype(valtype, strval)
             except Exception:
                 return False
@@ -2028,10 +2131,22 @@ class PageTwo(ttk.Frame):
                 if MsgBox.result == True:
                     self.controller.current_analysis = g
                     self.controller.mag_sindex = 0
+                    print("page two self.controller.mag_sindex")
+                    print(self.controller.mag_sindex)
                     self.controller.mag_findex = len(self.controller.current_analysis.mag_means)
+                    print("page two self.controller.mag_findex")
+                    print(self.controller.mag_findex)
                     self.controller.btn_lock = False
                     self.controller.show_frame("PageFour")
+                else:
+                    self.controller.current_analysis = None
+                    self.controller.mag_sindex = 0
+                    self.controller.mag_findex = 0
+                    self.controller.btn_lock = False
             else:
+                self.controller.current_analysis = None
+                self.controller.mag_sindex = 0
+                self.controller.mag_findex = 0
                 messagebox.showerror("Error", "Group Analysis is not done.")
                 self.controller.btn_lock = False
 
@@ -2406,6 +2521,10 @@ class PageThree(ttk.Frame):
                     self.controller.show_frame("PageFour")
             self.controller.btn_lock = False
 
+    def modification_date(self, filename):
+        t = os.path.getmtime(filename)
+        return dt.datetime.fromtimestamp(t)
+
     def listboxpopulate(self):
         self.controller.btn_lock = True
 
@@ -2434,6 +2553,7 @@ class PageThree(ttk.Frame):
         self.fnamedict = {}
         self.listbox.delete(0, tk.END)
         self.disk_list = []
+        temptimelist = []
         if os.path.exists('savedgroups'):
             disk_groups = [x for x in os.listdir('savedgroups') if os.path.isdir(x) == False and str(x).lower().endswith("pickle")]
             if disk_groups:
@@ -2443,6 +2563,7 @@ class PageThree(ttk.Frame):
                         diskgroup = pickle.load(filehandler2)
                         filehandler2.close()
                         self.disk_list.append(diskgroup)
+                        temptimelist.append(self.modification_date('savedgroups/'+ fdg))
                         self.fnamedict[diskgroup.id] = 'savedgroups/'+ fdg
                     except Exception as e:
                         messagebox.showerror("Error", "Could not load Group file\n" + str(e))
@@ -2450,9 +2571,9 @@ class PageThree(ttk.Frame):
         self.memory_list = self.controller.done_groups.values()
         
         self.all_list = []
-        for eg in self.disk_list:
+        for ieg, eg in enumerate(self.disk_list):
             # self.listbox.insert(tk.END, eg.name + " - N. of Frames: " + str(eg.framenumber) + " (Disk)")
-            self.listbox.insert(tk.END, eg.name + " - N. of Frames: " + str(eg.framenumber))
+            self.listbox.insert(tk.END, eg.name + " - N. of Frames: " + str(eg.framenumber))# + " - Time: " + str(temptimelist[ieg]))
             self.all_list.append(eg)
         # for eg in self.memory_list:
         #     self.listbox.insert(tk.END, eg.name + " - N. of Frames: " + str(eg.framenumber) + " (Memory)")
@@ -2512,6 +2633,7 @@ class PageFour(ttk.Frame):
         self.hidedots = True
         self.decreasenoise = False
         self.userdecreasenoise = False
+        self.adjustnoisedialog = None
         self.denoising = None
         self.dotsize = None
         self.double_dotsize = None
@@ -2568,7 +2690,7 @@ class PageFour(ttk.Frame):
         CreateToolTip(self.checkdecrease, \
         "Noise cutoff value is decreased from plot.")
 
-        lbl2 = ttk.Label(self.frame1, text= 'Exp. Stop Criteria (% of area below plot): ')#, style="greyBackground.TLabel")
+        lbl2 = ttk.Label(self.frame1, text= 'Fraction of Exp. AUC: ')#, style="greyBackground.TLabel")
         lbl2.grid(row=0, column=5)
 
         self.spin_stopcondition = tk.Spinbox(self.frame1, from_=0, to=1, increment=0.05, width=10, command=self.update_with_delta_freq)
@@ -2577,7 +2699,7 @@ class PageFour(ttk.Frame):
         # "Minimum ratio between a given Data point and it's previous neighbouring point in the Exponential Regression "
         # "for finding the last point of a Wave. ")
         CreateToolTip(self.spin_stopcondition, \
-        "Accumulated percentage of total Exp. Regression area below plot "
+        "Accumulated fraction of total Exp. Regression area under the curve "
         "for finding the last point of a Wave. ")
 
         self.frame1.grid(row=1, column=0, columnspan=4, sticky=tk.W+tk.E+tk.N+tk.S)
@@ -2591,7 +2713,7 @@ class PageFour(ttk.Frame):
         self.spin_deltavalue.insert(0,0.4)
 
         self.spin_stopcondition.delete(0,"end")
-        self.spin_stopcondition.insert(0,0.4)
+        self.spin_stopcondition.insert(0,0.35)
 
         self.spin_cutoff.delete(0,"end")
         self.spin_cutoff.insert(0,0.4)
@@ -2637,28 +2759,28 @@ class PageFour(ttk.Frame):
         self.frame3 = ttk.Frame(self)#, style="greyBackground.TFrame")
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame3)  # A tk.DrawingArea.
 
-        self.selectCMenu = tk.Menu(self, tearoff=0)
-        self.selectCMenu.add_command(label="Close Menu")
+        #self.selectCMenu = tk.Menu(self, tearoff=0)
+        self.selectCMenu = tk.Menu(self.frame3, tearoff=0)
+        self.selectCMenu.add_command(label="Close Menu", command=lambda:self.local_peak_operation(txt="None"))
         self.selectCMenu.add_command(label="Add Dot", command=lambda:self.local_peak_operation(txt="add_dot"))
         self.selectCMenu.add_command(label="Change Dot Type", command=lambda:self.local_peak_operation(txt="change_dot"))
         self.selectCMenu.add_command(label="Remove Dot", command=lambda:self.local_peak_operation(txt="remove_dot"))
-
+        self.selectCMenu.bind("<FocusOut>", self.popupCFocusOut)
+        
         self.areaCMenu = tk.Menu(self.frame3, tearoff=0)
-        self.areaCMenu.add_command(label="Close Menu")
+        self.areaCMenu.add_command(label="Close Menu", command=lambda:self.local_peak_operation(txt="None"))
         self.areaCMenu.add_command(label="Savitzky-Golay Filter", command=lambda:self.local_peak_operation(txt="denoise_sav"))
         self.areaCMenu.add_command(label="Averaged Window Filter", command=lambda:self.local_peak_operation(txt="denoise_avg"))
         self.areaCMenu.add_command(label="Set as Current Data", command=lambda:self.local_peak_operation(txt="set_current"))
         # self.areaCMenu.add_command(label="Delete from Data", command=lambda:self.local_peak_operation(txt="del_current"))
-        self.areaCMenu.add_command(label="Edit values to 0.0 (Noise)", command=lambda:self.local_peak_operation(txt="edit_current"))
+        self.areaCMenu.add_command(label="Set Speed to 0.0", command=lambda:self.local_peak_operation(txt="edit_current"))
         self.areaCMenu.bind("<FocusOut>", self.popupFocusOut)
 
         self.areaNMenu=tk.Menu(self.frame3, tearoff=0)
-        self.areaNMenu.add_command(label="Close Menu")
-        self.areaNMenu.add_command(label="Set as Noise", command=lambda:self.local_peak_operation(txt="add_as_noise"))
+        self.areaNMenu.add_command(label="Close Menu", command=lambda:self.local_peak_operation(txt="None"))
+        self.areaNMenu.add_command(label="Set as Filtered", command=lambda:self.local_peak_operation(txt="add_as_noise"))
         self.areaNMenu.add_command(label="Set as Wave",  command=lambda:self.local_peak_operation(txt="remove_as_noise"))
         self.areaNMenu.bind("<FocusOut>", self.popupNFocusOut)
-
-        self.selectCMenu.bind("<FocusOut>", self.popupCFocusOut)
 
         self.dragDots = MoveDragHandler(master=self.controller,currentgroup=self.controller.current_analysis, FPS=self.FPS, pixel_val=self.pixel_val, figure=self.fig, ax=self.ax, data=self.current_case, selectCMenu=self.selectCMenu, areaCMenu=self.areaCMenu, areaNMenu=self.areaNMenu, colorify=self.plotsettings.peak_plot_colors, plotconf=self.plotsettings.plotline_opts, noiseindexes=self.noises[3], dsizes=(self.dotsize, self.double_dotsize),ax2baseline=self.ax2baseline,ax2grid=self.ax2grid,deltafft=self.delta_fft)
         self.dragDots.ax2_type = "Zoom"
@@ -2685,9 +2807,9 @@ class PageFour(ttk.Frame):
 
         self.CheckVar_dots = tk.IntVar()
 
-        CD = ttk.Checkbutton(self.frame4, text = "Plot Dots", variable = self.CheckVar_dots, \
+        CD = ttk.Checkbutton(self.frame4, text = "Plot max/min avg. speed", variable = self.CheckVar_dots, \
                          onvalue = 1, offvalue = 0, command = self.plotDots, \
-                         width = 20)
+                         width = 25)
         # if self.plotsettings.plotline_opts["show_dots"] == True:
         self.CheckVar_dots.set(0)
         CD.grid(row=0,column=1)
@@ -2802,6 +2924,7 @@ class PageFour(ttk.Frame):
                 validate = False
         if validate == True:
             self.mainplotartist = None
+            self.adjustnoisedialog = None
             
             print("bckbtn")
             print(bckbtn)
@@ -3074,11 +3197,47 @@ class PageFour(ttk.Frame):
         menu.add_cascade(label='Data Options', menu=data_menu)
 
         menu.add_command(label="About", command=self.controller.showabout)
-        menu.add_command(label="Help", command=self.controller.showhelp)
+        # menu.add_command(label="Help", command=self.controller.showhelp)
         return menu
 
-    def adjustnoise(self):
+    def adjustnoiseupdate(self, result, close=False):
         self.controller.btn_lock = True
+        # self.adjustnoisevar = d.result["adjustnoisevar"]
+        print("result")
+        print(result)
+        self.decreasenoise = result["noisedecrease"]
+        self.userdecreasenoise = result["userdecrease"]
+        self.usernoise = result["noisevalue"]
+
+        # if self.decreasenoise == True:
+        #     # gvf_cutoff_val += self.noiseavgvar
+        #     self.spin_cutoff.delete(0,"end")
+        #     self.spin_cutoff.insert(0,self.gvf_cutoff - self.noiseavgvar)
+        #     pass
+        # elif self.userdecreasenoise == True:
+        #     # gvf_cutoff_val += self.usernoise
+        #     self.spin_cutoff.delete(0,"end")
+        #     self.spin_cutoff.insert(0,self.gvf_cutoff - self.usernoise)
+        #     pass
+        # else:
+        #     self.spin_cutoff.delete(0,"end")
+        #     self.spin_cutoff.insert(0,self.gvf_cutoff)
+
+        if self.decreasenoise == True:
+            self.check_decrease_value.set(1)
+        else:
+            self.check_decrease_value.set(0)
+        print(" def adjustnoise update_with_delta_freq")
+        self.update_with_delta_freq()
+        if close == True:
+            self.closeadjustnoise()
+        self.controller.btn_lock = False
+    
+    def closeadjustnoise(self):
+        self.adjustnoisedialog = None
+   
+    def adjustnoise(self):
+        # self.controller.btn_lock = True
         # e = 1
         # if self.adjustnoisevar == False:
             # e = 0
@@ -3091,24 +3250,29 @@ class PageFour(ttk.Frame):
         e4 = 1
         if self.userdecreasenoise == False:
             e4 = 0
-        d = AdjustNoiseDetectDialog(self, title='Noise Advanced Parameters', literals=[
+        self.adjustnoisedialog = AdjustNoiseDetectDialog(self, title='Noise Advanced Parameters', literals=[
+        # d = AdjustNoiseDetectDialog(self, title='Noise Advanced Parameters', literals=[
             # ("noiseareasfiltering", e),
+            ("updatable_frame", self),
+            ("frame_type", "settings2"),
             ("noisedecrease", e2),
             ("userdecrease", e4),
             ("noisedecreasevalue", e3)
             ])
-        if d.result:
-            # self.adjustnoisevar = d.result["adjustnoisevar"]
-            self.decreasenoise = d.result["noisedecrease"]
-            if self.decreasenoise == True:
-                self.check_decrease_value.set(1)
-            else:
-                self.check_decrease_value.set(0)
-            self.userdecreasenoise = d.result["userdecrease"]
-            self.usernoise = d.result["noisevalue"]
-            print(" def adjustnoise update_with_delta_freq")
-            self.update_with_delta_freq()
-        self.controller.btn_lock = False
+        # if d.result:
+        #     # self.adjustnoisevar = d.result["adjustnoisevar"]
+        #     print("d.result")
+        #     print(d.result)
+        #     self.decreasenoise = d.result["noisedecrease"]
+        #     self.userdecreasenoise = d.result["userdecrease"]
+        #     self.usernoise = d.result["noisevalue"]
+        #     if self.decreasenoise == True:
+        #         self.check_decrease_value.set(1)
+        #     else:
+        #         self.check_decrease_value.set(0)
+        #     print(" def adjustnoise update_with_delta_freq")
+        #     self.update_with_delta_freq()
+        # self.controller.btn_lock = False
 
     def adjustexponential(self):
         self.controller.btn_lock = True
@@ -3191,27 +3355,35 @@ class PageFour(ttk.Frame):
 
     def popupCFocusOut(self,event=None):
         self.controller.btn_lock = True
+        print("popupCFocusOut trigger")
         if self.dragDots.selectareaopen == True:
+            print("popupCFocusOut cancel")
             #close right click menu
             self.selectCMenu.grab_release()
             self.selectCMenu.unpost()
             self.focus_set()
             self.controller.popuplock = False
             self.controller.currentpopup = None
+            print("popupCFocusOut reset states")
 
             #Reset lock and area states
             self.dragDots.selectareaopen = False
+            self.dragDots.selectdotarea = None
+            self.dragDots.selectloc = None
         self.controller.btn_lock = False
 
     def popupNFocusOut(self,event=None):
         self.controller.btn_lock = True
+        print("popupNFocusOut trigger")
         if self.dragDots.noiseareaopen == True:
+            print("popupNFocusOut cancel")
             #close right click menu
             self.areaNMenu.grab_release()
             self.areaNMenu.unpost()
             self.focus_set()
             self.controller.popuplock = False
             self.controller.currentpopup = None
+            print("popupNFocusOut reset states")
 
             #Reset lock and area states
             self.dragDots.locknoiserect = False
@@ -3224,13 +3396,16 @@ class PageFour(ttk.Frame):
 
     def popupFocusOut(self,event=None):
         self.controller.btn_lock = True
+        print("popupFocusOut trigger")
         if self.dragDots.areaopen == True:
+            print("popupFocusOut cancel")
             #close right click menu
             self.areaCMenu.grab_release()
             self.areaCMenu.unpost()
             self.focus_set()
             self.controller.popuplock = False
             self.controller.currentpopup = None
+            print("popupFocusOut reset states")
 
             #Reset lock and area states
             self.dragDots.lockrect = False
@@ -3325,7 +3500,7 @@ class PageFour(ttk.Frame):
             self.dragDots.unset_area_as_noise()
             self.update_with_delta_freq()
         elif txt == "add_dot":
-            d = DotChangeDialog(self, title='Change Dot Type')
+            d = DotChangeDialog(self, title='Add Dot Type')
             if d.result != None:
                 newtype = d.result
                 self.dragDots.add_dot_at_last(newtype)
@@ -3340,7 +3515,9 @@ class PageFour(ttk.Frame):
         elif txt == "remove_dot":
             self.dragDots.remove_dot_at_last()
             self.plotDots()
+        self.controller.mouse_function(closethis=True)
         self.controller.btn_lock = False
+        return
 
     def refreshDotList(self):
         self.controller.btn_lock = True
@@ -3422,6 +3599,7 @@ class PageFour(ttk.Frame):
         stop_condition_perc_val = self.spin_stopcondition.get().replace(",",".")
         gvf_cutoff_val = self.spin_cutoff.get().replace(",",".")
         if self.check_decrease_value.get() == 1:
+            print("avg noise on, user noise off")
             self.decreasenoise = True
             self.userdecreasenoise = False
             self.usernoise = None
@@ -3429,17 +3607,27 @@ class PageFour(ttk.Frame):
             self.decreasenoise = False
         try:
             delta_val = float(delta_val)
+            self.delta = delta_val
         except ValueError:
             self.return_last_spinner("delta", "Spinner value is not float!")
             self.controller.btn_lock = False
             return
         try:
             stop_condition_perc_val = float(stop_condition_perc_val)
+            self.stop_condition_perc = stop_condition_perc_val
         except ValueError:
             self.return_last_spinner("stop_condition_perc", "Spinner value is not float!")
             self.controller.btn_lock = False
         try:
             gvf_cutoff_val = float(gvf_cutoff_val)
+            if self.decreasenoise == True:
+                gvf_cutoff_val += self.noiseavgvar
+                pass
+            elif self.userdecreasenoise == True:
+                gvf_cutoff_val += self.usernoise
+                pass
+            self.gvf_cutoff = gvf_cutoff_val
+            #todo tirar da diminuicao do grafico
         except ValueError:
             self.return_last_spinner("gvf_cutoff", "Spinner value is not float!")
             self.controller.btn_lock = False
@@ -3458,9 +3646,9 @@ class PageFour(ttk.Frame):
             return
         if doupdate == True:
             self.runupdate(delta_val=delta_val, stop_condition_perc_val=stop_condition_perc_val, gvf=gvf_cutoff_val)
-            self.delta = delta_val
-            self.stop_condition_perc = stop_condition_perc_val
-            self.gvf_cutoff = gvf_cutoff_val
+            # self.delta = delta_val
+            # self.stop_condition_perc = stop_condition_perc_val
+            # self.gvf_cutoff = gvf_cutoff_val
         self.controller.btn_lock = False
 
     def add_a_subplot(self, txt=None):
@@ -3604,30 +3792,43 @@ class PageFour(ttk.Frame):
         nargs = noise_detection(self.current_case,filter_noise_area=True, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
         
         if nargs == None:
-            messagebox.showerror("Error:", "Noise not detected. Please adjust the Noise cutoff")    
+            messagebox.showerror("Error:", "Maximum filtering step error. Please raise the Wave Max Filter cutoff")    
             self.controller.cancelwd()
             return
         #decrease noise from case if selected
         
         # self.noiseavgvar = nargs[6]+nargs[7]
         self.noiseavgvar = noise_definition(self.current_case)
-
+        print("")
+        print("")
+        print("")
+        print("self.decreasenoise")
+        print(self.decreasenoise)
+        temp = False
         if self.decreasenoise == True:
             print("decrease noise")
             val = self.noiseavgvar
+            temp = self.current_case.copy()
             self.current_case = [a - val  for a in self.current_case]
             self.prevrenoise = float("{:.2f}".format(float(val)))
 
         elif self.userdecreasenoise == True:
+            print("decrease user noise")
+            print("self.usernoise")
+            print(self.usernoise)
+            temp = self.current_case.copy()
             self.current_case = [a - self.usernoise  for a in self.current_case]
             self.prevrenoise = self.usernoise
-            self.noiseavgvar = self.usernoise
-
+            # self.noiseavgvar = self.usernoise
         else:
             self.prevrenoise = None
-
+        print("self.userdecreasenoise")
+        print(self.userdecreasenoise)
+        print("")
+        print("")
+        print("")
         #detect points from case
-        self.points, noises_vals, exponential_pops_vals, conditions = peak_detection(self.current_case, expconfigs=self.exponential_settings, delta=delta_val, stop_condition_perc=stop_condition_perc_val, nargs=nargs)
+        self.points, noises_vals, exponential_pops_vals, conditions = peak_detection(self.current_case, original_case=temp, expconfigs=self.exponential_settings, delta=delta_val, stop_condition_perc=stop_condition_perc_val, nargs=nargs)
         
         #save exponential regressions and noise positions/values
         self.exponential_pops = exponential_pops_vals
@@ -3646,8 +3847,14 @@ class PageFour(ttk.Frame):
             self.spin_stopcondition.delete(0,"end")
             self.spin_stopcondition.insert(0,conditions[1])
 
+            # self.spin_cutoff.delete(0,"end")
+            # self.spin_cutoff.insert(0,conditions[2])
             self.spin_cutoff.delete(0,"end")
-            self.spin_cutoff.insert(0,conditions[2])
+            if self.prevrenoise != None:
+                self.spin_cutoff.insert(0,conditions[2] - self.prevrenoise)
+            else:
+                self.spin_cutoff.insert(0,conditions[2])
+            
         else:
             print("delta_val")
             print(delta_val)
@@ -4023,7 +4230,8 @@ class PageFive(ttk.Frame):
 
         self.peakRow_iid = None
         self.peakRowSelectMenu=tk.Menu(self, tearoff=0)
-        self.peakRowSelectMenu.add_command(label="Close Menu")
+        self.peakRowSelectMenu.add_command(label="Close Menu", command=self.close_menu_force)
+        self.peakRowSelectMenu.add_command(label="Change Path", command=lambda: self.checkfolder(stop=True))
         self.peakRowSelectMenu.add_command(label="Remove Peak", command=self.remove_item)
         self.peakRowSelectMenu.bind("<FocusOut>", self.focus_out_menu)
 
@@ -4487,6 +4695,12 @@ class PageFive(ttk.Frame):
 
         self.fig.canvas.draw()
         self.controller.btn_lock = False
+
+    def close_menu_force(self):
+        self.controller.btn_lock = True
+        self.controller.mouse_function(closethis=True)
+        self.controller.btn_lock = False
+        return
     
     def remove_item(self):
         self.controller.btn_lock = True
@@ -4505,7 +4719,9 @@ class PageFive(ttk.Frame):
             self.current_tabletree.delete(self.peakRow_iid)
             del self.peaks[current_row]
             self.settabletype()
+        self.controller.mouse_function(closethis=True)
         self.controller.btn_lock = False
+        return
 
     def savepeaks(self):
         self.controller.peaks = self.peaks.copy()
@@ -4536,12 +4752,85 @@ class PageFive(ttk.Frame):
             except Exception as e:
                 messagebox.showerror("Error", "Could not save Selected Waves file\n" + str(e))
 
+    def checkfolder(self, stop=False):
+        if stop == True:
+            self.controller.btn_lock = True
+        validate = True
+        if os.path.exists(self.controller.current_analysis.gpath) == False:
+            validate = False
+            messagebox.showwarning("Warning", "Current Waves File path does not exist")
+            MsgBox2 = CustomYesNo(self, title="Select new file path?")
+            if MsgBox2.result == True:
+                #open file/folder selection and select folder
+                if self.controller.current_analysis.gtype == "Folder":
+                    folder_selected = filedialog.askdirectory(title="Select Image Directory:")
+                    folder_selected = r'%s' %folder_selected
+                    if folder_selected:
+                        self.controller.current_analysis.gpath = folder_selected
+                        validate = True
+                    else:
+                        messagebox.showerror("Error", "Saved Waves File path does not exist")
+                elif self.controller.current_analysis.gtype == "Video":
+                    filename = filedialog.askopenfilename(title = "Select Video File:",filetypes = (("Audio Video Interleave","*.avi"),("all files","*.*")))
+                    filename = r'%s' %filename
+                    if filename:
+                        self.controller.current_analysis.gpath = filename
+                        validate = True
+                    else:
+                        messagebox.showerror("Error", "Saved Waves File path does not exist")
+                elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
+                    filename = filedialog.askopenfilename(title = "Select TIFF Directory File:",filetypes = (("TIFF Files","*.tiff"),("TIF Files","*.tif"),("all files","*.*")))
+                    filename = r'%s' %filename
+                    if filename:
+                        self.controller.current_analysis.gpath = filename
+                        validate = True
+                    else:
+                        messagebox.showerror("Error", "Saved Waves File path does not exist")
+                else:
+                    messagebox.showerror("Error", "Saved Waves Type does not exist")
+            else:
+                messagebox.showerror("Error", "Saved Waves File path does not exist")
+        if stop == True:
+            self.controller.mouse_function(closethis=True)
+            self.controller.btn_lock = False
+        return validate
+
     def quiverjetgo(self):
         if self.controller.btn_lock == False:
             self.controller.btn_lock = True
             #Configure export Menus and Options
             selected_items = self.current_tabletree.selection()
             if len(selected_items) > 0:
+                validate = self.checkfolder()
+                if validate == False:
+                    self.controller.btn_lock = False
+                    return
+                if self.controller.current_analysis.gtype == "Folder":
+                    temp_files_grabbed = [x for x in os.listdir(self.controller.current_analysis.gpath) if os.path.isdir(x) == False and str(x).lower().endswith(img_opencv)]
+                    temp_framelist = sorted(temp_files_grabbed)
+                    temp_files_grabbed_now = [self.controller.current_analysis.gpath + "/" + a for a in temp_framelist]
+                    if len(temp_files_grabbed_now) == 0 or len(temp_files_grabbed_now) != self.controller.current_analysis.framenumber:
+                        messagebox.showerror("Error", "Saved Waves File path does not exist")
+                        self.controller.btn_lock = False
+                        return
+                    if os.path.exists(temp_files_grabbed_now[0]) == False:
+                        messagebox.showwarning("Warning", "Current Waves File path does not exist")
+                        MsgBox2 = CustomYesNo(self, title="Select new file path?")
+                        folder_selected = filedialog.askdirectory(title="Select Image Directory:")
+                        folder_selected = r'%s' %folder_selected
+                        if folder_selected:
+                            self.controller.current_analysis.gpath = folder_selected
+                            temp_files_grabbed2 = [x for x in os.listdir(self.controller.current_analysis.gpath) if os.path.isdir(x) == False and str(x).lower().endswith(img_opencv)]
+                            temp_framelist2 = sorted(temp_files_grabbed2)
+                            temp_files_grabbed_now2 = [self.controller.current_analysis.gpath + "/" + a for a in temp_framelist2]
+                            if os.path.exists(temp_files_grabbed_now2[0]) == False:
+                                messagebox.showerror("Error", "Saved Waves File path does not exist")
+                                self.controller.btn_lock = False
+                                return
+                        else:
+                            messagebox.showerror("Error", "Saved Waves File path does not exist")
+                            self.controller.btn_lock = False
+                            return
                 if selected_items[0]:
                     #QuiverJetProgress
                     self.savepeaks()
@@ -4601,8 +4890,21 @@ class PageFive(ttk.Frame):
                             count = self.controller.selectedframes[self.controller.current_peak.first]
                             vc.set(1, count-1)
                             _, frame1 = vc.read()
-
+                            print("count")
+                            print(count)
+                            print("self.controller.mag_sindex")
+                            print(self.controller.mag_sindex)
+                            print("self.controller.selectedframes")
+                            print(self.controller.selectedframes)
+                            print("self.controller.current_peak.last")
+                            print(self.controller.current_peak.last)
+                            print("self.controller.selectedframes[self.controller.current_peak.last]")
+                            print(self.controller.selectedframes[self.controller.current_peak.last])
+                            print("self.controller.selectedframes[self.controller.current_peak.last]+1")
+                            print(self.controller.selectedframes[self.controller.current_peak.last]+1)
                             while(vc.isOpened() and count < (self.controller.selectedframes[self.controller.current_peak.last]+1)):
+                                print("count")
+                                print(count)
                                 _, frame2 = vc.read()
                                 prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
                                 prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
@@ -4619,6 +4921,8 @@ class PageFive(ttk.Frame):
 
                                 frame1 = frame2.copy()
                                 count += 1
+                            vc.release()
+                            print("finished")
                             self.controller.current_framelist = np.array(self.controller.current_framelist)
                             self.controller.current_maglist = np.array(self.controller.current_maglist)
                             self.controller.current_anglist = np.array(self.controller.current_anglist)
@@ -5124,11 +5428,11 @@ class PageSix(ttk.Frame):
 
         elif self.controller.current_analysis.gtype == "Video":
             # self.ax2.title.set_text(os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.current_frame))
-            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.mag_sindex+self.current_frame)
+            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.controller.mag_sindex+self.current_frame)
 
         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
             # self.ax2.title.set_text(os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.current_frame))
-            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.mag_sindex+self.current_frame)
+            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.controller.mag_sindex+self.current_frame)
 
         self.ax2.set_xlim(curlims[0])
         self.ax2.set_ylim(curlims[1])
@@ -5188,6 +5492,7 @@ class PageSix(ttk.Frame):
 
     def init_vars(self):
         self.controller.btn_lock = True
+        print("about to init_vars last page")
         validate = True
         if self.controller.peaks == None:
             messagebox.showerror("Error", "Waves/Flow Objects not found")
@@ -5370,7 +5675,11 @@ class PageSix(ttk.Frame):
             mag[mag<fil]=0 
         if self.CheckContour.get() == 1:
             mask = self.get_contour(img)
-            mag = np.ma.masked_where(mask, mag)
+            print("masking 1")
+            # print(mask)
+            if mask is not None:
+                print("masking")
+                mag = np.ma.masked_where(mask, mag)
         if self.CheckMerge.get() == 1:
             self.ax.imshow(img)
             if self.maximizeplot != None:
@@ -5513,12 +5822,17 @@ class PageSix(ttk.Frame):
 
         mask = np.zeros(smoothCont.shape, np.uint8)
         largest_areas = sorted(contours2, key=cv2.contourArea)
-        
-        cv2.drawContours(mask, [largest_areas[-1]], 0, (255,255,255,255), self.border_thickness)
-        cv2.drawContours(mask, [largest_areas[-1]], 0, (255,255,255,255))
-        cv2.fillPoly(mask, [largest_areas[-1]], (255,255,255,255))
-        mask = np.logical_not(mask)
-        return mask
+        print("largest_areas")
+        print(largest_areas)
+        print(len(largest_areas))
+        if len(largest_areas) > 0:
+            cv2.drawContours(mask, [largest_areas[-1]], 0, (255,255,255,255), self.border_thickness)
+            cv2.drawContours(mask, [largest_areas[-1]], 0, (255,255,255,255))
+            cv2.fillPoly(mask, [largest_areas[-1]], (255,255,255,255))
+            mask = np.logical_not(mask)
+            return mask
+        else:
+            return None
 
     def init_ax2(self):
         global img_opencv
@@ -5536,12 +5850,12 @@ class PageSix(ttk.Frame):
 
         elif self.controller.current_analysis.gtype == "Video":
             # self.ax2.set_title(os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.current_frame))
-            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.mag_sindex+self.current_frame)
+            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Frame: " + str(self.controller.current_peak.first+self.controller.mag_sindex+self.current_frame)
             # pass
 
         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
             # self.ax2.set_title(os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.current_frame))
-            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.mag_sindex+self.current_frame)
+            self.figlabel['text'] = "Current Image: " + os.path.basename(self.controller.current_analysis.gpath) + " Img: " + str(self.controller.current_peak.first+self.controller.mag_sindex+self.current_frame)
             # pass
 
         self.ax2.set_xlabel("Time ("+self.controller.current_timescale+")")
@@ -6180,10 +6494,16 @@ class PageSix(ttk.Frame):
         # menubar.add_command(label="Help", command=self.controller.showhelp)
         return menubar
 
+processinglogger = None
+
 if __name__ == "__main__":
     orig_stdout = sys.stdout
     flog = open('last_log.txt', 'w')
     sys.stdout = flog
+    # if os.path.exists('processing_logfile.log'):
+        # os.remove("processing_logfile.log")
+    processinglogger = open('processing_logfile.log', 'w')
+    # processinglogger = setup_logger('processing_logger', 'processing_logfile.log')
 
     if _platform == "win32" or _platform == "win64":
         multiprocessing.freeze_support()

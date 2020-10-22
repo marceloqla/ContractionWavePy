@@ -724,9 +724,15 @@ class MoveDragHandler(object):
 
 
     def on_press_moveevent(self, event, thisax):
+        print("")
         print("on_press_moveevent")
+        print("event print")
+        print(event)
+        print("self.selectareaopen")
+        print(self.selectareaopen)
         if event.button == 3 and event.dblclick == False and self.selectareaopen == False:
             #check for circle clicked and save artist if so
+            print("inside first")
             selected = None
             
             array = np.asarray(list(range(len(self.data))))
@@ -746,12 +752,20 @@ class MoveDragHandler(object):
                 #y = self.master.winfo_pointery()
                 abs_coord_x = self.master.winfo_pointerx() - self.master.winfo_vrootx()
                 abs_coord_y = self.master.winfo_pointery() - self.master.winfo_vrooty()
-                self.master.currentpopup = self.selectCMenu
+                #self.master.currentpopup = self.selectCMenu
+                self.master.currentpopup = self.master.current_frame.selectCMenu
                 self.master.popuplock = True
-                self.selectCMenu.tk_popup(int(abs_coord_x + (self.selectCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                #self.selectCMenu.tk_popup(int(abs_coord_x + (self.selectCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                self.master.current_frame.selectCMenu.tk_popup(int(abs_coord_x + (self.master.current_frame.selectCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
             finally:
-                self.selectCMenu.grab_release()
-
+                print("finally has run for selectCMenu")
+                self.master.current_frame.selectCMenu.grab_release()
+                if self.master.currentpopup is None:
+                    print("popup does not even exist anymore")
+                    if self.selectareaopen == True:
+                       print("unsetting selectareaopen")
+                       self.selectareaopen = False
+            return
         elif event.button == 1 and event.dblclick == False and self.areaopen == False:
             selected = None
             # for child in self.ax.get_children():
@@ -1021,11 +1035,15 @@ class MoveDragHandler(object):
                     #y = self.master.winfo_pointery()
                     abs_coord_x = self.master.winfo_pointerx() - self.master.winfo_vrootx()
                     abs_coord_y = self.master.winfo_pointery() - self.master.winfo_vrooty()
-                    self.master.currentpopup = self.areaCMenu
+                    #self.master.currentpopup = self.areaCMenu
+                    self.master.currentpopup = self.master.current_frame.areaCMenu
                     self.master.popuplock = True
-                    self.areaCMenu.tk_popup(int(abs_coord_x + (self.areaCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                    #self.areaCMenu.tk_popup(int(abs_coord_x + (self.areaCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                    self.master.current_frame.areaCMenu.tk_popup(int(abs_coord_x + (self.master.current_frame.areaCMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
                 finally:
-                    self.areaCMenu.grab_release()
+                    print("areaCMenu finally")
+                    #self.areaCMenu.grab_release()
+                    self.master.current_frame.areaCMenu.grab_release()
                     self.lockrect = True
             # print("")
             # print("")
@@ -1552,10 +1570,13 @@ class MoveDragHandler(object):
                     abs_coord_x = self.master.winfo_pointerx() - self.master.winfo_vrootx()
                     abs_coord_y = self.master.winfo_pointery() - self.master.winfo_vrooty()
                     self.master.popuplock = True
-                    self.master.currentpopup = self.areaNMenu
-                    self.areaNMenu.tk_popup(int(abs_coord_x + (self.areaNMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                    #self.master.currentpopup = self.areaNMenu
+                    self.master.currentpopup = self.master.current_frame.areaNMenu
+                    self.master.current_frame.areaNMenu.tk_popup(int(abs_coord_x + (self.master.current_frame.areaNMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
+                    #self.areaNMenu.tk_popup(int(abs_coord_x + (self.areaNMenu.winfo_width()/2) + 10 ), abs_coord_y, 0)
                 finally:
-                    self.areaNMenu.grab_release()
+                    #self.areaNMenu.grab_release()
+                    self.master.current_frame.areaNMenu.grab_release()
                     self.locknoiserect = True
 
     def on_motion_ax2noise(self, event):

@@ -21,52 +21,61 @@ def line_intersection(line1, line2):
     return x, y
 
 def noise_signal_linear_regression(current_case):
-    #linear regression on first linear_range points
-    linear_range = np.max([math.ceil(len(current_case)*0.05), 5])
-    xf5 = range(linear_range)
-    yf5 = sorted(current_case)[0:linear_range]
-    Af5 = np.vstack([xf5, np.ones(len(xf5))]).T
-    mf5, cf5 = np.linalg.lstsq(Af5, yf5)[0]
-    ftoplot = [(mf5 * ex) + cf5 for ex in range(len(current_case))]
-
-    #linear regression on last linear_range points
-    xl5 = range(len(current_case)-linear_range,len(current_case))
-    yl5 = sorted(current_case)[-linear_range:]
-    Al5 = np.vstack([xl5, np.ones(len(xl5))]).T
-    ml5, cl5 = np.linalg.lstsq(Al5, yl5)[0]
-    ltoplot = [((ml5 * ex) + cl5) for ex in range(len(current_case))]
-
-    #generate lines
-    line1 = [[i, a] for i, a in enumerate(ftoplot[0:2])]
-    line2 = [[i, a] for i, a in enumerate(ltoplot[0:2])]
-
-    #calculate and plot intersection
-    xintersect, yintersect = line_intersection(line1, line2)
-    #test intersection for being above line. if so first regression skips more 5 points until intersect is below
-    xintersect_dot = math.ceil(xintersect)
-    yintersect_value = sorted(current_case)[xintersect_dot]
-    skip_dots = 1
-
-    while (yintersect_value < yintersect):
+    try:
+        #linear regression on first linear_range points
         linear_range = np.max([math.ceil(len(current_case)*0.05), 5])
-        # condition for yielding non possible regression (poor value to noise ratio)
-        if linear_range+skip_dots >= len(current_case) - linear_range:
-            print("#POOR NOISE TO SIGNAL RATIO")
-            return False
-        xf5 = range(skip_dots,linear_range+skip_dots)
-        yf5 = sorted(current_case)[skip_dots:linear_range+skip_dots]
-
+        xf5 = range(linear_range)
+        yf5 = sorted(current_case)[0:linear_range]
         Af5 = np.vstack([xf5, np.ones(len(xf5))]).T
         mf5, cf5 = np.linalg.lstsq(Af5, yf5)[0]
-        
         ftoplot = [(mf5 * ex) + cf5 for ex in range(len(current_case))]
+
+        #linear regression on last linear_range points
+        xl5 = range(len(current_case)-linear_range,len(current_case))
+        yl5 = sorted(current_case)[-linear_range:]
+        Al5 = np.vstack([xl5, np.ones(len(xl5))]).T
+        ml5, cl5 = np.linalg.lstsq(Al5, yl5)[0]
+        ltoplot = [((ml5 * ex) + cl5) for ex in range(len(current_case))]
+
+        #generate lines
         line1 = [[i, a] for i, a in enumerate(ftoplot[0:2])]
         line2 = [[i, a] for i, a in enumerate(ltoplot[0:2])]
+
+        #calculate and plot intersection
         xintersect, yintersect = line_intersection(line1, line2)
+        print("xintersect, yintersect")
+        print(xintersect, yintersect)
+        #test intersection for being above line. if so first regression skips more 5 points until intersect is below
+        print("xintersect_dot")
         xintersect_dot = math.ceil(xintersect)
+        print(xintersect_dot)
         yintersect_value = sorted(current_case)[xintersect_dot]
-        skip_dots += 1
-    return ftoplot, ltoplot, xintersect, yintersect, xintersect_dot, yintersect_value
+        skip_dots = 1
+
+        while (yintersect_value < yintersect):
+            linear_range = np.max([math.ceil(len(current_case)*0.05), 5])
+            # condition for yielding non possible regression (poor value to noise ratio)
+            if linear_range+skip_dots >= len(current_case) - linear_range:
+                print("#POOR NOISE TO SIGNAL RATIO")
+                return False
+            xf5 = range(skip_dots,linear_range+skip_dots)
+            yf5 = sorted(current_case)[skip_dots:linear_range+skip_dots]
+
+            Af5 = np.vstack([xf5, np.ones(len(xf5))]).T
+            mf5, cf5 = np.linalg.lstsq(Af5, yf5)[0]
+            
+            ftoplot = [(mf5 * ex) + cf5 for ex in range(len(current_case))]
+            line1 = [[i, a] for i, a in enumerate(ftoplot[0:2])]
+            line2 = [[i, a] for i, a in enumerate(ltoplot[0:2])]
+            xintersect, yintersect = line_intersection(line1, line2)
+            xintersect_dot = math.ceil(xintersect)
+            yintersect_value = sorted(current_case)[xintersect_dot]
+            skip_dots += 1
+        return ftoplot, ltoplot, xintersect, yintersect, xintersect_dot, yintersect_value
+    except Exception as e:
+        print("Warning exception")
+        print(e)
+        return False
 
 def generate_bfderivative_full(data, indexes=False):
     #generate before derivatives for all dots (whether diff between current dot and previous dot values is pos or neg)
