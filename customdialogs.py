@@ -1304,7 +1304,7 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
                          onvalue = 1, offvalue = 0, command=self.showspin)
         
         self.spinlbl = ttk.Label(master, text= "Custom Value: ")
-        self.spinu = tk.Spinbox(master,from_=-10000000000, to=10000000000, increment=1, width=10, command=self.updateplot)
+        self.spinu = tk.Spinbox(master,from_=-10000000000, to=10000000000, increment=0.1, width=10, command=self.updateplot)
         # self.spinu.bind('<Return>', lambda *args: self.validate())
         self.spinu.bind('<Return>', lambda *args: self.updateplot())
 
