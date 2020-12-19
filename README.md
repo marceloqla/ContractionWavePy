@@ -11,6 +11,9 @@ Contractionwave can be installed from an executable file (see below section – 
 Windows or Ubuntu) or from Anaconda environment installation (see second section below –
 for Windows, Ubuntu, or Mac-OS).
 
+These installations steps can also be found on the program's manual on: 
+For more information access: https://sites.icb.ufmg.br/cardiovascularrc/contractionwave/
+
 ### Installation – Executable file
 **Step 1**: The latest stable version compiled executables **for Windows and Ubuntu (64-
 bit)** can be downloaded from:
@@ -94,7 +97,7 @@ keyboard keys at the same time AFTER selecting the extraction target directory
 containing the program. A new window will open and the full path for the directory will
 be shown in the "General > Where" tab.
 
-Ubuntu: Right mouse click on desired file/folder > Select and click Properties
+**Ubuntu:** Right mouse click on desired file/folder > Select and click Properties
 Full path should be under the “Parent folder” tab.
 
 **FAQ**
