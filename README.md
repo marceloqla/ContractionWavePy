@@ -1,4 +1,11 @@
 # ContractionWavePy
+
+## ABOUT
+
+CONTRACTIONWAVE (CW) is a free software developed in Python Programming Language that allows the user to visualize, quantify, and analyze cell contractility parameters in a simple and intuitive format. The software enables the user to acquire membrane kinetics data of cell contractility during contraction-relaxation cycles through image capture and a dense optical flow algorithm. Both method and software were developed using multidisciplinary knowledge, which resulted in a robust data extraction protocol.
+
+For more information access: https://sites.icb.ufmg.br/cardiovascularrc/contractionwave/
+
 ## GETTING STARTED
 ### Installation - Executable file 
 1. The latest stable version compiled executables for Windows and Ubuntu (64-bit) can be downloaded from: [https://sites.icb.ufmg.br/cardiovascularrc/contractionwave](https://sites.icb.ufmg.br/cardiovascularrc/contractionwave) (Choose the Operating System and click on Download)
