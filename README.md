@@ -15,25 +15,33 @@ These installations steps can also be found on the program's manual on:
 For more information access: https://sites.icb.ufmg.br/cardiovascularrc/contractionwave/
 
 ### Installation – Executable file
-**Step 1**: The latest stable version compiled executables **for Windows and Ubuntu (64-
-bit)** can be downloaded from:
-https://sites.icb.ufmg.br/cardiovascularrc/contractionwave (Choose the Operating
-System and click on Download)
 
-**Step 2**: Unpack the File
+### Installation – Executable file for Windows or Ubuntu
 
-**Step 3**: The extracted directory contains a library folder and one executable file (.exe
+**Step 1:** Sign in to Mendeley Data website: https://data.mendeley.com
+If you are a first time user, you will need to register to log in.
+The link to the executable file in the Mendeley website is presented below:
+https://data.mendeley.com/datasets/hswwzgw6rp/draft?a=0b0c2dc1-5b68-4655-b4c1-
+6cb792675b08
+
+In Experiment data files click on CONTRACTIONWAVE - Executable file (Windows or
+Ubuntu) folder and choose the Operating System to download.
+
+**Step 2:** Unpack the zip file
+
+**Step 3:** The extracted directory contains a library folder and one executable file (.exe
 for Windows)
 
-**Step 4**: Double-click the CW icon to start the executable file
+**Step 4:** Double-click on the CW icon to start the executable file
+Wait until the ContractionWave window opens (it might take some time). 
 
-### Installation – Anaconda environment
+### Installation – Anaconda environment for Mac-OS
 #### I- Anaconda environment installation (should only be executed
 once)
 
 The latest stable version **for Windows and Ubuntu (64-bit) or Mac-OS**
 
-**Step 1: Download the program**
+**Step 1: Download Contractionwave code**
 
 **a)** Access the page https://github.com/marceloqla/ContractionWavePy
 
@@ -47,47 +55,23 @@ The latest stable version **for Windows and Ubuntu (64-bit) or Mac-OS**
 
 Follow the instructions for installing Anaconda:
 
-**Windows**: https://docs.anaconda.com/anaconda/install/windows/
+https://docs.anaconda.com/anaconda/install/mac-os/
 
-**Mac-OS**: https://docs.anaconda.com/anaconda/install/mac-os/
-
-**Linux**: https://docs.anaconda.com/anaconda/install/linux/
+After the installation is complete, close the Anaconda dialog box and then go to step II.
+(no need to register)
 
 #### **II- ContractionWave environment installation with Anaconda Prompt (should only be executed once)**
 
 **Step 3: Open Anaconda Prompt**
 
-**Windows**: Click Start, search, or select Anaconda Prompt from the menu.
-
 **Mac-OS:** Cmd+Space to open Spotlight Search and type “Navigator” to open the
 program.
 
-**Ubuntu:** Open the Dash by clicking the upper left Ubuntu icon, then type “terminal”.
-
-Please refer to other materials for opening the Terminal in other Operating Systems.
-
 **Step 4: Access the directory in which the ZIP file was extracted**
 
-For example, if the full path for the directory is:
+To access the **ContractionWavePy-master** directory in **MacOS:** follow the instructions below:
 
-*"/Users/PC-name/Desktop/ContractionWavePy/"*
-
-All systems: you should type in the Anaconda Prompt the following command
-
-> cd /Users/PC-name/Desktop/ContractionWavePy-master/
-
-Press *“Enter”* to access this folder using the Anaconda Prompt window.
-
-**Important:** type: *"cd "* before the extracted program folder full path for accessing this
-folder on *“Terminal”*.
-
-**Hint:**
-If you are unsure of the full path for the extraction you can use:
-
-**Windows:** Right mouse click on desired file/folder > Select and click Properties
-Full path should be under the “Location” tab.
-
-**MacOS:** the "Finder" application to access the containing folder of the extraction target
+Use the "Finder" application to access the containing folder of the extraction target
 directory and follow the instructions on:
 
 https://www.josharcher.uk/code/find-path-to-folder-on-mac/
@@ -97,8 +81,18 @@ keyboard keys at the same time AFTER selecting the extraction target directory
 containing the program. A new window will open and the full path for the directory will
 be shown in the "General > Where" tab.
 
-**Ubuntu:** Right mouse click on desired file/folder > Select and click Properties
-Full path should be under the “Parent folder” tab.
+**For example**, if the full path for the directory is:
+
+*"/Users/PC-name/Desktop/ContractionWavePy/"*
+
+you should type in the Anaconda Prompt the following command **Example:**
+
+> cd /Users/PC-name/Desktop/ContractionWavePy-master/
+
+And then press *“Enter”* to access this folder using the Anaconda Prompt window.
+
+**Important:** type: *"cd "* before the extracted program folder full path for accessing this
+folder on the *“Anaconda Prompt”*.
 
 **FAQ**
 
@@ -114,19 +108,12 @@ Prompt.
 **Step 5: Install all dependencies for ContractionWave using Anaconda**
 
 **Important:** make sure you have a stable internet connection.
+
 ContractionWave dependecies be easily install by typing the following command on the
 previously opened Anaconda Prompt window:
 
-**Windows:**
->conda env create -f ContractionWavePy-windows.yml
-Press “Enter” to start the installation.
-
 **Mac-OS:**
 >conda env create -f ContractionWavePy-mac.yml
-Press “Enter” to start the installation.
-
-**Ubuntu:**
->conda env create -f ContractionWavePy-ubuntu.yml
 Press “Enter” to start the installation.
 
 Wait until all installations are concluded (it might take some time – 10 to 40 minutes)
@@ -141,15 +128,17 @@ Wait until all installations are concluded (it might take some time – 10 to 40
 
 3. Activate the Anaconda environment by typing on the previously opened Anaconda
 
-Prompt window:
+Type in the Anaconda Prompt the following command:
 > conda activate ContractionWavePy
+And then press “Enter” to start the environment and then go to step 7.
 
-Press “Enter” to start the environment.
+**Important:** You should be able to see **(base)** prefix on Terminal change to **(ContractionWavePy)**
 
 **Step 7: Run the ContractionWave program by typing on the previously opened Anaconda Prompt window**
 
 > python ContractionWave.py
-Press “Enter” to start the program.
+And then Press “Enter” to start the program.
+Wait until the ContractionWave window opens (it might take some time).
 
 **FAQ**
 
