@@ -121,6 +121,7 @@ And then press “Enter” to start the environment activation.
 ContractionWave software can be opened by typing the command:
 
 > python ContractionWave.py
+
 And then Press “Enter” to start the program. Wait until the ContractionWave window opens (it might take some time: 1 to 5 minutes)
 
 **FAQ**
