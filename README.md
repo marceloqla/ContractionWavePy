@@ -62,7 +62,7 @@ https://docs.anaconda.com/anaconda/install/mac-os/
 After the installation is complete, close the Anaconda dialog box and then go to step II.
 (no need to register)
 
-#### **II-Executing ContractionWave using Anaconda in “Terminal”*
+#### **II-Executing ContractionWave using Anaconda in “Terminal”**
 
 **Step 3: Open Anaconda Prompt**
 
