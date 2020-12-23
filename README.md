@@ -13,8 +13,6 @@ for Windows, Ubuntu, or Mac-OS).
 
 These installations steps can also be found on the program's manual on: https://sites.icb.ufmg.br/cardiovascularrc/contractionwave/
 
-### Installation – Executable file
-
 ### Installation – Executable file for Windows or Ubuntu
 
 **Step 1:** Sign in to Mendeley Data website: https://data.mendeley.com
