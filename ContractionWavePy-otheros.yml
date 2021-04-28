@@ -1,0 +1,43 @@
+name: ContractionWavePy
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - altgraph=0.16.1
+  - ca-certificates=2020.6.20
+  - certifi=2020.6.20
+  - libffi=3.3
+  - macholib=1.14
+  - openssl=1.1.1g
+  - pip=20.1.1
+  - pycryptodome=3.9.7
+  - pyinstaller=3.6
+  - python=3.8.3
+  - python_abi=3.8
+  - setuptools=47.3.1
+  - sqlite=3.32.3
+  - tk=8.6.10
+  - wheel=0.34.2
+  - xz=5.2.5
+  - zlib=1.2.11
+  - pip:
+    - cycler==0.10.0
+    - install==1.3.3
+    - kiwisolver==1.2.0
+    - matplotlib==3.2.2
+    - numpy==1.19.0
+    - opencv-python==4.1.2.30
+    - opencv-python-headless==4.2.0.34
+    - pandas==1.0.5
+    - pillow==7.1.2
+    - psutil==5.7.0
+    - pyparsing==2.4.7
+    - pyqt5==5.15.0
+    - pyqt5-sip==12.8.0
+    - python-dateutil==2.8.1
+    - pytz==2020.1
+    - scipy==1.5.0
+    - six==1.15.0
+    - tornado==3.2.1
+    - ttkthemes==3.1.0
+    - xlsxwriter==1.2.9
