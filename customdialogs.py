@@ -9,14 +9,26 @@ from tkinter import ttk
 from PIL import ImageTk
 from PIL import Image
 import pandas as pd
-import os
+import os, cv2, time
 import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from matplotlib.patches import Rectangle
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg, NavigationToolbar2Tk)
 from customframe import ttkScrollFrame
 from sys import platform as _platform
+import scipy.ndimage as ndimage
+from scipy.linalg import norm
+from compareimage import CompareImage
+import xlsxwriter
+# from skimage.filters import threshold_otsu
+# from jenksdetectpack import getJenksBreaks
+# from scipy import stats
+#from sklearn.neighbors import KernelDensity
+from scipy.signal import argrelextrema
+
+img_opencv = (".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".pbm", ".pgm", ".ppm", ".sr", ".ras", ".tiff", ".tif")
 
 def load_img(imgpath, evwidth):
     img = Image.open(imgpath)
@@ -31,272 +43,11 @@ def load_img(imgpath, evwidth):
     )
     return ImageTk.PhotoImage(img)
 
-class HelpDialog(tkDialog.Dialog):
-    def body(self, master):
-        print("class AboutDialog def body creation")
-        self.title_font = tkfont.Font(family='Helvetica', size=18)
-        self.normal_font = tkfont.Font(family='Helvetica', size=12)
-
-        pagenames = {
-            "StartPage": [
-            "After opening the Contraction Wave program, several Buttons can be seen at the Initial Screen, each with different purposes. To load New Data into the program, click the “New Data” Button highlighted below to move to the New Data Screen.",
-            "Fig 1 - The New Data Button highlighted in Red in the program’s Initial Screen.",
-            "Alternatively, the “New Data”  Option Button can be selected from the Top Bar File Menu at anytime to move to the New Data Screen.",
-            "Fig 2 - The New Data Option Button highlighted in Red in the program’s File Menu.",
-            "Other options can be explored by the Help menu in each Screen.",
-            "Title Comparing Processed Waves",
-            "Title Exporting Data",
-            "This option can be accessed from the Initial Screen by clicking in the Merge Results Button.",
-            "Fig 61 - Merge Results Button in the Initial Screen",
-            "Tables exported from the Visualizing Wave Parameters Screen (See section in this Document) can be added or removed in a Pop Up Window. After all desired Tables are included, experiments from different Data Types can be summarized and compared in a final table when the 'Ok' Button is clicked. The user will be prompted to select a file name and destination folder for the Summary table.",
-            "Fig 62 - Merge Results Pop Up Windows with the Add and Delete Buttons for selecting tables for creating a Summary.",
-            "Title Customizing Plots",
-            "Title Editing Plot Settings",
-            "Custom Plot Settings can be edited at anytime by clicking the Plot Settings Menu at the Top Bar. The user then has the option to either Edit, Save or Load a Plot Setting.",
-            "Fig 63 - Plot Settings Menu at the Top Bar options.",
-            "Editing a Plot setting allows the user to change colors for any of the Wave Points, Lines, Selection Areas, to select whether a horizontal baseline is drawn at each plot at 0.0 and whether a grid is drawn in each plot and to customize the baseline and grid colors. Time units can be changed between Seconds and Milliseconds.",
-            "Fig 64 - Editing Plot Settings option Pop Up Window.",
-            "The Wave Absolute (in relation to the whole analysis) or Relative time (starting at 0.0) can be displayed in the Visualizing Wave Parameters and the Jet and Quiver Plots window also according to the user’s preference.",
-            "Saving or Loading a Plot Setting prompts the user to select a filename or directory for their respective operation. The window plots are automatically refreshed after a new Plot Setting is loaded."
-            ],
-            
-            "PageOne": ["Many options can also be found in the New Data Screen. Three main buttons allow the user to load a new data type (Load Data Button ), remove all added data types (Delete All Button) from the processing list or run the added data types (Run Button.) in the Processing Queue. Click the Load Data Button for loading a new data type.",
-            "Fig 3 - The New Data Screen and it’s three main buttons.",
-            "Title Data from an Image folder",
-            "A Popup Window containing three options will appear above the New Data Screen. For processing a Folder containing multiple images click the 'Folder' Button on the Popup Window. Readable Image types include all OpenCV supported Image types: '.bmp', '.dib', '.jpeg', '.jpg', '.jpe', '.jp2', '.png', '.pbm', '.pgm', '.ppm', '.sr', '.ras', '.tiff', '.tif'.",
-            "Fig 4 - New options in the New Data Screen after clicking the Load Data Button.",
-            "A System Folder Selection dialog selection window will then appear. Please navigate and select the Image containing Folder to be analysed and click OK for the next step. IMPORTANT: Folders containing Non-ASCII characters such as: '^ ' ` ç' are not well supported by the program.",
-            "The selected Image Folder will then be briefly pre-processed so that relevant information can be extracted. The right side of the New Data Screen is then updated with information extracted from the Image Folder. Various parameters which need to be adjusted by each user also appear on the screen. ",
-            "Fig 5 - Updated New Data Screen after loading an Image Folder Data Type.",
-            "Title Data from an Video file",
-            "A Popup Window containing three options will appear above the New Data Screen. For processing a Video file click the 'Video' Button on the Popup Window.  Only the '.avi' video type is supported, due to it’s OpenCV support in multiple platforms.",
-            "Fig 4 - New options in the New Data Screen after clicking the Load Data Button.",
-            "A System File Selection dialog selection window will then appear. Please navigate to the Video file containing Folder to be analysed, select the Video File and click OK for the next step. IMPORTANT: Folders containing Non-ASCII characters such as: '^ ' ` ç' are not well supported by the program.",
-            "The selected Video File will then be briefly pre-processed so that relevant information can be extracted. The right side of the New Data Screen is then updated with information extracted from the Video File. Various parameters which need to be adjusted by each user also appear on the screen. ",
-            "Fig 6 - Updated New Data Screen after selecting a Video File as input.",
-            "Title Data from an TIFF Directory",
-            "A Popup Window containing three options will appear above the New Data Screen. For processing a TIFF Directory file click the 'Compressed TIFF' Button on the Popup Window.  Both  '.tiff' and '.tif' files are supported.",
-            "Fig 4 - New options in the New Data Screen after clicking the Load Data Button.",
-            "A System File Selection dialog selection window will then appear. Please navigate to the TIFF Directory containing Folder to be analysed, select the TIFF Directory File and click OK for the next step. IMPORTANT: Folders containing Non-ASCII characters such as: '^ ' ` ç' are not well supported by the program.",
-            "The selected TIFF Directory File will then be briefly pre-processed so that relevant information can be extracted. The right side of the New Data Screen is then updated with information extracted from the TIFF Directory File. Various parameters which need to be adjusted by each user also appear on the screen. ",
-            "Fig 7 - Updated New Data Screen after selecting a TIFF Directory File as input.",
-            "Title Editing a Data Group’s Name and Deleting Data Groups",
-            "All added Data Groups are automatically named according to their current Files/Folder names. For editing a given Data Group name, click the 'Rename' Menu Button after Right Clicking a Data Group. ",
-            "Fig 8 - Right Click context Menu for a Data Group with the 'Rename' Button option highlighted.",
-            "A new Popup Window will then open in which the Data Group’s name can be edited. After typing a new name, click the 'OK' option for saving.",
-            "Fig 9  - Pop up Menu for a editing a Data Group’s name.",
-            "For deleting a given Data Group name, click the 'Delete' Menu Button after Right Clicking a Data Group. This will remove the Pre-processed Data Group from the Data Groups List View at the left screen side.",
-            "Fig 10 - Right Click context Menu for a Data Group with the 'Delete' Button option.",
-            "Title Setting the Frames Per Second and Pixel Size Parameters",
-            "The Frames Per Second parameter is automatically extracted from the '.avi' files in case of Video Inputs but needs to be properly set for TIFF Directory and Image Folders Data types. This parameter refers to the total frame capture of each image in these inputs for a complete second which is particular to the camera used during the Contractility experiment.",
-            "Similarly the Pixel Size parameter also refers to the size of a pixel given the capturing device used during the Contractility experiment. Both FPS and Pixel Size values are not bounded by any means in the program and as such caution is needed for setting these parameters.",
-            "Adjusting the Optical Flow Parameters",
-            "All other parameters present in the Advanced Settings tab refer to the OpenCV Gunner Farneback Dense Optical Flow algorithm parameters. Users should refer to the OpenCV Documentation for more details on how setting these parameters: OpenCV Gunner Farneback Docs.",
-            "Title Saving and Loading Optical Flow Parameters",
-            "All other parameters present in the Advanced Settings tab set by a given Data Group can be saved as a new preset. Saved presets can be applied to any other Data Group. Both options are done by Right Clicking a Data Group at the Screen Left side.",
-            "Fig 11 - Right Click context Menu for a Data Group with the 'Add to Preset' and 'Apply Preset' Button options highlighted.",
-            "For adding a new Data Group Advanced Parameters as a new Preset,click the 'Add to Preset' Menu Button after Right Clicking a Data Group. A new Popup Window will then open a a Preset name will be asked. After typing a name, click the 'OK' option for saving the selected group’s Advanced Parameters tab as a new Preset.",
-            "Fig 12 - Pop Up Window for adding a new Preset.",
-            "For applying a previous preset to a Data Group, click the 'Apply Preset' Menu Button after Right Clicking a Data Group. A new Popup Window will then open containing all previously saved Presets and their corresponding Advanced Parameters tab values. After selecting an adequate Preset, click the 'OK' option for applying these values to the selected group.",
-            "Fig 13 - Pop Up Window for applying a previous Preset.",
-            "Processing the Input Data",
-            "All input Data can be processed by clicking the 'Run All' Button at the bottom right corner of the screen.",
-            "Fig 14 - Running all selected Data.",
-            "The program will automatically Save each of the queued Data Groups. Data Groups are processed in a multithreaded processing queue.",
-            "Fig 15 - Running all queued Data. Confirmation Window."],
-            "PageTwo": ["Title Checking the Processing Queue",
-            "After running all the selected Data Groups, the Processing status for each group can be checked by either clicking the 'Check Progress' Button at the bottom of the New Data Screen.",
-            "Fig 16 - Checking Progress from the New Data Screen.",
-            "Or clicking the 'Check Progress' Button directly from the Initial Screen.",
-            "Fig 17 - Checking Progress directly from the Initial Screen.",
-            "Or also by clicking the Check Progress Menu Button from the File Menu of the program’s top bar.",
-            "Fig 18 - Checking Progress by clicking the Check Progress Menu Button.",
-            "Various information regarding a Data Group’s processing can be seen at the Check Progress Screen. These include a progress bar indicating the completed processing status, The elapsed and estimated finish times and an 'Analysis Button'  that allows the user to start the analysis on a given Data Group after it’s processing is finished.",
-            "Fig 19 - Check Progress Screen. In highlights are: 1. Data Group’s name; 2. Processing Progress Bar; 3. Time elapsed and Estimated Finish Time for Processing; 4. Analysis Button for a Data Group"],
-            "PageThree": ["Title Loading Groups for Analysis",
-            "Fig 20 - Starting Analysis by clicking the Start Analysis Button.",
-            "Which can also be accessed by clicking the Load Analysis Menu Button from the File Menu of the program’s top bar.",
-            "Fig 21 - Loading Analysis by clicking the Load Analysis Menu Button.",
-            "Starting Analysis from the Initial Screen or from the Load Analysis Menu Button allows the user to check a Data Group’s Time vs Raw Average Speed data generated from the Dense Optical Flow algorithm in a scrollable table.",
-            "Fig 22 - Selecting processed Data Groups saved on Memory or Disk for Analysis.",
-            "The Data Group’s Time vs Raw Average Speed data generated from the Dense Optical Flow algorithm can also be downloaded by either the Download Table Button or the Export Current Table Menu Button from the Export Menu.",
-            "Fig 23 - Exporting processed Data Groups raw Data.",
-            "Both .CSV and .XLS or .XLSX exporting formats are supported and can be selected from a Pop up Window",
-            "Fig 24 - Pop up Window for selecting export table format."],
-            "PageFour": ["Title Analysing Time vs Average Speed plot",
-            "By either clicking the Start Analysis Button on the Start Analysis Screen, the Analysis Button on the Check Progress Screen or the Load Analysis Menu Button on the File Menu of the Top Bar, the user can navigate to the Wave Points Definition Screen.",
-            "Fig 25 A) Clicking the Start Analysis Button on the Start Analysis Screen. B) Clicking the Analysis Button on the Check Progress Screen. C) Clicking the Load Analysis Menu Button on the File Menu of the Top Bar.",
-            "The main objective of this Screen is allowing the User to select Waves of interest from the Processed Data by an automatic Wave detection algorithm combined with the manual adjustment by the User when needed.",
-            "The user can click and drag the mouse for selecting Wave areas of interest to be analysed in the posterior plots. Releasing the mouse inside the plot creates a Plot Selection that is initially zoomed in the below subplot. The User can display the automatically detected points by clicking the Plot Dots Check Box at the bottom menu. More on this algorithm and how to better adjust it to fit the data of interest is written in the following section.",
-            "Fig 26 A) Initial Plot display for the starting analysis. B) Clicking and dragging in the Plot Area creates a Plot Selection that is zoomed in the initial sub-plot below. C) Automatically detected points are shown in the plot by clicking the Plot Dots Check Box at the bottom menu",
-            "Multiple Plot Selections can be created in a single plot. Plot Selections can be deleted by double mouse clicking and can be merged by overlapping the areas of a currently drawn Plot Selection with a previously drawn Plot Selection. Two Mouse Modes are currently available in this Screen: Plot Area Select and Plot Point Select in the Top Bar under the Plot Mouse Mode Menu. For drawing selections, please ensure that the Plot Area Select Mouse Mode is selected by clicking under this Menu.",
-            "Title Separating Wave from Noise and the Wave Points defining Algorithm",
-            "The automatic Wave detection algorithm first step is to separate frames related to Contraction-Relaxation (Waves) from baseline state oscillations during measurement (Noise). This is done by a fixed threshold whose first guess is calculated as the median of all data points values. When first opening the Wave Points Definition Screen this value can be seen in the 'Noise Cutoff' top menu Spin Box highlighted below.",
-            "Fig 27 - 'Noise Cutoff' top menu Spin Box highlighted in red.",
-            "As one can imagine, this value is not suited for all Data Groups. The user can help the algorithm to select an adequate Noise Cutoff by editing the values in the top menu Spin Box. Visualization of values defined as Noise can be done by clicking the Plot Noise Max Line check box in the top menu. ",
-            "Fig 28 - 'Plot Noise Max Line' visualization in the plot. Wave points 'mislabelled' (see below) as Noise are highlighted in red.",
-            "You may notice some of points inside the Wave area were detected as Noise. The algorithm accounts for such variation and this generally does not affect the Point Definition step. One of the ways this is accounted for can be seen in the Noise Detection Options in the Data Options top bar Menu.",
-            "Fig 29 A) - 'Noise Detection Options'  in the top bar Menu. B) 'Noise Detection Options' Pop Up Window with labelled options.",
-            "The Noise Areas Min. Size Filtering is the second step of the Noise defining algorithm. In this step, Noise sequences of points (or areas) containing a Time smaller than the Average Time of ALL Noise areas are defined as possible Wave areas. This step is Optional to the analysis and may be adjusted by the user in the 'Noise Detection Options' Pop Up Window.",
-            "Other options in this Window include decreasing the Average Speed of ALL Noise areas or a Custom User Input Value from the Data after the Noise defining algorithm and the Point Definition step are done. This may be useful for cases in which the User believes the obtained Wave Speed values are suffering from interference from the baseline values since these interferences can affect various Peak Parameters in the following Peak Parameters Screen Analysis.",
-            "The algorithms third step starts the Point Definition steps. In these steps, five points of four possible point types are detected for each possible Wave areas. Firstly, possible local maximums are extracted from an open source Peak Detection Algorithm which utilizes a parameter called Delta, which is the difference from a possible local minimum to a following local maximum. The initial value guessed by the program for this parameter is the Average Speed of all Wave defined points divided by 3.",
-            "The User can display the automatically detected points by clicking the Plot Dots Check Box at the bottom menu. If these dots look clearly wrong, the first correcting measure should be editing the Delta value at the top menu. It should be raised when more dots are being displayed than it should and lowered when fewer dots are being displayed than it should.",
-            "Fig 30 A) - 'Plot Dots' Check Box  in the bottom menu. B) 'Delta' Spin Box in the top menu.",
-            "In the following steps for Point Definition, possible local maximums are filtered and only those with zero-derivative in Wave defined areas remaining for analysis.",
-            "For each pair of remaining Maximum points, the Start Point of a Wave is defined as the closest zero-derivative minimum Noise point preceding the first Maximum.",
-            "The Minimum Point is defined as the point with the smallest Speed between the two Maximums.",
-            "And the Last Point is finally defined by fitting an exponential function to all points succeeding the Second Maximum until the end of the following Noise area and defining a Stop Criteria for when the exponential has stabilized. This approach was chosen due to the Waves double peak pattern which consists on a very fast increase from the baseline in the double peak beginning but a slow decay in the end.",
-            "The initial Stop Criteria is 0.01 or 1% which means that when a zero-derivative minimum point following the Second Maximum has a difference in the fitted function of less than 1% to the anteceding neighbour point it is defined as the Last Point of the Wave.",
-            "This Stop Criteria generally works fine with the tested cases but should also be customized according to the data in the Stop Criteria Spin Box shown in the Figure below. Waves displaying a slower decay should have a smaller Stop Criteria and Waves with a faster decay should have a higher Stop Criteria. The Exponential Fit can also be visualized for each individual Peak by clicking the Plot Exponential Regressions Check Box highlighted in the Figure below.",
-            "Fig 31 - 'Stop Criteria' Spin Box and the Plot Exponential Regressions Check Box in the top menu.",
-            "Each of the four point types (First, Maximum, Minimum and Last) are colored differently in the plot. Default color configurations are Green, Red, Blue and Purple but can be changed anytime along with other Plot Settings (See Customizing Plots in this Document).",
-            "After Waves are properly assigned and selected, the user can move to the next analysis as described in the final session for this Analysis.",
-            "Despite all these steps, highly noisy data groups with Noise oscillations close to the Wave values may still difficult Wave assignment from the Speed data calculated by the Optical Flow Algorithm. These particularly arise from multidirectional Contraction-Relaxation data such as those seen in Neonatal cardiomyocytes. The program presents multiple options for contouring such issues which are all exemplified below.",
-            "Title Applying Smoothing/Denoising Algorithms",
-            "One option for correcting highly noise data is applying a Smoothing/Denoising Algorithm on the data. The offset of this method is that the Raw Speed data is clearly modified when such an algorithm is applied, which may lead to wrong conclusions regarding the methodology results. As such these methods are to be applied with care, specially when the objective is comparing data groups from different experiments/cell types which is the most often case.",
-            "Fig 32 - A highly noisy case with clear bad point detection",
-            "Three main Smoothing algorithms are present in this program and are the Savitzky-Golay filter, a Fast Fourier Transform finite impulse response (FIR) filter, and an Average Window denoising. These can be opened from the Data Options > Smooth/Denoise Menus in the Top Bar. ",
-            "Fig 33 - Data Options > Smooth/Denoise Menus in the Top Bar",
-            "Clicking each filter opens up a Pop Up Window for applying such filter. Customizing options for these filters include Window length for the Savitzky-Golay filter and Average Window denoising, the Polynomial Order used by the Savitzky-Golay filter, various possible Window Scaling types for the Average Window denoising and the Percentage of the highest frequencies kept in the Fast Fourier Transform filter.",
-            "Fig 34 - Selecting one of the Smooth/Denoise options opens up three possible pop ups for the the Average Window, Savitzky-Golay, and FFT Frequency filters (A-C respectively)",
-            "The Savitzky-Golay filter and Average Window denoising procedure can also be applied to an user selected Plot Selection by clicking the Plot Selection with the right mouse button and selecting any of the two options regarding these filters as seen in the Figure below.",
-            "Fig 35 - Right clicking a Plot Selection allows the user to apply the Savitzky-Golay filter and Average Window denoising procedure on a specific plot area as highlighted in red.",
-            "The data can be restored to the original configuration by clicking in the Data Options > Restore Original  Menu Option in the Top Bar. After Waves are properly assigned and selected, the user can move to the next analysis as described in the final session for this Analysis.",
-            "Title Separating Waves from Noise by area selection",
-            "The following two options for correcting noise/peak definition by the program is by manually setting noise/peak areas or each of the five peak points after adjusting the parameters in the first section of this Screen tutorial (Separating Wave from Noise and the Wave Points defining Algorithm).",
-            "For setting the noise/peak areas first set the Sub-Plot Mode to Noise/Peak Areas in the Sub-Plot Mode Menu of the Top Bar. This will update the below Sub-Plot to show points defined as Noise by the Noise defining algorithm in blue crosses as shown below.",
-            "Fig 36 - Sub-Plot Modes in the Sub-Plot Mode Menu of the Top Bar",
-            "Also ensure that the Plot Mouse Mode is set to Plot Area Select in the Plot Mouse Mode Menu of the Top Bar.",
-            "Fig 37 - Plot Mouses Modes in the Plot Mouse Mode Menu of the Top Bar",
-            "Now Sub-Plot Selection Areas can be generated in the same way Plot Selection areas are by clicking, dragging and released with the left mouse button.",
-            "Fig 38 - Sub-Plot Selections in the Noise/Peak Areas Sub-Plot generated by clicking and dragging.",
-            "Right clicking a Sub-Plot Selection Area allows the user to set individual parts of the Plot as Wave or Noise, which greatly helps the Point Detection algorithm in defining where the true Maximum points are located. An important thing to note is that changing any of the automatic detection options resets any of the user manual editions. After Waves are properly assigned and selected, the user can move to the next analysis as described in the final session for this Analysis.",
-            "Fig 39 - 'Set as Wave' and 'Set as Noise' Menu Options in the Noise/Peak Areas Sub-Plot generated by right clicking a Sub-Plot Selection.",
-            "Title Editing and Creating Wave points manually",
-            "Another way to edit wrongly or non assigned Wave points is to manually add, remove or move points in the plot. First, ensure that the Plot Mouse Mode is set to Plot Point Select in the Plot Mouse Mode Menu of the Top Bar. ",
-            "Fig 37 - Plot Mouses Modes in the Plot Mouse Mode Menu of the Top Bar",
-            "Also check that the Sub-Plot Mode is assigned to Peak Zoom in the Sub-Plot Mode Menu of the Top Bar.",
-            "Fig 36 - Sub-Plot Modes in the Sub-Plot Mode Menu of the Top Bar",
-            "Now points can be moved by dragging and dropping with the left mouse button.",
-            "Fig 40 - Clicking and dragging a Wave Point.",
-            "The plot can be right clicked at any position for Adding a new Point. Points in the Plot can also be right clicked and Removed or have their type Changed to another one.",
-            "Fig 41 - A) Right clicking in the Plot in the Plot Point Select Mouse Mode opens up a new Menu. B) Pop Up Window for creating a new point or changing a point’s type.",
-            "This is a more radical way to assign Waves which anyhow can be useful since all the assignment here is completely done by the user. An important thing to note is that changing any of the automatic detection options resets any of the user manual editions. After Waves are properly assigned and selected, the user can move to the next analysis as described in the final session for this Analysis.",
-            "Title Checking Wave Frequency by Fast Fourier Transform of the Data",
-            "Finally the Wave frequency of the plot can be checked using a Fast Fourier Transform of the Data. First, ensure that the Plot Mouse Mode is set to Plot Point Select in the Plot Mouse Mode Menu of the Top Bar. ",
-            "Fig 37 - Plot Mouses Modes in the Plot Mouse Mode Menu of the Top Bar",
-            "Then check that the Sub-Plot Mode is assigned to FFT in the Sub-Plot Mode Menu of the Top Bar.",
-            "Fig 36 - Sub-Plot Modes in the Sub-Plot Mode Menu of the Top Bar",
-            "This displays the Fast Fourier Transform of the Plot Data. Clicking any single point in the subplot highlights this point and updates the Plot’s title with the corresponding selecting Frequency.",
-            "Fig 42 - A) FFT Sub-Plot Mode. B) Clicking a new dot ",
-            "The Fast Fourier Transform is applied to the last created Plot Selection in the Plot if any has been previously selected.",
-            "Fig 43 - FFT Sub-Plot Mode is now applied to the last Plot Selection created.",
-            "Title Exporting Data",
-            "Multiple Data can be exported from this Screen if the user desires to do so. This includes the whole or individual Plot+Sub Plot images as well as their data. Supported exported figure data includes various possible formats according to the user’s computer matplotlib installation. Like the previous Screen, Data is exported in tabular format in either the .csv or .xls / .xlsx formats.",
-            "Fig 44 - Export Menu in the Top Bar with several export options.",
-            "Fig 45 - Pop Up Window for exporting Figures in Contraction Wave. After clicking the ok button, the user is prompted to select a file name and a folder for saving.",
-            "Moving to the Next Analysis",
-            "One or more Waves are required to be selected (under a Plot Selection) before progressing for further analysis. A complete Wave is defined by the presence of the following Wave Points in this order: First Point, Maximum Point, Minimum Point, Maximum Point and Last Point.",
-            "Fig 46 - A) A valid selection of three Waves before progressing to the next analysis. B) Clicking the Analyse Wave Areas button allows the user to progress to the next analysis.",
-            "For drawing selections, please ensure that the Plot Area Select Mouse Mode is selected by clicking under this Menu and click and drag the Top Plot."],
-            "PageFive": ["Title Time, Speed and Area Parameters",
-            "In this Screen, the user can visualize each of the previously selected Waves in the below Plot by clicking any of the Top Table rows.",
-            "Fig 47 - Visualizing Wave Parameters Screen after selecting various Waves.",
-            "Various parameters of interest regarding the Waves Time, Speed and Area are calculated for each Wave based on the previously defined: First Point, Maximum Point, Minimum Point, Maximum Point and Last Point.",
-            "Switching between these three types of tables containing Time, Speed and Area parameters can be done by clicking on the Top Radio Buttons.",
-            "Fig 48 - Switching between Top Radio Buttons of the Visualizing Wave Parameters Screen.",
-            "A Middle table allows seeing the Average values of each of the selected Parameters for the currently selected Waves. ",
-            "Fig 49 - Highlighted average parameter table in the middle of the screen.",
-            "Incorrectly assigned or selected Waves can be deleted by right clicking to open a context Menu and selecting the Delete option.",
-            "Fig 50 - Deleting a misassigned Wave by right clicking and selecting Remove Peak.",
-            "The Plot Figure/Data and all the tabular Data can be exported in the Top Bar Export Menu.",
-            "Fig 51 - Export options for this Screen.",
-            "In order to move to the final Analysis, the user must select a valid Wave row and click the Quiver/Jet Plots button at the bottom of the screen. By doing so, the program will ask whether the user desires to Save the current Waves to the disk. This is highly recommended for accessing this data at a later time.",
-            "Fig 52 - Moving forward to the last analysis by clicking the Quiver/Jet Plots button",
-            "Saved Waves can be accessed at anytime by clicking the Load Saved Waves option in the File Menu of the Top Bar. From the Initial Screen it is also possible to load saved Waves by clicking the Load Saved Waves Button.",
-            "Fig 53 - Load Saved Waves Menu Option (A) and Button at the Initial Screen (B)"],
-            "PageSix": ["Title Visualizing the full Contraction-Relaxation Cycle",
-            "Various possible visualizations of the full Contraction-Relaxation Cycle of a selected Wave are possible in this Screen. By clicking the first three Top Check Boxes, three different visualizations can be merged in a total of seven different combinations. The Jet Check Box  displays Speed per each pixel in the selected frame. The Quiver Check Box displays Speed Vectors with both velocities and the optical flow calculated directions over a window in the X (horizontal) and Y (vertical) image axes. The Image Check Box  displays the current plot Image the Optical flow was calculated from.",
-            "Fig 54 - Three Top Check Boxes in red highlighting the three different visualizations: Image (A), Jet (B) and Quiver (C).",
-            "An Legend automatically scaled from the previously selected Noise threshold to the Maximum possible Speed in any of the image’s pixels can also be drawn or removed by clicking the fourth Check Box.",
-            "Fig 55 - Fourth Check Box in red and legend drawn for the Jet visualization.",
-            "The Jet/Quiver Plots can also be automatically contoured by clicking the last top Check Box allowing the user to highlight the cell when such single cell contouring is possible.",
-            "Fig 56 - Last Check Box in red and contouring drawn for the Jet visualization.",
-            "The user can also move between different frames of the Contraction-Relaxation cycle by clicking and dragging the bottom slider or by clicking directly into the bottom plot.",
-            "Fig 57 - Moving between different frames of the Image/Jet visualization via the slider or plot clicks highlighted in red.",
-            "Alternatively, the user can also play an animation of the full cycle by clicking the Play/Stop button and adjusting the Frame Per Second rate Spin Box at the bottom of the Screen. This can sometimes be laggy since plots are dynamically drawn and not pre-bufferized at this time.",
-            "Fig 58 - The Play/Stop Button and the Frame Per Second rate Spin Box highlighted in red.",
-            "Title Adjusting Automatic Contour Settings",
-            "Advanced settings can be adjusted by clicking the Advanced Configs Menu Option in the Top Bar and editing the parameters at the next Pop Up Window. The Quiver X and Y windows can be adjusted for controlling the size of the Quiver Plot horizontal and vertical directions.",
-            "Fig 59 - Advanced settings Pop up Window.",
-            "Blur Size, Kernal Dilation, Kernel Erosion, Kernal Smoothing Contours, are all parameters related to the respective OpenCV functions: OpenCV Docs Filtering - See: blur(), erode(), dilate(), morphologyEx() in order.",
-            "Likewise, the Border thickness parameter refers to the Contour Thickness of the respective OpenCV function: OpenCV Docs Structural Analysis and Shape Descriptors - See drawContours().",
-            "The Scale Min. and Scale Max. parameters refer to the drawn Colorbar Legend limits and can be changed to match a user’s needs when drawing publication ready figures.",
-            "All parameters are updated in real time when changed in this Pop Up Window.",
-            "Title Exporting Data",
-            "Various export options exist for this Window. Besides being able to export the current plot and plot data as a figure and a table, respectively,  each of the seven possible image combinations can be exported in various formats either for the currently selected frame or for all frames of the selected Wave. An additional exporting option is available is possible when all frames are selected which is exporting as a video ('.avi' extension). The Legend colorbox can also be separately exported.",
-            "Fig 60 - Exporting Data Options for the Jet/Quiver Plot Screen."]
-        }
-        
-        self.helpframe = ttkScrollFrame(master, 'greyBackground.TFrame', self.parent._get_bg_color())
-        self.helpframe.viewPort.columnconfigure(0, weight=1)
-        self.helpframe.grid(row=1,column=0, rowspan=1, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
-
-        tlbl = ttk.Label(master,text="Help:", wraplength=600, width=100)
-        tlbl.grid(row=0, column=0, rowspan=1, columnspan=1)#, sticky=tk.W+tk.E+tk.N+tk.S)
-
-        master.update()
-        self.parent.update()
-        self.update_idletasks()
-        self.update()
-        self.imglbls = []
-        helpframewidth = tlbl.winfo_width()
-        towrite = pagenames[self.literals["current_help"]]
-        rown = 0
-        for i, paragraph in enumerate(towrite):
-            thefont = self.normal_font
-            if paragraph[:5] == "Title":
-                thefont = self.title_font
-                paragraph = paragraph[5:]
-            paragraph = "\n" + paragraph + "\n"
-
-            newlbl = ttk.Label(self.helpframe.viewPort, font=thefont, text=paragraph, wraplength=800, anchor="w", justify=tk.LEFT ) 
-            newlbl.grid(row=rown, column=0, rowspan=1, columnspan=1)
-            self.helpframe.viewPort.rowconfigure(rown, weight=1)
-            rown +=1
-            # print(paragraph[1:4])
-            # print(paragraph[0])
-            # print(paragraph[1])
-            # print(paragraph[2])
-            # print(paragraph[3])
-            # print(paragraph[4])
-            if paragraph[1:4] == "Fig":
-                print("FIG!!!")
-                newlblframe = ttk.Frame(self.helpframe.viewPort)
-                photo = load_img("tutorial_imgs/" + paragraph.split()[0] + "_" +  paragraph.split()[1] + ".png", int(helpframewidth * 0.8))
-                self.imglbls.append(photo)
-                newlblimg = ttk.Label(newlblframe, image=self.imglbls[-1])
-                newlblimg.image = self.imglbls[-1] # keep a reference!
-                newlblimg.pack()
-                newlblframe.grid(row=rown, column=0, rowspan=1, columnspan=1)
-                self.helpframe.viewPort.rowconfigure(rown, weight=1)
-                rown += 1
-        self.packbtns = False
-
-    def validate(self):
-        print("class AboutDialog def validate start")
-        self.valid = False
-        return 0
-
-    def apply(self):
-        print("class AboutDialog def apply start")
-        pass
-
 class AboutDialog(tkDialog.Dialog):
     def body(self, master):
-        print("class AboutDialog def body creation")
+        # print("class AboutDialog def body creation")
         ttk.Label(master, text='CONTRACTIONWAVE: open software to process, analyze and visualize cellular contractility\n', wraplength=800, anchor="w", justify=tk.LEFT ).grid(row=0, column=1)
-        ttk.Label(master, text='Version: 1.20c\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=1, column=1)
+        ttk.Label(master, text='Version: 1.27c\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=1, column=1)
         # ttk.Label(master, text='Sergio Scalzo; Marcelo Afonso; Neli Fonseca; Itamar Couto Guedes de Jesus; Ana Paula Alves; Carolina A. T. F. Mendonça, Vanessa Pereira Teixeira; Anderson Kenedy Santos; Diogo Biagi; Estela Crunivel; Maria Jose Campagnole-Santos.; Flavio Marques; Oscar Mesquita; Christopher Kushmerick; Lucas Bleicher; Ubirajara Agero; Silvia Guatimosim\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=2, column=1)
         names = "Sérgio Scalzo; Marcelo Q. L. Afonso; Néli J. da Fonseca Jr; Itamar Guedes de Jesus; Ana Paula Alves; Carolina A. T. F. Mendonça, Vanessa Pereira Teixeira; Diogo Biagi; Estela Cruvinel; Anderson Kenedy Santos; Kiany Miranda; Flavio A.M. Marques; Oscar Mesquita; Christopher Kushmerick; Maria José Campagnole-Santos; Ubirajara Agero; Silvia Guatimosim"
         ttk.Label(master, text=names+'\n', wraplength=800, anchor="w", justify=tk.LEFT).grid(row=2, column=1)
@@ -308,17 +59,17 @@ class AboutDialog(tkDialog.Dialog):
         self.packbtns = False
 
     def validate(self):
-        print("class AboutDialog def validate start")
+        # print("class AboutDialog def validate start")
         self.valid = False
         return 0
 
     def apply(self):
-        print("class AboutDialog def apply start")
+        # print("class AboutDialog def apply start")
         pass
 
 class FolderSelectDialog(tkDialog.Dialog):
     def body(self, master):
-        print("class FolderSelectDialog def body creation")
+        # print("class FolderSelectDialog def body creation")
         # tkDialog.Dialog.okbtn.pack_forget()
         # tkDialog.Dialog.cnbtn.pack_forget()
         # ttk.Label(master, text='Select Input Type:').grid(row=0, column=1)
@@ -357,7 +108,7 @@ class FolderSelectDialog(tkDialog.Dialog):
         self.ok()
 
     def validate(self):
-        print("class FolderSelectDialog def validate start")
+        # print("class FolderSelectDialog def validate start")
         if self.result != None:
             self.valid = True
             return 1
@@ -365,13 +116,13 @@ class FolderSelectDialog(tkDialog.Dialog):
         return 0
 
     def apply(self):
-        print("class FolderSelectDialog def apply start")
+        # print("class FolderSelectDialog def apply start")
         pass
 
 class CoreAskDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class CoreAskDialog def body creation")
+        # print("class CoreAskDialog def body creation")
         ttk.Label(master, text='Start Processing Queue:').grid(row=0, column=0)
 
         self.formatvar = tk.StringVar(master)
@@ -382,7 +133,7 @@ class CoreAskDialog(tkDialog.Dialog):
         self.optmenu.grid(row = 1, column = 1)
 
     def validate(self):
-        print("class CoreAskDialog def validate start")
+        # print("class CoreAskDialog def validate start")
         #nothing to validate
         if int(self.formatvar.get()) > 0:
             self.valid = True
@@ -392,14 +143,14 @@ class CoreAskDialog(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class CoreAskDialog def apply start")
+        # print("class CoreAskDialog def apply start")
         #save configs
         self.result = int(self.formatvar.get())
 
 class SelectMenuItem(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SelectMenuItemN def body creation")
+        # print("class SelectMenuItemN def body creation")
         ttk.Label(master, text='Type New Name:').grid(row=0, column=1)
         self.AnswerVar = tk.StringVar()
         self.AnswerVar.set(self.literals["current_name"])
@@ -407,7 +158,7 @@ class SelectMenuItem(tkDialog.Dialog):
         self.AnswerVar.set(self.literals["current_name"])
 
     def validate(self):
-        print("class SelectMenuItem def validate start")
+        # print("class SelectMenuItem def validate start")
         #nothing to validate
         if len(str(self.AnswerVar.get())) > 0:
             self.valid = True
@@ -417,14 +168,14 @@ class SelectMenuItem(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class SelectMenuItemN def apply start")
+        # print("class SelectMenuItemN def apply start")
         #save configs
         self.result = str(self.AnswerVar.get())
 
 class AddPresetDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class AddPresetDialog def body creation")
+        # print("class AddPresetDialog def body creation")
         ttk.Label(master, text='New Preset Name:').grid(row=0, column=1)
         self.AnswerVar = tk.StringVar()
         self.AnswerVar.set("")
@@ -432,7 +183,7 @@ class AddPresetDialog(tkDialog.Dialog):
         self.result = None
 
     def validate(self):
-        print("class AddPresetDialog def validate start")
+        # print("class AddPresetDialog def validate start")
         #nothing to validate
         if self.AnswerVar.get() != "":
             self.valid = True
@@ -441,7 +192,7 @@ class AddPresetDialog(tkDialog.Dialog):
         return 0
 
     def apply(self):
-        print("class AddPresetDialog def apply start")
+        # print("class AddPresetDialog def apply start")
         #save configs
         if self.valid == True:
             self.result = self.AnswerVar.get()
@@ -451,7 +202,7 @@ class AddPresetDialog(tkDialog.Dialog):
 class DotChangeDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class DotChangeDialog def body creation")
+        # print("class DotChangeDialog def body creation")
         ttk.Label(master, text='Dot Type:').grid(row=0, column=1)
         self.DType = tk.StringVar()
         dot_types = ["First", "Max", "Min", "Last"]
@@ -467,26 +218,31 @@ class DotChangeDialog(tkDialog.Dialog):
         self.DType.set(args)
 
     def validate(self):
-        print("class DotChangeDialog def validate start")
+        # print("class DotChangeDialog def validate start")
         #nothing to validate
         if self.DType.get() != "":
+            self.master.dragDots.tempresult = True
             self.valid = True
             return 1
         self.valid = False
+        self.master.dragDots.tempresult = False
+        self.master.popupCFocusOut()
         return 0
 
     def apply(self):
-        print("class DotChangeDialog def apply start")
+        # print("class DotChangeDialog def apply start")
         #save configs
         if self.valid == True:
+            self.master.dragDots.tempresult = True
             self.result = self.DType.get().lower()
         else:
+            self.master.dragDots.tempresult = False
             self.result = None
 
 class SelectPresetDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SelectPresetDialog def body creation")
+        # print("class SelectPresetDialog def body creation")
         ttk.Label(master, text='Select from Presets:').grid(row=0, column=1)
         self.PresetSelect = tk.StringVar()
         fkey = sorted(self.literals["preset_dicts"].keys())[0]
@@ -531,7 +287,7 @@ class SelectPresetDialog(tkDialog.Dialog):
         self.poly_sigma_lbl['text'] = str(self.literals["preset_dicts"][self.PresetSelect.get()]["poly_sigma"])
 
     def validate(self):
-        print("class SelectPresetDialog def validate start")
+        # print("class SelectPresetDialog def validate start")
         #nothing to validate
         if self.PresetSelect.get() != "":
             self.valid = True
@@ -540,7 +296,7 @@ class SelectPresetDialog(tkDialog.Dialog):
         return 0
 
     def apply(self):
-        print("class SelectPresetDialog def apply start")
+        # print("class SelectPresetDialog def apply start")
         #save configs
         if self.valid == True:
             self.result = self.literals["preset_dicts"][self.PresetSelect.get()]
@@ -551,6 +307,8 @@ class CustomYesNo(tkDialog.Dialog):
     def body(self, master):
         ttk.Label(master, text=self.thistitle, font=('Helvetica', 12)).grid(row=0, column=0)
         self.result = False
+        self.btn1_name = "Yes"
+        self.btn2_name = "No"
         pass
 
     def validate(self):
@@ -563,7 +321,7 @@ class CustomYesNo(tkDialog.Dialog):
 class PlotSettingsProgress(tkDialog.Dialog):
 
     def body(self, master):
-        print("class PlotSettingsProgress def body creation")
+        # print("class PlotSettingsProgress def body creation")
         self.current_settings = self.literals["plotsettingscolors"]
         self.current_lineopts = self.literals["plotsettingsline"]
         rowindex = 0
@@ -671,37 +429,37 @@ class PlotSettingsProgress(tkDialog.Dialog):
             thisButton.grid(row=rowindex, column=coln)
         rowindex += 1
 
-        print("class PlotSettingsProgress def body created")
+        # print("class PlotSettingsProgress def body created")
 
     def change_color(self, event):
-        print("class PlotSettingsProgress def change_color started")
+        # print("class PlotSettingsProgress def change_color started")
         k = event.widget.texttype
         newcolor = colorchooser.askcolor(title="Select Color for " + k, color=self.current_settings[k])
-        print("class PlotSettingsProgress def change_color current color is: " + self.current_settings[k])
+        # print("class PlotSettingsProgress def change_color current color is: " + self.current_settings[k])
         if newcolor[1] != None:
-            print("class PlotSettingsProgress def change_color color changed!")
+            # print("class PlotSettingsProgress def change_color color changed!")
             self.current_settings[k] = newcolor[1]
-            print("class PlotSettingsProgress def change_color new color is:" + newcolor[1])
-        print("class PlotSettingsProgress def change_color done")
+            # print("class PlotSettingsProgress def change_color new color is:" + newcolor[1])
+        # print("class PlotSettingsProgress def change_color done")
     
     def change_color2(self, event):
-        print("class PlotSettingsProgress def change_color2 started")
+        # print("class PlotSettingsProgress def change_color2 started")
         k = event.widget.texttype
         newcolor = colorchooser.askcolor(title="Select Color for " + k, color=self.current_lineopts[k])
-        print("class PlotSettingsProgress def change_color2 current color is: " + self.current_lineopts[k])
+        # print("class PlotSettingsProgress def change_color2 current color is: " + self.current_lineopts[k])
         if newcolor[1] != None:
-            print("class PlotSettingsProgress def change_color2 color changed!")
+            # print("class PlotSettingsProgress def change_color2 color changed!")
             self.current_lineopts[k] = newcolor[1]
-            print("class PlotSettingsProgress def change_color2 new color is:" + newcolor[1])
-        print("class PlotSettingsProgress def change_color2 done")
+            # print("class PlotSettingsProgress def change_color2 new color is:" + newcolor[1])
+        # print("class PlotSettingsProgress def change_color2 done")
     
     def set_timetype(self, event):
-        print("class PlotSettingsProgress def set_timetype started")
+        # print("class PlotSettingsProgress def set_timetype started")
         self.current_lineopts["time_unit"] = self.full_time_dict[self.TimeSelect.get()]
-        print("class PlotSettingsProgress def set_timetype done")
+        # print("class PlotSettingsProgress def set_timetype done")
     
     def validate(self):
-        print("class PlotSettingsProgress def validate start")
+        # print("class PlotSettingsProgress def validate start")
         #nothing to validate
         self.valid = True
         if self.thisCheck_line_var.get() == 1:
@@ -720,19 +478,1870 @@ class PlotSettingsProgress(tkDialog.Dialog):
             self.current_lineopts["show_dots"] = True
         else:
             self.current_lineopts["show_dots"] = False
-        print("class PlotSettingsProgress def validate done")
+        # print("class PlotSettingsProgress def validate done")
         return 1
 
     def apply(self):
-        print("class PlotSettingsProgress def apply start")
+        # print("class PlotSettingsProgress def apply start")
         #save configs
         self.result = {}
-        print(self.current_settings.copy())
-        print(self.current_lineopts.copy())
+        # print(self.current_settings.copy())
+        # print(self.current_lineopts.copy())
         self.result["peak_plot_colors"] = self.current_settings.copy()
         self.result["plotline_opts"] = self.current_lineopts.copy()
-        print("class PlotSettingsProgress def apply done")
+        # print("class PlotSettingsProgress def apply done")
         # return self.current_settings[k]
+
+class ProgressBarDialog(tkDialog.Dialog):
+    def body(self, master):
+        #literals:
+        #obj
+        #aux
+        aux = self.literals["aux"]
+        #create main from literals
+        #create main label
+        frameuno = ttk.Frame(self)
+        frameuno.grid_rowconfigure(0, weight=1)
+        for ic in range(5):
+            frameuno.columnconfigure(ic, weight=1)
+
+        lbl1 = ttk.Label(frameuno, text="Running... ", font=self.master.controller.title_font)
+        lbl1.grid(row=0, column=0, rowspan=1, columnspan=3)
+        
+        self.var_bar = tk.DoubleVar()
+        self.var_bar.set(0.0)
+        #create main bar
+        self.pbar = ttk.Progressbar(frameuno, style="", length=500, variable=self.var_bar, maximum=1)
+        self.pbar.grid(row=1, column=0, rowspan=1, columnspan=3)
+
+        frameuno.grid(row=0, column=0, rowspan=2, columnspan=5, sticky=tk.NSEW)
+        # frameuno.pack()
+
+        #start running background process
+        self.packbtns = False
+        self.master.controller.progress_bar = self
+        self.protocol("WM_DELETE_WINDOW", self.customCancel)
+        self.bind("<Escape>", self.customCancel)
+        # try:
+            # self.protocol("WM_DELETE_WINDOW", self.customCancel)
+            # self.bind("<Escape>", self.customCancel)
+        # except Exception as e:
+            # print("Exception!")
+            # print(e)
+        time.sleep(1)
+        self.master.after(100, lambda: self.master.frames["PageFour"].queuePreProcess(aux) )
+        # self.master.frames["PageFour"].queuePreProcess(aux)
+
+    def refreshProgress(self):
+        #check for any progress and update bar
+        progress, etask = self.master.frames["PageFour"].retrievePreProcess()
+        print("refreshProgress progress")
+        print("current stamp: ")
+        print(etask)
+        print(progress)
+        self.var_bar.set(progress)
+        if progress == 1.0:
+            #trigger close bar
+            # if etask not in self.master.frames["PageFour"].done_pdiffs:
+            #     self.master.frames["PageFour"].done_pdiffs.append(etask)
+            self.ok()
+
+    def validate(self):
+        #segmentation checking for disturbances
+        self.valid = True
+        return 1
+
+    def customCancel(self):
+        progress, etask = self.master.frames["PageFour"].retrievePreProcess()
+        print("apply progress")
+        print(progress)
+        if progress < 1.0:
+            self.master.frames["PageFour"].killTasks(etask)
+        self.master.controller.progress_bar = None
+        self.cancel()
+
+    def apply(self):
+        progress, etask = self.master.frames["PageFour"].retrievePreProcess()
+        print("apply progress")
+        print(progress)
+        if progress < 1.0:
+            self.master.frames["PageFour"].killTasks(etask)
+        else:
+            if etask not in self.master.frames["PageFour"].done_pdiffs:
+                self.master.frames["PageFour"].done_pdiffs.append(etask)
+        self.master.controller.progress_bar = None
+        self.result = True
+
+class ReferenceDefinitionDialog(tkDialog.Dialog):
+    def body(self, master):
+        frameuno = ttk.Frame(self)
+        for ir in range(2):
+            frameuno.grid_rowconfigure(ir, weight=1)
+        for ic in range(3):
+            frameuno.columnconfigure(ic, weight=1)
+        ttk.Label(frameuno,text="Image subtraction reference frames:",  font=('Helvetica', 14)).grid(row=0, column=0, columnspan=3)
+        # ttk.Label(frameuno,text="(frame shift)",  font=('Helvetica', 10)).grid(row=1, column=1, columnspan=3)
+        self.current_spin = tk.Spinbox(frameuno, from_=(-1 * self.literals["framenumber"]/2), to=self.literals["framenumber"]/2, increment=1, width=4)
+        self.current_spin.thistype = "frame_shift" 
+        self.current_spin.grid(row=1, column=2)
+        self.current_spin.delete(0,"end")
+        self.current_spin.insert(0,-2)
+        ttk.Label(frameuno,text="Contraction Start + Shift:",  font=('Helvetica', 12)).grid(row=1, column=0, columnspan=1)
+        self.current_spin.grid(row=1, column=1, columnspan=1)
+        frameuno.grid(row=0, column=0, rowspan=2, columnspan=5, sticky=tk.NSEW)
+        # self.current_spin.bind('<Return>', lambda *args: self.set_segmentation(0))
+        self.packbtns = False
+        self.packbtnokonly = True
+        pass
+
+    def validate(self):
+        try:
+            current_ref_spin_val = int(self.current_spin.get().replace(",", "."))
+            if current_ref_spin_val < (-1 * self.literals["framenumber"]/2) or current_ref_spin_val > self.literals["framenumber"]/2:
+                self.valid = False
+                messagebox.showwarning(
+                    "Bad input",
+                    "Illegal values, please try again"
+                )
+                return 0 
+        except ValueError:
+            messagebox.showwarning(
+                "Bad input",
+                "Illegal values, please try again"
+            )
+            self.valid = False
+            return 0
+        self.valid = True
+        return 1
+    
+    def apply(self):
+        self.result = int(self.current_spin.get().replace(",", "."))
+
+
+class DiffComparisionDialog(tkDialog.DialogMax):
+    def body(self, master):
+        #literals:
+        #data
+        data = self.literals["data"]
+        data2 = self.literals["data2"]
+        #data2
+        self.mframe = self.literals["mframe"]
+
+        #create plot with zoom
+        self.plotFrame = ttk.Frame(self)
+        self.subPlotFrame = ttk.Frame(self.plotFrame)
+
+        self.frameLabel = ttk.Label(self.plotFrame, text="Comparison View:", font=self.master.controller.subtitle_font)
+
+        self.figFrame = plt.figure(figsize=(6, 3), dpi=100, facecolor=self.master.controller.bgcolor)
+        self.figFrame.tight_layout()
+        self.figFrame.subplots_adjust(top=0.85, bottom=0.25)
+        self.gsWave = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.2)
+        self.canvasFrame = FigureCanvasTkAgg(self.figFrame, master=self.subPlotFrame)  # A tk.DrawingArea.
+        self.canvasFrame.draw()
+        # pack_toolbar=False will make it easier to use a layout manager later on.
+        self.toolbar = NavigationToolbar2Tk(self.canvasFrame, self.subPlotFrame)
+        self.toolbar.update()
+        
+        self.mainplotartistFrame = None
+        self.mainplotartistFrame2 = None
+
+        self.axFrame = self.figFrame.add_subplot()
+        self.axFrame2 = self.axFrame.twinx()
+
+        self.axbaselineFrame = None
+        self.axgridFrame = None
+        
+        self.axFrame.set_xlabel("Time ("+self.master.controller.current_timescale+")")
+        self.axFrame.set_ylabel("Average Speed ("+self.master.controller.current_speedscale+")")# ▢")
+        self.axFrame2.set_ylabel("Contraction Amplitude (a.u)")# ▢")
+        # self.axFrame2.set_ylabel("Average Pixel Intensity ("+self.literals["controller"].controller.current_pixscale+")")
+        
+        self.canvasFrame.draw()
+        self.toolbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.canvasFrame.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+
+        # ttk.Label(self.adjustfiltersframe,text="Blur size:",  font=('Helvetica', 10)).grid(row=1, column=1)
+        # self.blur_size_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=4, command=lambda: self.set_segmentation(0))
+        self.spinnerLowLimLabel = ttk.Label(self.plotFrame, text="Low Limit (Contraction Amplitude):")
+        self.spinnerLowLim = tk.Spinbox(self.plotFrame, increment=1, from_=np.min(data)/10, to=np.max(data)*10, width=6, command=self.updatePlot)
+        self.spinnerHighLimLabel = ttk.Label(self.plotFrame, text="High Limit (Contraction Amplitude):")
+        self.spinnerHighLim = tk.Spinbox(self.plotFrame, increment=1, from_=np.min(data)/10, to=np.max(data)*10, width=6, command=self.updatePlot)
+        self.spinnerLowLim.bind('<Return>',lambda *args: self.updatePlot())
+        self.spinnerHighLim.bind('<Return>',lambda *args: self.updatePlot())
+
+        self.button_plot = ttk.Button(self.plotFrame, text="Export Figure", command=self.exportPlotFig, width=15)
+        self.button_data = ttk.Button(self.plotFrame, text="Export Data", command=self.exportPlotData, width=15)
+        for ic in range(6):
+            self.plotFrame.columnconfigure(ic, weight=1)
+        for ir in range(8):
+            self.plotFrame.rowconfigure(ir, weight=1)
+        
+        self.frameLabel.grid(row=0, column=2, columnspan=1, sticky=tk.NSEW)
+        self.subPlotFrame.grid(row=1, column=0, rowspan=5, columnspan=5, sticky=tk.NSEW)
+        # ttk.Label(self.adjustfiltersframe,text="Scale adjustment:",  font=('Helvetica', 10)).grid(row=1, column=1)
+        self.spinnerLowLimLabel.grid(row=6, column=1)
+        self.spinnerLowLim.grid(row=6, column=2)
+        self.spinnerHighLimLabel.grid(row=6, column=3)
+        self.spinnerHighLim.grid(row=6, column=4)
+        # self.setLimsFrame.grid(row=6, column=1, columnspan=2)
+        self.button_plot.grid(row=7, column=1, columnspan=1)
+        self.button_data.grid(row=7, column=3, columnspan=1)
+
+        self.figFrame.canvas.draw()
+
+        xdata = None
+        if self.master.controller.current_timescale == "s":
+            xdata = [i / self.master.FPS  for i in range(len(data))]
+        elif self.master.controller.current_timescale == "ms":
+            xdata = [(i / self.master.FPS ) * 1000.0 for i in range(len(data))]
+        # self.mainplotartistFrame = self.axFrame.plot(data, color=self.master.controller.plotsettings.peak_plot_colors["main"])
+        self.mainplotartistFrame = self.axFrame.plot(xdata, data, color=self.master.controller.plotsettings.peak_plot_colors["main"],label="Average Speed ("+self.master.controller.current_speedscale+")")
+        # self.mainplotartistFrame2 = self.axFrame2.plot(data2, color=self.master.controller.plotsettings.peak_plot_colors["max"])
+        self.mainplotartistFrame2 = self.axFrame2.plot(xdata, data2, color=self.master.controller.plotsettings.peak_plot_colors["max"],label="Contraction Amplitude (a.u)")
+        #get smallest axFrame2 data
+        data2arr = np.array(data2)
+        mindata2_above_zero = np.min(data2arr[data2arr > 0])
+        maxdata2 = np.max(data2arr)
+        lim_yax2 = self.axFrame2.get_ylim()
+        # maxdata2_val = np.round(maxdata2 * 1.1)
+        maxdata2_val = maxdata2 * 1.1
+        # self.axFrame2.set_ylim(mindata2_above_zero, lim_yax2[1])
+        print("mindata2_above_zero")
+        print(mindata2_above_zero)
+        print('maxdata2_val')
+        print(maxdata2_val)
+        self.axFrame2.set_ylim(mindata2_above_zero, maxdata2_val)
+        self.spinnerLowLim.delete(0,"end")
+        self.spinnerLowLim.insert(0,mindata2_above_zero)
+        self.spinnerHighLim.delete(0,"end")
+        self.spinnerHighLim.insert(0,maxdata2_val)
+
+
+        # self.axFrame.legend()
+        # self.axFrame2.legend()
+        h1, l1 = self.axFrame.get_legend_handles_labels()
+        h2, l2 = self.axFrame2.get_legend_handles_labels()
+        # self.axFrame.legend(h1+h2, l1+l2, loc=2)
+        self.axFrame.legend(h1+h2, l1+l2, loc='upper left', fontsize='xx-small')
+        self.figFrame.canvas.draw()
+
+        # self.fxlabels = None
+        # if self.master.controller.current_timescale == "s":
+        #     self.fxlabels = [ float("{:.3f}".format(float(item.get_text().replace("−", "-")) / self.master.FPS)) for item in self.axFrame.get_xticklabels() ]
+        # elif self.master.controller.current_timescale == "ms":
+        #     self.fxlabels = [ float("{:.3f}".format((float(item.get_text().replace("−", "-")) / self.master.FPS)*1000)) for item in self.axFrame.get_xticklabels() ]
+        # self.axFrame.set_xticklabels(self.fxlabels)
+        
+        curlims = (self.axFrame.get_xlim(), self.axFrame.get_ylim())
+
+        if self.axbaselineFrame != None:
+            self.axbaselineFrame.remove()
+            self.axbaselineFrame = None
+        if  self.master.controller.plotsettings.plotline_opts["zero"] == True:
+            self.axbaselineFrame = self.axFrame.axhline(y=0.0, color= self.master.controller.plotsettings.plotline_opts["zero_color"], linestyle='-')
+
+        if self.axgridFrame != None:
+            self.axgridFrame.remove()
+            self.axgridFrame = None
+        if  self.master.controller.plotsettings.plotline_opts["grid"] == True:
+            self.axgridFrame = self.axFrame.grid(linestyle="-", color= self.master.controller.plotsettings.plotline_opts["grid_color"], alpha=0.5)
+        else:
+            self.axFrame.grid(False)
+        
+        self.axFrame.set_xlim(curlims[0])
+        self.axFrame.set_ylim(curlims[1])
+
+        self.figFrame.canvas.draw()
+        
+        # self.plotFrame.pack(expand=True)
+        self.plotFrame.grid(row=0, column=0, rowspan=1, columnspan=3, sticky=tk.NSEW)
+        
+        #create export button
+        pass
+
+    def updatePlot(self):
+        highlim = float(self.spinnerHighLim.get().replace(",", "."))
+        lowlim = float(self.spinnerLowLim.get().replace(",", "."))
+        self.axFrame2.set_ylim(lowlim, highlim)
+        self.figFrame.canvas.draw()
+
+    def exportPlotData(self):
+        try:
+            xlbldata = []
+            if self.master.controller.current_timescale == "s":
+                xlbldata= [float("{:.3f}".format(float(a) / self.master.FPS)) for a in self.mainplotartistFrame[0].get_xdata()]
+            elif self.master.controller.current_timescale == "ms":
+                xlbldata= [float("{:.3f}".format(float(a) * 1000.0 / self.master.FPS)) for a in self.mainplotartistFrame[0].get_xdata()]
+            SaveTableDialog(self, title='Save Length Data', literals=[
+                ("headers", [self.axFrame.get_xlabel(), self.axFrame2.get_ylabel()]),
+                ("data", [xlbldata, self.mainplotartistFrame2[0].get_ydata()]),
+                ("data_t", "single")
+                ], parent2=self.mframe)
+        except TypeError:
+            messagebox.showerror("Error", "No Data in plot")
+
+    def exportPlotFig(self):
+        #export current plot figure
+        formats = set(self.figFrame.canvas.get_supported_filetypes().keys())
+        d = SaveFigureDialog(self, title='Save Figure', literals=[
+                ("formats", formats),
+                ("bbox", 1)
+            ], parent2=self.mframe)
+        if d.result != None:
+            if d.result["format"] == ".jpg" or d.result["format"] == ".jpeg":
+                self.figFrame.savefig(r'%s' %d.result["name"],quality=d.result["quality"], dpi=d.result["dpi"], bbox_inches=d.result["bbox"])
+                messagebox.showinfo(
+                    "File saved",
+                    "File was successfully saved"
+                )
+            else:
+                self.figFrame.savefig(r'%s' %d.result["name"], dpi=d.result["dpi"], bbox_inches=d.result["bbox"])
+                messagebox.showinfo(
+                    "File saved",
+                    "File was successfully saved"
+                )
+
+    def validate(self):
+        self.valid = True
+        return 1
+
+    def apply(self):
+        self.result = True
+
+class NewCellLengthDialog(tkDialog.DialogMax):
+    def body(self, master):
+
+        #todo: make update on Analyse click btn
+        #update peak num when clicking on new peak
+        #area_label_calc addition
+
+        #
+        #Information Parsing
+        #
+
+        self.peaks = self.literals["peaks_obj"]
+        self.current_peak_index = self.literals["peak_index"]
+        self.index_of_peak = 0
+        self.current_peak = self.peaks[self.current_peak_index]
+        self.mframe = self.literals["mframe"]
+        self.segmentation_default = self.literals["segdef"]
+        self.segmentation_dict = {}
+        for i, peak in enumerate(self.peaks):
+            self.segmentation_dict[i] = []
+            for j in range(len(peak.peaktimes)):
+                #i (peakindex), j(imageindex), k(segmentation setting index)
+                self.segmentation_dict[i].append(self.segmentation_default.copy())
+        self.set_image_list()
+        
+        #
+        #Master Frame Declaration
+        #
+        
+        self.masterframe = ttkScrollFrame(master, 'greyBackground.TFrame', self.literals["controller"].bgcolor) #add scroll bar
+        #6 columns
+        self.masterframe.viewPort.columnconfigure(0, weight=1)
+        self.masterframe.viewPort.columnconfigure(1, weight=1)
+        self.masterframe.viewPort.columnconfigure(2, weight=1)
+        self.masterframe.viewPort.columnconfigure(3, weight=1)
+        self.masterframe.viewPort.columnconfigure(4, weight=1)
+        self.masterframe.viewPort.columnconfigure(5, weight=1)
+
+        #
+        # First Big Title creation
+        #
+
+        rown = 0 #first row number
+        #Add title frame
+        self.firstBigTitleFrame = ttk.Frame(self.masterframe.viewPort)
+        # self.firstBigTitleLabel = ttk.Label(self.firstBigTitleFrame, text="", font=self.literals["controller"].subtitle_font)
+        self.firstBigTitleLabel = ttk.Label(self.firstBigTitleFrame, text="Contraction-relaxation Wave "+str(self.current_peak_index), font=self.literals["controller"].title_font)
+        rspan = 1
+        self.firstBigTitleLabel.grid(row=0,column=2,rowspan=1,columnspan=2, sticky=tk.NSEW)
+        
+        self.firstBigTitleFrame.grid_rowconfigure(0, weight=1)
+        for ic in range(5):
+            self.firstBigTitleFrame.columnconfigure(ic, weight=1)
+        self.firstBigTitleFrame.grid(row=rown, column=0, rowspan=rspan, columnspan=6, sticky=tk.NSEW)
+        rown += rspan
+
+        #
+        # Table with all Waves creation
+        #
+        
+        # self.table_wave_frame = ttk.Frame(self.masterframe.viewPort)
+        self.treePrevSelectedNames = []
+        self.tableFrame = ttk.Frame(self.masterframe.viewPort) 
+        self.tableTreeLabel = ttk.Label(self.tableFrame, text="Wave Selection:", font=self.literals["controller"].subtitle_font)
+        self.tableTreeLabel.grid(row=0, column=0, sticky=tk.NSEW)
+        self.tableCols = ("Wave Index", )
+        # self.tableTree = ttk.Treeview(self.tableFrame, columns=self.tableCols, selectmode='extended', show='headings')
+        self.tableTree = ttk.Treeview(self.tableFrame, columns=self.tableCols, selectmode='browse', show='headings')
+        self.tableTree.grid(row=1, column=0, sticky=tk.NSEW)
+        self.tableTree.tag_configure('oddrow', background='#d3d3d3')
+        self.tableTree.tag_configure('evenrow', background='white')
+        for col in self.tableCols:
+            self.tableTree.heading(col, text=col)
+        self.vsbTable = ttk.Scrollbar(self.tableFrame, orient="vertical", command=self.tableYScroll)
+        self.vsbTableHorizontal = ttk.Scrollbar(self.tableFrame, orient="horizontal", command=self.tableXScroll)
+        self.vsbTable.grid(row=1,column=1,sticky=tk.NS)
+        self.vsbTableHorizontal.grid(row=2,column=0,sticky=tk.EW)
+        self.tableTree.configure(yscrollcommand=self.vsbTable.set, xscrollcommand=self.vsbTableHorizontal.set)
+        self.tableTree.bind("<<TreeviewSelect>>", self.tabletreeselection)
+
+        for ic in range(2):
+            self.tableFrame.columnconfigure(ic, weight=1)
+        for ir in range(3):
+            self.tableFrame.rowconfigure(ir, weight=1)
+        rspan = 6
+        self.tableFrame.grid(row=rown, column=0, rowspan=rspan, columnspan=2, sticky=tk.NSEW)
+
+        #
+        # Wave Plot Creation
+        #
+        self.waveFrame = ttk.Frame(self.masterframe.viewPort)
+        self.waveFrame2 = ttk.Frame(self.waveFrame)
+        # self.waveLabel = ttk.Label(self.waveFrame, text="Wave View:", font=self.literals["controller"].subtitle_font)
+        self.rectWave = None
+        self.rectContour = None
+        self.rectCellLength = None
+        self.pressmovecidWave = None
+        self.figWave = plt.figure(figsize=(6, 3), dpi=100, facecolor=self.literals["controller"].bgcolor)
+        self.figWave.tight_layout()
+        self.figWave.subplots_adjust(top=0.85, bottom=0.25)
+        self.gsWave = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.2)
+        self.canvasWave = FigureCanvasTkAgg(self.figWave, master=self.waveFrame2)  # A tk.DrawingArea.
+        self.mainplotartistWave = None
+        self.axWave = self.figWave.add_subplot()
+        self.axbaselineWave = None
+        self.axgridWave = None
+        self.axWave.set_xlabel("Time ("+self.literals["controller"].controller.current_timescale+")")
+        self.axWave.set_ylabel("Average Speed ("+self.literals["controller"].controller.current_speedscale+")")
+        self.canvasWave.draw()
+        self.canvasWave.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        for ic in range(6):
+            self.waveFrame.columnconfigure(ic, weight=1)
+        for ir in range(6):
+            self.waveFrame.rowconfigure(ir, weight=1)
+
+        # self.waveLabel.grid(row=0, column=1, columnspan=3, sticky=tk.NSEW)
+        self.waveFrame2.grid(row=0, column=0, rowspan=5, columnspan=5, sticky=tk.NSEW)
+        self.waveFrame.grid(row=rown, column=2, rowspan=rspan, columnspan=4, sticky=tk.NSEW)
+        self.figWave.canvas.draw()
+
+        for i, peak in enumerate(self.peaks):
+            ptxt = str(i+1)
+            # if i == self.current_peak_index:
+                # ptxt = "Current"
+            cur_tag = "oddrow"
+            if i % 2 == 0:
+                cur_tag = "evenrow"
+            self.tableTree.insert("", "end", values=(ptxt), text=str(i), tags = (cur_tag,))
+
+        for child_item in self.tableTree.get_children():
+            curItemDecomp = self.tableTree.item(child_item)
+            current_row = int(curItemDecomp["text"])
+            if current_row == self.current_peak_index:
+                self.tableTree.focus(child_item)
+                self.tableTree.selection_set(child_item)
+
+        rown += rspan
+
+        #
+        # Second Big Title creation
+        #
+
+        #Add title frame
+        self.secondBigTitleFrame = ttk.Frame(self.masterframe.viewPort)
+        # self.firstBigTitleLabel = ttk.Label(self.firstBigTitleFrame, text="", font=self.literals["controller"].subtitle_font)
+        self.secondBigTitleLabel = ttk.Label(self.secondBigTitleFrame, text="Cell segmentation", font=self.literals["controller"].title_font)
+        rspan = 1
+        self.secondBigTitleLabel.grid(row=0,column=2,rowspan=1,columnspan=2, sticky=tk.NSEW)
+        
+        self.secondBigTitleFrame.grid_rowconfigure(0, weight=1)
+        for ic in range(5):
+            self.secondBigTitleFrame.columnconfigure(ic, weight=1)
+        self.secondBigTitleFrame.grid(row=rown, column=0, rowspan=rspan, columnspan=6, sticky=tk.NSEW)
+
+        rown += rspan
+
+        #
+        # Configuration frame creation
+        #
+        self.configframe = ttk.Frame(self.masterframe.viewPort)
+        
+        self.adjustfiltersframe = ttk.Frame(self.configframe)
+
+        # ttk.Label(self.configframe, text='Image Filtering:',  font=('Helvetica', 14)  ).grid(row=0, column=0, rowspan=1, columnspan=2, sticky=tk.NSEW)
+        ttk.Label(self.configframe, text='Image Filtering:',  font=('Helvetica', 14)  ).grid(row=0, column=0, columnspan=2, sticky=tk.NSEW)
+        # ttk.Label(self.configframe,text="Blur size:",  font=('Helvetica', 8)).grid(row=1, column=0)
+        # self.blur_size_spin = tk.Spinbox(self.configframe, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=8, command=lambda: self.set_segmentation(0))
+        
+        ttk.Label(self.adjustfiltersframe,text="Blur size:",  font=('Helvetica', 10)).grid(row=1, column=1)
+        self.blur_size_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["blur_size"][0], to=self.literals["config"]["blur_size"][1], increment=2, width=4, command=lambda: self.set_segmentation(0))
+        self.blur_size_spin.thistype = "blur_size" 
+        self.blur_size_spin.grid(row=1, column=2)
+        self.blur_size_spin.delete(0,"end")
+        self.blur_size_spin.insert(0,self.literals["segdef"][0])
+        self.blur_size_spin.bind('<Return>', lambda *args: self.set_segmentation(0))
+
+        # ttk.Label(self.configframe,text="Kernel dilation:",  font=('Helvetica', 8)).grid(row=2, column=0)
+        # self.kernel_dilation_spin = tk.Spinbox(self.configframe, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=2, width=8, command=lambda: self.set_segmentation(1))
+    
+        ttk.Label(self.adjustfiltersframe,text="Kernel dilation:",  font=('Helvetica', 10)).grid(row=2, column=1)
+        self.kernel_dilation_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["kernel_dilation"][0], to=self.literals["config"]["kernel_dilation"][1], increment=2, width=4, command=lambda: self.set_segmentation(1))
+        self.kernel_dilation_spin.thistype = "kernel_dilation" 
+        self.kernel_dilation_spin.grid(row=2, column=2)
+        self.kernel_dilation_spin.delete(0,"end")
+        self.kernel_dilation_spin.insert(0,self.literals["segdef"][1])
+        self.kernel_dilation_spin.bind('<Return>', lambda *args: self.set_segmentation(1))
+       
+        # ttk.Label(self.configframe,text="Kernel erosion:",  font=('Helvetica', 8)).grid(row=3, column=0)
+        # self.kernel_erosion_spin = tk.Spinbox(self.configframe, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=2, width=8, command=lambda: self.set_segmentation(2))
+    
+        ttk.Label(self.adjustfiltersframe,text="Kernel erosion:",  font=('Helvetica', 10)).grid(row=3, column=1)
+        self.kernel_erosion_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["kernel_erosion"][0], to=self.literals["config"]["kernel_erosion"][1], increment=2, width=4, command=lambda: self.set_segmentation(2))
+        self.kernel_erosion_spin.thistype = "kernel_erosion" 
+        self.kernel_erosion_spin.grid(row=3, column=2)
+        self.kernel_erosion_spin.delete(0,"end")
+        self.kernel_erosion_spin.insert(0,self.literals["segdef"][2])
+        self.kernel_erosion_spin.bind('<Return>', lambda *args: self.set_segmentation(2))
+
+        # ttk.Label(self.configframe,text="Smoothing contours:",  font=('Helvetica', 8)).grid(row=4, column=0)
+        # self.kernel_smoothing_contours_spin = tk.Spinbox(self.configframe, from_=self.literals["config"]["kernel_smoothing_contours"][0], to=self.literals["config"]["kernel_smoothing_contours"][1], increment=1, width=8, command=lambda: self.set_segmentation(3))
+       
+        ttk.Label(self.adjustfiltersframe,text="Smoothing contours:",  font=('Helvetica', 10)).grid(row=4, column=1)
+        self.kernel_smoothing_contours_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["kernel_smoothing_contours"][0], to=self.literals["config"]["kernel_smoothing_contours"][1], increment=1, width=4, command=lambda: self.set_segmentation(3))
+        self.kernel_smoothing_contours_spin.thistype = "kernel_smoothing_contours" 
+        self.kernel_smoothing_contours_spin.grid(row=4, column=2)
+        self.kernel_smoothing_contours_spin.delete(0,"end")
+        self.kernel_smoothing_contours_spin.insert(0,self.literals["segdef"][3])
+        self.kernel_smoothing_contours_spin.bind('<Return>', lambda *args: self.set_segmentation(3))
+
+        # ttk.Label(self.configframe,text="Border thickness:",  font=('Helvetica', 8)).grid(row=5, column=0)
+        # self.border_thickness_spin = tk.Spinbox(self.configframe, from_=self.literals["config"]["border_thickness"][0], to=self.literals["config"]["border_thickness"][1], increment=1, width=8, command=lambda: self.set_segmentation(4))
+
+        ttk.Label(self.adjustfiltersframe,text="Border thickness:",  font=('Helvetica', 10)).grid(row=5, column=1)
+        self.border_thickness_spin = tk.Spinbox(self.adjustfiltersframe, from_=self.literals["config"]["border_thickness"][0], to=self.literals["config"]["border_thickness"][1], increment=1, width=4, command=lambda: self.set_segmentation(4))
+        self.border_thickness_spin.thistype = "border_thickness"
+        self.border_thickness_spin.grid(row=5, column=2)
+        self.border_thickness_spin.delete(0,"end")
+        self.border_thickness_spin.insert(0,self.literals["segdef"][4])
+        self.border_thickness_spin.bind('<Return>', lambda *args: self.set_segmentation(4))
+
+        self.adjustfiltersframe.grid(row=1, column=0, columnspan=2, sticky=tk.NSEW)
+        # self.adjustfiltersframe.grid(row=1, rowspan=5, column=0, columnspan=2)
+        # self.adjustfiltersframe.grid(row=1, rowspan=2, column=0, columnspan=2)
+        #
+        # Configuration buttons frame creation
+
+        for ic in range(3):
+            self.adjustfiltersframe.columnconfigure(ic, weight=1)
+        for ir in range(6):
+            self.adjustfiltersframe.rowconfigure(ir, weight=1)
+        #
+
+        self.segbtnsframe = ttk.Frame(self.configframe) 
+
+        # self.groupchecklist = ttkScrollFrame(self.frameCellLengthPlot, 'greyBackground.TFrame', self.literals["controller"].bgcolor)
+
+
+        self.seg_for_all = ttk.Button(self.segbtnsframe, text="Set for Wave", command=lambda: self.set_segmentation("all"), width=11, style="small.TButton")
+        # self.seg_for_all.grid(row=0, column=1, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
+        # self.seg_for_all.grid(row=1, column=1, columnspan=1)
+        self.seg_for_all.grid(row=1, column=0, columnspan=1)
+    
+        self.seg_for_allW = ttk.Button(self.segbtnsframe, text="Set for All", command=lambda: self.set_segmentation("allwaves"), width=11, style="small.TButton")
+        # self.seg_for_allW.grid(row=0, column=2, columnspan=1, sticky=tk.W+tk.E+tk.N+tk.S) 
+        # self.seg_for_allW.grid(row=1, column=2, columnspan=1) 
+        self.seg_for_allW.grid(row=1, column=1, columnspan=1) 
+
+        self.seg_for_allP = ttk.Button(self.segbtnsframe, text="Analyse", command=self.calculate_length_current, width=11, style="small.TButton")
+        # self.seg_for_allP.grid(row=1, column=1, columnspan=2, sticky=tk.W+tk.E+tk.N+tk.S) 
+        # self.seg_for_allP.grid(row=2, column=1, columnspan=2)
+        self.seg_for_allP.grid(row=1, column=2, columnspan=2)
+        
+        self.segbtnsframe.grid_rowconfigure(0, weight=1)
+        self.segbtnsframe.grid_rowconfigure(1, weight=1)
+        self.segbtnsframe.grid_rowconfigure(2, weight=1)
+        self.segbtnsframe.grid_columnconfigure(0, weight=1)
+        self.segbtnsframe.grid_columnconfigure(1, weight=1)
+        self.segbtnsframe.grid_columnconfigure(2, weight=1)
+        self.segbtnsframe.grid_columnconfigure(3, weight=1)
+        # self.segbtnsframe.grid_columnconfigure(5, weight=1)
+        # self.segbtnsframe.grid(row=7, column=0, columnspan=2, rowspan=1, sticky=tk.W+tk.E+tk.N+tk.S)
+        # self.segbtnsframe.grid(row=6, column=0, columnspan=2, rowspan=1)
+        # self.segbtnsframe.grid(row=5, column=0, columnspan=2, rowspan=1)
+        self.segbtnsframe.grid(row=2, column=0, columnspan=2, sticky=tk.NSEW)
+
+
+
+        #
+        # Cell segmentation view creation
+        #
+        self.frameSegment = ttk.Frame(self.configframe)
+        # self.segmentLabel = ttk.Label(self.frameSegment, text="Segmentation Box View:", font=self.literals["controller"].subtitle_font)
+        self.frameSegment2 = ttk.Frame(self.frameSegment)
+        self.figSegment = plt.figure(figsize=(6, 2), dpi=100 ,facecolor=self.literals["controller"].bgcolor, edgecolor="None")
+        self.gsSegment = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.2, left=None, bottom=None, right=None, top=None)
+        self.canvasSegment = FigureCanvasTkAgg(self.figSegment, master=self.frameSegment2)  # A tk.DrawingArea.
+        self.axSegment = self.figSegment.add_subplot(self.gsSegment[0])
+        self.canvasSegment.draw()
+        self.canvasSegment.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        for ic in range(6):
+            self.frameSegment.columnconfigure(ic, weight=1)
+        # for ir in range(7):
+        for ir in range(1):
+            self.frameSegment.rowconfigure(ir, weight=1)
+
+        # self.segmentLabel.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
+        # self.frameSegment2.grid(row=0, column=0, rowspan=6, columnspan=5, sticky=tk.NSEW)
+        self.frameSegment2.grid(row=0, column=0, columnspan=5, sticky=tk.NSEW)
+        self.frameSegment2.bind("<Configure>", self.resize)
+        # self.frameSegment.grid(row=0, column=2, ro
+        # wspan=5, columnspan=8, sticky=tk.NSEW)
+        # self.frameSegment.grid(row=0, column=2, rowspan=5, columnspan=8, sticky=tk.NSEW)
+        # self.frameSegment.grid(row=0, column=2, rowspan=5, columnspan=8, sticky=tk.NSEW)
+        self.frameSegment.grid(row=1, column=2, columnspan=8, sticky=tk.NSEW)
+
+        #
+        # Height, Width Frame creation
+        #
+        self.info_calc_frame = ttk.Frame(self.configframe)
+        self.height_label_calc = ttk.Label(self.info_calc_frame, text="Height: ", font=self.literals["controller"].subtitle_font)
+        self.height_label_calc.grid(row=0, column=1, columnspan=1, sticky=tk.NSEW)
+        self.width_label_calc = ttk.Label(self.info_calc_frame, text="Width: ", font=self.literals["controller"].subtitle_font)
+        self.width_label_calc.grid(row=0, column=2, columnspan=1, sticky=tk.NSEW)
+        self.area_label_calc = ttk.Label(self.info_calc_frame, text="Area: ", font=self.literals["controller"].subtitle_font)
+        # self.area_label_calc.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
+        for ic in range(5):
+            self.info_calc_frame.columnconfigure(ic, weight=1)
+        for ir in range(1):
+            self.info_calc_frame.rowconfigure(ir, weight=1)
+        # self.info_calc_frame.grid(row=5, column=2, columnspan=8, sticky=tk.NSEW)
+        self.info_calc_frame.grid(row=2, column=2, columnspan=8, sticky=tk.NSEW)
+
+        #
+        # Slider creation
+        #
+        # self.current_framelist = [0, 1, 2, 3, 4, 5,6,7,8,9,10,11,12,13,14,15]
+        self.sliderframe = ttk.Frame(self.configframe)
+        self.slidervarSegment = tk.IntVar(value=self.index_of_peak+1)
+        self.slider = ttk.Scale(self.sliderframe, from_=1, to=len(self.current_peak.peaktimes), variable=self.slidervarSegment, orient=tk.HORIZONTAL, command=self.update_figure)
+        # self.slider = ttk.Scale(self.masterframe.viewPort, from_=1, to=len(self.current_peak.peaktimes), variable=self.slidervarSegment, orient=tk.HORIZONTAL, command=self.update_figure)
+        # self.slider.grid(row=rown, column=0, columnspan=3, sticky=tk.NSEW)
+        for ic in range(5):
+            self.sliderframe.columnconfigure(ic, weight=1)
+        for ir in range(1):
+            self.sliderframe.rowconfigure(ir, weight=1)
+        self.slider.grid(row=0, column=1, columnspan=3, sticky=tk.NSEW)
+        # self.sliderframe.grid(row=6, column=2, columnspan=8, sticky=tk.NSEW)
+        self.sliderframe.grid(row=3, column=2, columnspan=8, sticky=tk.NSEW)
+
+        # .grid(row=rown, column=3, rowspan=rspan, columnspan=3, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        # for ir in range(7):
+        for ir in range(4):
+            self.configframe.grid_rowconfigure(ir, weight=1)
+        for ic in range(11):
+            self.configframe.columnconfigure(ic, weight=1)
+
+        rspan = 4
+
+        self.configframe.grid(row=rown, column=0, rowspan=rspan, columnspan=6, sticky=tk.W+tk.E+tk.N+tk.S)
+
+        rown += rspan
+
+        #
+        # Third Big Title creation
+        #
+
+        #Add title frame
+        self.thirdBigTitleFrame = ttk.Frame(self.masterframe.viewPort)
+        # self.firstBigTitleLabel = ttk.Label(self.firstBigTitleFrame, text="", font=self.literals["controller"].subtitle_font)
+        self.thirdBigTitleLabel = ttk.Label(self.thirdBigTitleFrame, text="Cell shortening", font=self.literals["controller"].title_font)
+        rspan = 1
+        self.thirdBigTitleLabel.grid(row=0,column=2,rowspan=1,columnspan=2, sticky=tk.NSEW)
+        
+        self.thirdBigTitleFrame.grid_rowconfigure(0, weight=1)
+        for ic in range(5):
+            self.thirdBigTitleFrame.columnconfigure(ic, weight=1)
+
+        self.thirdBigTitleFrame.grid(row=rown, column=0, rowspan=rspan, columnspan=6, sticky=tk.NSEW)
+
+        rown += rspan
+
+        #
+        # Cell length Plot creation
+        #
+
+        self.frameCellLengthPlot = ttk.Frame(self.masterframe.viewPort)
+
+        # self.groupchecklist = ttk.Frame(frameCellLengthPlot)
+        self.groupchecklist = ttkScrollFrame(self.frameCellLengthPlot, 'greyBackground.TFrame', self.literals["controller"].bgcolor, cvSize =(1,4), cvExpand=False, cvWidth=100) #add scroll bar
+        #6 columns
+
+        mname = ttk.Label(self.groupchecklist.viewPort, text="Graph data:", font=('Helvetica', 14))
+        mname.grid(row=0, column=1, columnspan=1, sticky=tk.NSEW)
+        #for each Wave, print in column
+        self.checkedgroups = []
+        # self.method_lbls = []
+        for iep, ep in enumerate(self.peaks):
+            # cnvar = 
+            self.checkedgroups.append(tk.IntVar())
+            # self.method_lbls.append(None)
+            # cnvar.set(0)
+            self.checkedgroups[-1].set(0)
+            # cname = ttk.Label(self.groupchecklist, text="Wave: " + str(iep+1), font=('Helvetica', 14))
+            # cname.grid(row=iep+1, column=0, columnspan=1, sticky=tk.NSEW)
+            # ccheck = ttk.Checkbutton(self.groupchecklist, text="Calculate", variable = self.checkedgroups[-1], width=20)
+            ccheck = ttk.Checkbutton(self.groupchecklist.viewPort, text="Wave: " + str(iep+1), variable = self.checkedgroups[-1], width=30)
+            # ccheck.grid(row=iep+1, column=1, columnspan=1, sticky=tk.NSEW)
+            # ccheck.grid(row=iep+1, column=0, columnspan=1, sticky=tk.NSEW)
+            ccheck.grid(row=iep+1, column=1, columnspan=1, sticky=tk.NSEW)
+            # self.method_lbls[-1] = ttk.Label(self.groupchecklist, text="Full segmentation", font=('Helvetica', 14))
+            # self.method_lbls[-1].grid(row=iep+1, column=2, columnspan=1, sticky=tk.NSEW)
+
+        for ic in range(2):
+            self.groupchecklist.viewPort.columnconfigure(ic, weight=1)
+        for ir in range(len(self.peaks)+1):
+            self.groupchecklist.viewPort.rowconfigure(ir, weight=1)
+        self.groupchecklist.grid(row=0,column=0, columnspan=1, rowspan=7)
+
+
+        # self.cellLengthLabel = ttk.Label(self.frameCellLengthPlot, text="Cell Length Plot:", font=self.literals["controller"].subtitle_font)
+        self.frameCellLength2 = ttk.Frame(self.frameCellLengthPlot)
+        self.figCellLength = plt.figure(figsize=(6, 4), dpi=100 ,facecolor=self.literals["controller"].bgcolor, edgecolor="None")
+        self.gsCellLength = gridspec.GridSpec(1, 1, height_ratios=[5], hspace=0.2, left=None, bottom=None, right=None, top=None)
+        self.canvasCellLength = FigureCanvasTkAgg(self.figCellLength, master=self.frameCellLength2)
+        self.mainplotartistCellLength = None
+        self.mainplotartistCellHeight = None
+        self.axbaselineCellLength = None
+        self.axgridCellLength = None
+        self.axCellLength = self.figCellLength.add_subplot(self.gsCellLength[0])
+        self.canvasCellLength.draw()
+        self.canvasCellLength.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        
+        # self.cellLengthLabel.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
+        self.frameCellLength2.grid(row=0, column=1, rowspan=6, columnspan=6, sticky=tk.NSEW)
+
+        self.cell_percdiff = tk.IntVar(value=0)
+        self.cell_zerocenter = tk.IntVar(value=0)
+
+        self.checkCellLengthFrame = ttk.Frame(self.frameCellLengthPlot)
+
+        self.cell_plottype = tk.IntVar(value=0)
+        self.radioLengthMicro = ttk.Radiobutton(self.checkCellLengthFrame, text = "µm", variable = self.cell_plottype, value = 0, command=self.calculate_length_current, width=5)
+        self.radioLengthPerc = ttk.Radiobutton(self.checkCellLengthFrame, text = "%", variable = self.cell_plottype, value = 1, command=self.calculate_length_current, width=5)
+        self.radioAreaMicro = ttk.Radiobutton(self.checkCellLengthFrame, text = "µm²", variable = self.cell_plottype, value = 2, command=self.calculate_length_current, width=5)
+        self.radioAreaPerc = ttk.Radiobutton(self.checkCellLengthFrame, text = "%", variable = self.cell_plottype, value = 3, command=self.calculate_length_current, width=5)
+
+        self.cell_calctype = tk.IntVar(value=0)
+        
+        self.radioAbsolute = ttk.Radiobutton(self.checkCellLengthFrame, text = "Absolute", variable = self.cell_calctype, value = 0, command=self.calculate_length_current, width=15)
+        # self.radioRelativeFirst = ttk.Radiobutton(self.checkCellLengthFrame, text = "Baseline (Wave start)", variable = self.cell_calctype, value = 1, command=self.calculate_length_current, width=20)
+        
+        # self.radioRelativePrevious = ttk.Radiobutton(self.checkCellLengthFrame, text = "Relative (Previous)", variable = self.cell_calctype, value = 2, command=self.calculate_length_current, width=20)
+        self.radioRelativeFirst2 = ttk.Radiobutton(self.checkCellLengthFrame, text = "Normalized", variable = self.cell_calctype, value = 3, command=self.calculate_length_current, width=20)
+
+        ttk.Label(self.checkCellLengthFrame, text="Length:").grid(row=0,column=1)
+        self.radioLengthMicro.grid(row=0, column=2)
+        self.radioLengthPerc.grid(row=0, column=3)
+        # ttk.Label(self.checkCellLengthFrame, text="Area:").grid(row=0,column=5)
+        # self.radioAreaMicro.grid(row=0, column=6)
+        # self.radioAreaPerc.grid(row=0, column=7)
+        ttk.Label(self.checkCellLengthFrame, text="Values:").grid(row=1,column=1)
+        self.radioAbsolute.grid(row=1, column=3)
+
+        # self.radioRelativeFirst.grid(row=1, column=4)
+        # self.radioRelativePrevious.grid(row=1, column=5)
+
+        self.radioRelativeFirst2.grid(row=1, column=4)
+        # self.radioRelativeFirst2.grid(row=1, column=6)
+
+        # self.checkPercLength = ttk.Checkbutton(self.checkCellLengthFrame, text="Show as Percentages", variable = self.cell_percdiff, width=20, command=self.calculate_length_current)
+        # self.checkPercLength.grid(row=0, column=1, sticky=tk.NSEW)
+        # self.checkBaselineLength =  ttk.Checkbutton(self.checkCellLengthFrame, text="First point as baseline", variable = self.cell_zerocenter, width=20, command=self.calculate_length_current)
+        # self.checkBaselineLength.grid(row=0, column=2, sticky=tk.NSEW)
+        # for ic in range(4):
+        for ic in range(8):
+            self.checkCellLengthFrame.columnconfigure(ic, weight=1)
+        for ir in range(2):
+            self.checkCellLengthFrame.rowconfigure(ir, weight=1)
+        self.checkCellLengthFrame.grid(row=6, column=2, rowspan=2, columnspan=4, sticky=tk.NSEW)
+
+        rspan = 7
+
+        for ic in range(7):
+            self.frameCellLengthPlot.columnconfigure(ic, weight=1)
+        for ir in range(8):
+            self.frameCellLengthPlot.rowconfigure(ir, weight=1)
+        self.frameCellLengthPlot.grid(row=rown, column=0, rowspan=6, columnspan=6, sticky=tk.NSEW)
+
+
+        rown += rspan
+
+        for ir in range(rown+1):
+            self.masterframe.viewPort.grid_rowconfigure(ir, weight=1)
+
+        self.masterframe.columnconfigure(0, weight=1)
+        self.masterframe.columnconfigure(1, weight=1)
+        self.masterframe.columnconfigure(2, weight=1)
+        self.masterframe.grid_rowconfigure(0, weight=1)
+
+        self.masterframe.grid(row=0, column=0, rowspan=8, columnspan=4, sticky=tk.W+tk.E+tk.N+tk.S)
+        
+        self.analysebtn = ttk.Button(master, text="Analyse", command=self.calculate_length_current, width=15)
+        # self.analysebtn.grid(row=8, column=1, columnspan=1)
+        # self.calculatebutton = ttk.Button(master, text="Export", command=self.calculate_length_exportAll, width=15)
+        self.calculatebutton = ttk.Button(master, text="Export", command=self.calculate_length_exportAll2, width=15)
+        # self.calculatebutton.grid(row=8, column=2, columnspan=1)
+        self.calculatebutton.grid(row=8, column=1, columnspan=1)
+        # self.grid_rowconfigure
+        self.drawSegmentedImage()
+
+        self.packbtns = False
+
+    def resize(self , event=None):
+        print("resized")
+        U = self.mframe.controller.current_anglist[self.mframe.current_frame][0]
+        Y,X=U.shape
+        print(X, Y)
+        print(event)
+        print(self.frameSegment2.winfo_width())
+        print(self.frameSegment2.winfo_height())
+        if self.frameSegment2.winfo_width() <= X:
+            X=self.frameSegment2.winfo_width()
+        if self.frameSegment2.winfo_height() <= Y:
+            X=self.frameSegment2.winfo_width()
+        
+        self.figSegment.set_size_inches(X/300, Y/300, forward=True)
+        self.figSegment.axes[0].set_position(self.gsSegment[0].get_position(self.figSegment))
+        # self.canvasSegment.get_tk_widget().config(width=X)
+        # self.canvasSegment.get_tk_widget().config(height=Y)
+        self.figCellLength.canvas.draw()
+        self.canvasSegment.draw()
+
+    def exportLengthData(self):
+        try:
+            SaveTableDialog(self, title='Save Length Data', literals=[
+                ("headers", [self.axCellLength.get_xlabel(), self.axCellLength.get_ylabel()]),
+                ("data", [self.mainplotartistCellLength[0].get_xdata(), self.mainplotartistCellLength[0].get_ydata()]),
+                ("data_t", "single")
+                ], parent2=self.mframe)
+        except TypeError:
+            messagebox.showerror("Error", "No Data in plot")
+
+    def exportSegmentedSpeedData(self):
+        try:
+            SaveTableDialog(self.mframe, title='Save Seg. Speed Data', literals=[
+                ("headers", [self.axSpeedComp.get_xlabel(), self.axSpeedComp.get_ylabel()]),
+                ("data", [self.mainplotartistSpeedComp[0].get_xdata(), self.mainplotartistSpeedComp[0].get_ydata()]),
+                ("data_t", "single")
+                ], parent2=self.mframe)
+        except TypeError:
+            messagebox.showerror("Error", "No Data in plot")
+
+    def tableYScroll(self, *args):
+        self.tableTree.yview(*args)
+
+    def tableXScroll(self, *args):
+        self.tableTree.xview(*args)
+
+    def config_segmentation_spinners(self, event=None):
+        self.blur_size_spin.delete(0,"end")
+        self.blur_size_spin.insert(0,self.segmentation_dict[self.current_peak_index][self.index_of_peak][0])
+        self.kernel_dilation_spin.delete(0,"end")
+        self.kernel_dilation_spin.insert(0,self.segmentation_dict[self.current_peak_index][self.index_of_peak][1])
+        self.kernel_erosion_spin.delete(0,"end")
+        self.kernel_erosion_spin.insert(0,self.segmentation_dict[self.current_peak_index][self.index_of_peak][2])
+        self.kernel_smoothing_contours_spin.delete(0,"end")
+        self.kernel_smoothing_contours_spin.insert(0,self.segmentation_dict[self.current_peak_index][self.index_of_peak][3])
+        self.border_thickness_spin.delete(0,"end")
+        self.border_thickness_spin.insert(0,self.segmentation_dict[self.current_peak_index][self.index_of_peak][4])
+
+    def set_segmentation(self, idseg, event=None):
+        #On segmentation list
+        getvalue = None
+        if idseg == 0:
+            getvalue = int(self.blur_size_spin.get().replace(",", "."))
+            self.segmentation_dict[self.current_peak_index][self.index_of_peak][idseg] = getvalue
+        elif idseg == 1:
+            getvalue = int(self.kernel_dilation_spin.get().replace(",", "."))
+            self.segmentation_dict[self.current_peak_index][self.index_of_peak][idseg] = getvalue
+        elif idseg == 2:
+            getvalue = int(self.kernel_erosion_spin.get().replace(",", "."))
+            self.segmentation_dict[self.current_peak_index][self.index_of_peak][idseg] = getvalue
+        elif idseg == 3:
+            getvalue = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
+            self.segmentation_dict[self.current_peak_index][self.index_of_peak][idseg] = getvalue
+        elif idseg == 4:
+            getvalue = int(self.border_thickness_spin.get().replace(",", "."))
+            self.segmentation_dict[self.current_peak_index][self.index_of_peak][idseg] = getvalue
+        elif idseg == "all":
+            getvalue1 = int(self.blur_size_spin.get().replace(",", "."))
+            getvalue2 = int(self.kernel_dilation_spin.get().replace(",", "."))
+            getvalue3 = int(self.kernel_erosion_spin.get().replace(",", "."))
+            getvalue4 = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
+            getvalue5 = int(self.border_thickness_spin.get().replace(",", "."))
+            getvalues = [getvalue1, getvalue2, getvalue3, getvalue4, getvalue5]
+            for iop in range(len(self.segmentation_dict[self.current_peak_index])):
+                self.segmentation_dict[self.current_peak_index][iop]= getvalues.copy()
+        elif idseg == "allwaves":
+            getvalue1 = int(self.blur_size_spin.get().replace(",", "."))
+            getvalue2 = int(self.kernel_dilation_spin.get().replace(",", "."))
+            getvalue3 = int(self.kernel_erosion_spin.get().replace(",", "."))
+            getvalue4 = int(self.kernel_smoothing_contours_spin.get().replace(",", "."))
+            getvalue5 = int(self.border_thickness_spin.get().replace(",", "."))
+            getvalues = [getvalue1, getvalue2, getvalue3, getvalue4, getvalue5]
+            for pi in range(len(self.segmentation_dict.keys())):
+                for iop in range(len(self.segmentation_dict[pi])):
+                    self.segmentation_dict[pi][iop]= getvalues.copy()
+        self.drawSegmentedImage()
+        # self.calculate_length_current()
+
+    def set_image_list(self, pi=None):
+        self.current_framelist = []
+        # self.current_segmentation_settings_list = []
+        if pi is None:
+            # print("pi is none")
+            pi = self.current_peak_index
+        try:
+            if self.literals["controller"].current_analysis.gtype == "Folder":
+                global img_opencv
+                files_grabbed = [x for x in os.listdir(self.literals["controller"].current_analysis.gpath) if os.path.isdir(x) == False and str(x).lower().endswith(img_opencv)]
+                framelist = sorted(files_grabbed)
+                files_grabbed_now = framelist[self.literals["controller"].selectedframes[self.peaks[pi].first]:(self.literals["controller"].selectedframes[self.peaks[pi].last+1])+1]
+                files_grabbed_now = [self.literals["controller"].current_analysis.gpath + "/" + a for a in files_grabbed_now]
+                for j in range(len(files_grabbed_now)-1):
+                    frame1 = cv2.imread(r'%s' %files_grabbed_now[0+j])
+                    self.current_framelist.append(frame1)
+                    # self.current_segmentation_settings_list.append(self.segmentation_default.copy())
+            elif self.literals["controller"].current_analysis.gtype == "Video":
+                vc = cv2.VideoCapture(r'%s' %self.literals["controller"].current_analysis.gpath)
+                count = self.literals["controller"].selectedframes[self.peaks[pi].first]
+                vc.set(1, count-1)
+                while(vc.isOpened() and count < (self.literals["controller"].selectedframes[self.peaks[pi].last]+1)):
+                    _, frame1 = vc.read()
+                    self.current_framelist.append(frame1)
+                    count += 1
+                vc.release()
+            elif self.literals["controller"].current_analysis.gtype == "Tiff Directory" or self.literals["controller"].current_analysis.gtype == "CTiff":
+                _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
+                images = images[self.literals["controller"].selectedframes[self.peaks[pi].first]:self.literals["controller"].selectedframes[(self.peaks[pi].last)+1]]
+                for j in range(len(images)-1):
+                    frame1 = images[0+j]
+                    self.current_framelist.append(frame1)
+        except Exception as e:
+            messagebox.showerror("Error", "Could not retrieve frames\n" + str(e))
+
+    def update_figure(self, event=None):
+        self.literals["controller"].btn_lock = True
+        current_fnum = self.slidervarSegment.get() - 1
+        self.index_of_peak = current_fnum
+        
+        if self.rectWave != None:
+            self.rectWave.remove()
+        self.rectWave = None
+        if self.rectContour != None:
+            self.rectContour.remove()
+        self.rectContour = None
+        if self.rectCellLength != None:
+            self.rectCellLength.remove()
+        self.rectCellLength = None
+        
+        curlims = (self.axWave.get_xlim(), self.axWave.get_ylim())
+        curlims2 = (self.axCellLength.get_xlim(), self.axCellLength.get_ylim())
+
+        new_rect = Rectangle((0,0), 1, 1)
+        new_rect.set_width(2 * self.half_timeWave)
+        new_rect.set_height(curlims[1][1] + abs(curlims[1][0]) + 0.5)
+        
+        new_rect2 = Rectangle((0,0), 1, 1)
+        new_rect2.set_width(2 * self.half_timeWave)
+        new_rect2.set_height(curlims2[1][1] + abs(curlims2[1][0]) + 0.5)
+
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == False:
+            zerotime = self.current_peak.firsttime
+            new_rect.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave - zerotime, curlims[1][0]))
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave - zerotime, curlims2[1][0]))
+        else:
+            new_rect.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave, curlims[1][0]))
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave, curlims2[1][0]))
+        new_rect.set_facecolor(self.mframe.plotsettings.peak_plot_colors['rect_color'])
+        new_rect2.set_facecolor(self.mframe.plotsettings.peak_plot_colors['rect_color'])
+        self.axWave.set_xlim(curlims[0])
+        self.axWave.set_ylim(curlims[1])
+        self.rectWave = self.axWave.add_patch(new_rect)
+        self.rectCellLength = self.axCellLength.add_patch(new_rect2)
+        self.figWave.canvas.draw()
+        self.figCellLength.canvas.draw()
+        self.drawSegmentedImage()
+        self.config_segmentation_spinners()
+        self.literals["controller"].btn_lock = False
+        return True
+
+    def drawSegmentedImage(self, pi=None, ii=None, refreshFrames=True):
+        if self.rectContour != None:
+            self.rectContour.remove()
+        self.rectContour = None
+        #use index_of_peak to pull image, and draw contours using mframe functions
+        # imgget = self.current_framelist[self.index_of_peak].copy()
+        #plot image
+        if pi is None:
+            # print("pi is none")
+            pi = self.current_peak_index
+        if ii is None:
+            # print("ii is none")
+            ii = self.index_of_peak
+        imgget = self.current_framelist[ii].copy()
+        # bsize, kdil, kero, ksco, borders = self.current_segmentation_settings_list[self.index_of_peak]
+        bsize, kdil, kero, ksco, borders = self.segmentation_dict[pi][ii]
+
+        mask, contourdimensions, largest_area_rect, largest_contour = self.mframe.get_contour(imgget, bsize, kdil, kero, ksco, borders)
+        # (largest_area_rect_x, largest_area_rect_y), (largest_area_rect_width, largest_area_rect_height), largest_area_rect_angle = largest_area_rect
+
+        height_value = "{:.3f}".format(contourdimensions[1] * self.literals["controller"].current_analysis.pixelsize)
+        width_value = "{:.3f}".format(contourdimensions[0] * self.literals["controller"].current_analysis.pixelsize)
+
+
+        # box = cv2.boxPoints(largest_area_rect) # cv2.boxPoints(rect) for OpenCV 3.x
+        # box = np.int0(box)
+        # imgrect = cv2.drawContours(imgget ,[box],0,(0,0,255),2)
+        imgrect = cv2.rectangle(imgget ,(largest_area_rect[0],largest_area_rect[1]),(largest_area_rect[0]+largest_area_rect[2],largest_area_rect[1]+largest_area_rect[3]),(0,0,255),2)
+
+        imgrect2 = cv2.drawContours(imgrect ,largest_contour,0,(0,0,255),2)
+        cont_area = "{:.3f}".format(cv2.contourArea(largest_contour[-1]) * self.literals["controller"].current_analysis.pixelsize)
+        if refreshFrames == True:
+            self.height_label_calc['text'] = "Height: " + height_value + "µm"
+            self.width_label_calc['text'] = "Width: " + width_value + "µm"        # print("There are: " + str(len(box)) + " rectangles ")
+            self.area_label_calc['text'] = "Area: " + width_value + "µm²"        # print("There are: " + str(len(box)) + " rectangles ")
+        
+        #plot rectangle in image
+        #here viz is reset and plotted according to selection
+        if refreshFrames == True:
+            # print("refresh seg img")
+            self.axSegment.clear()
+            # self.figSegment.canvas.draw()
+            # self.canvasSegment.draw()
+            self.axSegment.spines['top'].set_visible(False)
+            self.axSegment.spines['right'].set_visible(False)
+            self.axSegment.spines['bottom'].set_visible(False)
+            self.axSegment.spines['left'].set_visible(False)
+            self.axSegment.set_xticks([], [])
+            self.axSegment.set_yticks([], [])
+            self.axSegment.set_xticklabels([])
+            self.axSegment.set_yticklabels([])
+            # self.axSegment.set_facecolor('black')
+            # self.axSegment.axis('on')
+            self.rectContour = self.axSegment.imshow(imgrect2)
+            self.figSegment.canvas.draw()
+            self.canvasSegment.draw()
+            return
+        else:
+            return float(height_value), float(width_value), float(cont_area)
+
+    # def set_figure(self, figx, figy):
+    #     self.figmax.set_size_inches(figx/300, figy/300, forward=True)
+    #     self.figmax.axes[0].set_position(self.gs_nobordermax[0].get_position(self.figmax))
+    #     self.canvasmax.get_tk_widget().config(width=figx)
+    #     self.canvasmax.get_tk_widget().config(height=figy)
+
+    #     self.figmax.canvas.draw()
+    #     self.canvasmax.draw()
+
+
+    def update_screen_method(self):
+        #add/hide slider depending on radio btn select
+        #value 0 means full segmentation
+        #value 1 means reference according to table
+        # for elbl in self.method_lbls:
+        #     if self.cell_length_method.get() == 0:
+        #         elbl['text'] = "Full segmentation"
+        #     else:
+        #         elbl['text'] = "Reference + Plot Area"
+        for ivar in self.checkedgroups:
+            print("checked:" + str(ivar.get()) )
+
+    def tabletreeselection(self, event=None):
+        self.literals["controller"].btn_lock = True
+        # self.figWave
+        # self.mainplotartistWave
+        # self.axWave 
+        # self.axbaselineWave 
+        # self.axgridWave
+        # self.canvasWave
+
+        self.axWave.clear()
+        self.axWave.set_xlabel("Time ("+self.literals["controller"].current_timescale+")")
+        self.axWave.set_ylabel("Average Speed ("+self.literals["controller"].current_speedscale+")")
+
+        self.mainplotartistWave = None
+        try:
+            curItem = self.tableTree.focus()
+            # curItem = self.tableTree.selection()
+            diff_list1 = [a for a in list(self.tableTree.selection()) if a not in self.treePrevSelectedNames]
+            diff_list2 = [b for b in self.treePrevSelectedNames if b not in list(self.tableTree.selection())]
+            if len(diff_list1) > 0: #new items to add
+                curItem = diff_list1[-1]
+                # curItem = self.tableTree.selection()
+                # for eit in list(self.tableTree.selection()):
+                    # if eit not in self.treePrevSelectedNames:
+                        # curItem = eit
+                        # self.treePrevSelectedNames.append(eit)
+                        # break
+            elif len(diff_list2) > 0: #items to remove
+                curItem = list(self.tableTree.selection())[-1]
+            # elif len(self.tableTree.selection()) == 1:
+            #     self.treePrevSelectedNames = [curItem]
+            # else:
+            #     self.treePrevSelectedNames = []
+            self.treePrevSelectedNames = list(self.tableTree.selection())
+            # self.tableTree.
+            # print("curItem")
+            # print(curItem)
+            # print("self.tableTree.selection()")
+            # print(self.tableTree.selection())
+            # print("len(self.tableTree.selection())")
+            # print(len(self.tableTree.selection()))
+            # print("self.tableTree.selection_get()")
+            # print(self.tableTree.selection_get())
+            # print("self.tableTree.focus_get()")
+            # print(self.tableTree.focus_get())
+            curItemDecomp = self.tableTree.item(curItem)
+            curRow = int(curItemDecomp["text"])
+            self.firstBigTitleLabel['text'] = "Contraction-relaxation Wave " + str(int(curItemDecomp["text"]) + 1)
+            self.current_peak_index = curRow
+            self.current_peak = self.peaks[self.current_peak_index]
+            self.set_image_list()
+
+            self.slider["to"] = len(self.current_framelist)
+            self.slider.grid_forget()
+            # self.slider.grid(row=13, column=0, columnspan=3, sticky=tk.NSEW)
+            self.slider.grid(row=0, column=1, columnspan=3, sticky=tk.NSEW)
+            self.index_of_peak = 0
+            self.slidervarSegment.set(self.index_of_peak+1)
+            
+            if self.mframe.plotsettings.plotline_opts["absolute_time"] == True:
+                self.mainplotartistWave = self.axWave.plot(self.peaks[curRow].peaktimes, self.peaks[curRow].peakdata, color=self.mframe.plotsettings.peak_plot_colors["main"])
+                if self.mframe.plotsettings.plotline_opts["show_dots"] == True:
+                    self.axWave.plot(self.peaks[curRow].firsttime, self.peaks[curRow].firstvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["first"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].secondtime, self.peaks[curRow].secondvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["max"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].thirdtime, self.peaks[curRow].thirdvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["min"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].fourthtime, self.peaks[curRow].fourthvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["max"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].fifthtime, self.peaks[curRow].fifthvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["last"], picker=5)
+            else:
+                zerotime = self.peaks[curRow].firsttime
+                self.mainplotartistWave = self.axWave.plot([ttime - zerotime for ttime in self.peaks[curRow].peaktimes], self.peaks[curRow].peakdata, color=self.mframe.plotsettings.peak_plot_colors["main"])
+                if self.mframe.plotsettings.plotline_opts["show_dots"] == True:
+                    self.axWave.plot(self.peaks[curRow].firsttime - zerotime, self.peaks[curRow].firstvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["first"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].secondtime - zerotime, self.peaks[curRow].secondvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["max"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].thirdtime - zerotime, self.peaks[curRow].thirdvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["min"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].fourthtime - zerotime, self.peaks[curRow].fourthvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["max"], picker=5)
+                    self.axWave.plot(self.peaks[curRow].fifthtime - zerotime, self.peaks[curRow].fifthvalue, "o", linewidth=2, fillstyle='none', color=self.mframe.plotsettings.peak_plot_colors["last"], picker=5)
+        except ValueError:
+            pass
+
+        self.half_timeWave = self.current_peak.peaktimes[1] - self.current_peak.peaktimes[0]
+
+        curlims = (self.axWave.get_xlim(), self.axWave.get_ylim())
+        curlims2 = (self.axCellLength.get_xlim(), self.axCellLength.get_ylim())
+
+        if self.rectWave != None:
+            self.rectWave.remove()
+        self.rectWave = None
+        if self.rectContour != None:
+            self.rectContour.remove()
+        self.rectContour = None
+        if self.rectCellLength != None:
+            self.rectCellLength.remove()
+        self.rectCellLength = None
+
+        new_rect = Rectangle((0,0), 1, 1)
+        new_rect.set_width(2 * self.half_timeWave)
+        new_rect.set_height(curlims[1][1] + abs(curlims[1][0]) + 0.5)
+
+        new_rect2 = Rectangle((0,0), 1, 1)
+        new_rect2.set_width(2 * self.half_timeWave)
+        new_rect2.set_height(curlims2[1][1] + abs(curlims2[1][0]) + 0.5)
+
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == True:
+            new_rect.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave, curlims[1][0]))
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave, curlims2[1][0]))
+        else:
+            zerotime = self.current_peak.firsttime
+            new_rect.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave - zerotime, curlims[1][0]))
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave - zerotime, curlims2[1][0]))
+        
+        new_rect.set_facecolor(self.mframe.plotsettings.peak_plot_colors['rect_color'])
+        new_rect2.set_facecolor(self.mframe.plotsettings.peak_plot_colors['rect_color'])
+
+        print("new_rect2")
+        print(new_rect2)
+
+        self.rectWave = self.axWave.add_patch(new_rect)
+        self.rectCellLength = self.axCellLength.add_patch(new_rect2)
+        print("self.rectCellLength")
+        print(self.rectCellLength)
+        # self.figWave.tight_layout()
+
+        if self.axbaselineWave != None:
+            self.axbaselineWave.remove()
+            self.axbaselineWave = None
+        if self.mframe.plotsettings.plotline_opts["zero"] == True:
+            self.axbaselineWave = self.axWave.axhline(y=0.0, color=self.mframe.plotsettings.plotline_opts["zero_color"], linestyle='-')
+
+        if self.axgridWave != None:
+            self.axgridWave.remove()
+            self.axgridWave = None
+        if self.mframe.plotsettings.plotline_opts["grid"] == True:
+            self.axgridWave = self.axWave.grid(linestyle="-", color=self.mframe.plotsettings.plotline_opts["grid_color"], alpha=0.5)
+        else:
+            self.axWave.grid(False)
+        
+        self.axWave.set_xlim(curlims[0])
+        self.axWave.set_ylim(curlims[1])
+
+        if self.pressmovecidWave != None:
+            self.figWave.canvas.mpl_disconnect(self.pressmovecidWave)
+            self.pressmovecidWave = None
+        self.pressmovecidWave = self.figWave.canvas.mpl_connect("button_press_event", self.on_press_event_slider)
+        
+        self.figWave.canvas.draw()
+        self.figCellLength.canvas.draw()
+        self.update_figure()
+        self.calculate_length_current()
+        self.literals["controller"].btn_lock = False
+
+    def on_press_event_slider(self, event):
+        array = None
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == True:
+            array = np.asarray(self.current_peak.peaktimes)
+        else:
+            zerotime = self.current_peak.firsttime
+            array = np.asarray([ttime - zerotime for ttime in self.current_peak.peaktimes])
+        try:
+            idx = (np.abs(array - event.xdata)).argmin()
+            self.slidervarSegment.set(idx+1)
+            a = self.update_figure()
+            if a == True:
+                return a
+        except TypeError:
+            pass
+
+    def calculate_length_current(self):
+        #todo: calculate current and add to plot
+        #todo: add plot of current pspeed segmented pspeed and new segmented pspeed
+        # list_lengths = []
+        width_lengths = []
+        height_lengths = []
+        area_lengths = []
+        for e_index in range(len(self.peaks[self.current_peak_index].peaktimes)):
+            h_value, w_value,c_area = self.drawSegmentedImage(pi=None, ii=e_index, refreshFrames=False)
+            # list_lengths.append([h_value, w_value])
+            width_lengths.append(w_value)
+            height_lengths.append(h_value)
+            area_lengths.append(c_area)
+
+        xlbl = ""
+        if self.cell_plottype.get() == 0:
+            xlbl = "Cell length (µm)"
+            fpval = width_lengths[0]
+            if self.cell_calctype.get() == 0:
+                width_lengths = [a for a in width_lengths]
+            elif self.cell_calctype.get() == 1:
+                width_lengths = [a - fpval for a in width_lengths]
+            elif self.cell_calctype.get() == 2:
+                o_width_lengths = [0.0]
+                width_lengths = [width_lengths[i] - width_lengths[i-1] for i in range(1, len(width_lengths))]
+                o_width_lengths.extend(width_lengths)
+                width_lengths = o_width_lengths.copy()
+            elif self.cell_calctype.get() == 3:
+                n_width_lengths = []
+                for a in width_lengths:
+                    abs_val = np.abs(a - fpval)
+                    if fpval > a:
+                        abs_val *= -1.0
+                    n_width_lengths.append(abs_val)
+                width_lengths = n_width_lengths.copy()
+        if self.cell_plottype.get() == 1:
+            xlbl = "Cell length (%)"
+            fpval = width_lengths[0]
+            if self.cell_calctype.get() == 0:
+                width_lengths = [(a / fpval) * 100.0 for a in width_lengths]
+            elif self.cell_calctype.get() == 1:
+                width_lengths = [((a / fpval) * 100.0) - 100.0 for a in width_lengths]
+            elif self.cell_calctype.get() == 2:
+                o_width_lengths = [0.0]
+                n_width_lengths = [(width_lengths[i] / fpval) - (width_lengths[i-1] / fpval) for i in range(1, len(width_lengths))]
+                o_width_lengths.extend(n_width_lengths)
+                width_lengths = o_width_lengths.copy()
+            elif self.cell_calctype.get() == 3:
+                n_width_lengths = []
+                for a in width_lengths:
+                    abs_val = np.abs(((a / fpval) * 100.0) - 100.0)
+                    if ((a / fpval) * 100.0) < 100.0 :
+                        abs_val *= -1.0
+                    n_width_lengths.append(abs_val)
+                width_lengths = n_width_lengths.copy()
+        if self.cell_plottype.get() == 2:
+            xlbl = "Cell area (µm²)"
+            fpval = area_lengths[0]
+            if self.cell_calctype.get() == 0:
+                width_lengths = [a for a in area_lengths]
+            elif self.cell_calctype.get() == 1:
+                width_lengths = [a - fpval for a in area_lengths]
+            elif self.cell_calctype.get() == 2:
+                width_lengths = [0.0]
+                n_width_lengths = [area_lengths[i] - area_lengths[i-1] for i in range(1, len(area_lengths))]
+                width_lengths.extend(n_width_lengths)
+            elif self.cell_calctype.get() == 3:
+                n_width_lengths = []
+                for a in area_lengths:
+                    abs_val = np.abs(a - fpval)
+                    if fpval > a:
+                        abs_val *= -1.0
+                    n_width_lengths.append(abs_val)
+                width_lengths = n_width_lengths.copy()
+        if self.cell_plottype.get() == 3:
+            xlbl = "Cell area (%)"
+            fpval = area_lengths[0]
+            if self.cell_calctype.get() == 0:
+                width_lengths = [(a / fpval) * 100.0 for a in area_lengths]
+            elif self.cell_calctype.get() == 1:
+                width_lengths = [((a / fpval) * 100.0) - 100.0 for a in area_lengths]
+            elif self.cell_calctype.get() == 2:
+                o_width_lengths = [0.0]
+                n_width_lengths = [(area_lengths[i] / fpval) - (area_lengths[i-1] / fpval) for i in range(1, len(area_lengths))]
+                o_width_lengths.extend(n_width_lengths)
+                width_lengths = o_width_lengths.copy()
+            elif self.cell_calctype.get() == 3:
+                n_width_lengths = []
+                for a in area_lengths:
+                    abs_val = np.abs(((a / fpval) * 100.0) - 100.0)
+                    if ((a / fpval) * 100.0) < 100.0 :
+                        abs_val *= -1.0
+                    n_width_lengths.append(abs_val)
+                width_lengths = n_width_lengths.copy()
+
+        # cell_zerocenter
+        # fpval = width_lengths[0]
+        # if self.cell_zerocenter.get() == 1:
+        #     width_lengths = [a - fpval for a in width_lengths]
+        # # cell_percdiff
+        # if self.cell_percdiff.get() == 1:
+        #     width_lengths = [(a / fpval) * 100.0 for a in width_lengths]
+        
+        #add to length plots
+        self.axCellLength.clear()
+        self.mainplotartistCellLength = None
+        self.mainplotartistCellHeight = None
+        self.axbaselineCellLength = None
+        self.axgridCellLength = None
+        # self.axCellLength.set_title("Select an interval for analysis:")
+        self.axCellLength.set_xlabel("Time ("+self.literals["controller"].current_timescale+")")
+        self.axCellLength.set_ylabel(xlbl)
+        
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == True:
+            self.mainplotartistCellLength = self.axCellLength.plot(self.peaks[self.current_peak_index].peaktimes, width_lengths, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            # min_wd = np.amin(width_lengths)
+            # self.axCellLength.plot(self.peaks[self.current_peak_index].peaktimes[min_wd], width_lengths[min_wd], ".", color=self.mframe.plotsettings.peak_plot_colors["min"])
+
+            # self.mainplotartistCellLength = self.axCellLength.plot(width_lengths, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            # self.mainplotartistCellHeight = self.axCellLength.plot(self.peaks[self.current_peak_index].peaktimes, height_lengths, color=self.mframe.plotsettings.peak_plot_colors["fft"])
+        else:
+            zerotime = self.peaks[self.current_peak_index].firsttime
+            self.mainplotartistCellLength = self.axCellLength.plot([ttime - zerotime for ttime in self.peaks[self.current_peak_index].peaktimes], width_lengths, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            # min_wd = np.amin(width_lengths)
+            # self.axCellLength.plot([ttime - zerotime for ttime in self.peaks[self.current_peak_index].peaktimes][min_wd], width_lengths[min_wd], ".", color=self.mframe.plotsettings.peak_plot_colors["min"])
+
+            # self.mainplotartistCellLength = self.axCellLength.plot(width_lengths, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            # self.mainplotartistCellHeight = self.axCellLength.plot([ttime - zerotime for ttime in self.peaks[self.current_peak_index].peaktimes], height_lengths, color=self.mframe.plotsettings.peak_plot_colors["fft"])
+        # print("width_lengths")
+        # print(width_lengths)
+        self.axCellLength.set_ylim(np.min(width_lengths)-0.2, np.max(width_lengths)+0.2)
+
+        curlims = (self.axCellLength.get_xlim(), self.axCellLength.get_ylim())
+
+        if self.axbaselineCellLength != None:
+            self.axbaselineCellLength.remove()
+            self.axbaselineCellLength = None
+        if self.mframe.plotsettings.plotline_opts["zero"] == True:
+            self.axbaselineCellLength = self.axCellLength.axhline(y=0.0, color=self.mframe.plotsettings.plotline_opts["zero_color"], linestyle='-')
+
+        if self.axgridCellLength != None:
+            self.axgridCellLength.remove()
+            self.axgridCellLength = None
+        if self.mframe.plotsettings.plotline_opts["grid"] == True:
+            self.axgridCellLength = self.axCellLength.grid(linestyle="-", color=self.mframe.plotsettings.plotline_opts["grid_color"], alpha=0.5)
+        else:
+            self.axCellLength.grid(False)
+        
+        if self.rectCellLength != None:
+            self.rectCellLength.remove()
+        self.rectCellLength = None
+        
+        new_rect2 = Rectangle((0,0), 1, 1)
+        new_rect2.set_width(2 * self.half_timeWave)
+        new_rect2.set_height(curlims[1][1] + abs(curlims[1][0]) + 0.5)
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == False:
+            zerotime = self.current_peak.firsttime
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave - zerotime, curlims[1][0]))
+        else:
+            new_rect2.set_xy((self.current_peak.peaktimes[self.index_of_peak] - self.half_timeWave, curlims[1][0]))
+        new_rect2.set_facecolor(self.mframe.plotsettings.peak_plot_colors['rect_color'])
+
+        self.rectCellLength = self.axCellLength.add_patch(new_rect2)
+        
+        self.axCellLength.set_xlim(curlims[0])
+        self.axCellLength.set_ylim(curlims[1])
+        self.figCellLength.canvas.draw()
+
+    def calcFlowMatrices(self):
+        speed_segmentation2 = []
+        # try:
+        if self.literals["controller"].current_analysis.gtype == "Folder":
+            global img_opencv
+            files_grabbed = [x for x in os.listdir(self.literals["controller"].current_analysis.gpath) if os.path.isdir(x) == False and str(x).lower().endswith(img_opencv)]
+            framelist = sorted(files_grabbed)
+            files_grabbed_now = framelist[self.literals["controller"].selectedframes[self.current_peak.first]:(self.literals["controller"].selectedframes[self.current_peak.last+1])+1]
+            files_grabbed_now = [self.literals["controller"].current_analysis.gpath + "/" + a for a in files_grabbed_now]
+
+            for j in range(len(files_grabbed_now)-1):
+                frame1 = cv2.imread(r'%s' %files_grabbed_now[0+j])
+                frame2 = cv2.imread(r'%s' %files_grabbed_now[1+j])
+
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+
+                flow = cv2.calcOpticalFlowFarneback(prvs, prvs2, None, self.literals["controller"].current_analysis.pyr_scale, self.literals["controller"].current_analysis.levels, self.literals["controller"].current_analysis.winsize, self.literals["controller"].current_analysis.iterations, self.literals["controller"].current_analysis.poly_n, self.literals["controller"].current_analysis.poly_sigma, 0)
+
+                U=flow[...,0]
+                V=flow[...,1]
+
+                mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1], angleInDegrees=True)
+
+                bsize, kdil, kero, ksco, borders = self.segmentation_dict[self.current_peak_index][j]
+
+                mask, contourdimensions, largest_area_rect, largest_contour = self.mframe.get_contour(frame1, bsize, kdil, kero, ksco, borders)
+
+                mag_segmented = np.ma.masked_where(mask, mag)
+                
+                meanval2 = np.abs(mag_segmented).mean() *  self.literals["controller"].current_peak.FPS * self.literals["controller"].current_peak.pixel_val
+                meanval2 = float("{:.3f}".format(meanval2))
+
+                speed_segmentation2.append(meanval2)
+        elif self.literals["controller"].current_analysis.gtype == "Video":
+            vc = cv2.VideoCapture(r'%s' %self.literals["controller"].current_analysis.gpath)
+            count = self.literals["controller"].selectedframes[self.current_peak.first]
+            vc.set(1, count-1)
+            _, frame1 = vc.read()
+            while(vc.isOpened() and count < (self.literals["controller"].selectedframes[self.current_peak.last]+1)):
+                _, frame2 = vc.read()
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+
+                flow = cv2.calcOpticalFlowFarneback(prvs, prvs2, None, self.literals["controller"].current_analysis.pyr_scale, self.literals["controller"].current_analysis.levels, self.literals["controller"].current_analysis.winsize, self.literals["controller"].current_analysis.iterations, self.literals["controller"].current_analysis.poly_n, self.literals["controller"].current_analysis.poly_sigma, 0)
+
+                U=flow[...,0]
+                V=flow[...,1]
+
+                mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
+
+                #filter mags not in contour for given frame1
+                bsize, kdil, kero, ksco, borders = self.segmentation_dict[self.current_peak_index][j]
+
+
+                mask, contourdimensions, largest_area_rect, largest_contour = self.mframe.get_contour(frame1, bsize, kdil, kero, ksco, borders)
+
+                mag = np.ma.masked_where(mask, mag)
+                speed_segmentation2.append(np.mean(mag) * self.literals["controller"].current_peak.FPS * self.literals["controller"].current_peak.pixel_val)
+                #calculate vectors and cluster by cossine similarity
+
+                # self.controller.current_framelist.append(frame1)
+                # self.controller.current_maglist.append(mag * self.controller.current_peak.FPS * self.controller.current_peak.pixel_val)
+                # self.controller.current_anglist.append((U,V))
+
+                frame1 = frame2.copy()
+                count += 1
+            vc.release()
+        elif self.literals["controller"].current_analysis.gtype == "Tiff Directory" or self.literals["controller"].current_analysis.gtype == "CTiff":
+            _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
+            images = images[self.literals["controller"].selectedframes[self.current_peak.first]:self.literals["controller"].selectedframes[(self.current_peak.last)+1]]
+            for j in range(len(images)-1):
+                frame1 = images[0+j]
+                frame2 = images[1+j]
+        
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+
+                flow = cv2.calcOpticalFlowFarneback(prvs, prvs2, None, self.literals["controller"].current_analysis.pyr_scale, self.literals["controller"].current_analysis.levels, self.literals["controller"].current_analysis.winsize, self.literals["controller"].current_analysis.iterations, self.literals["controller"].current_analysis.poly_n, self.literals["controller"].current_analysis.poly_sigma, 0)
+
+                U=flow[...,0]
+                V=flow[...,1]
+
+                mag, ang = cv2.cartToPolar(flow[...,0], flow[...,1])
+
+                #filter mags not in contour for given frame1
+                bsize, kdil, kero, ksco, borders = self.segmentation_dict[self.current_peak_index][j]
+
+                mask, contourdimensions, largest_area_rect, largest_contour = self.mframe.get_contour(frame1, bsize, kdil, kero, ksco, borders)
+
+                mag = np.ma.masked_where(mask, mag)
+                speed_segmentation2.append(np.mean(mag) * self.literals["controller"].current_peak.FPS * self.literals["controller"].current_peak.pixel_val)
+        # except Exception as e:
+        #     messagebox.showerror("Error", "Could not retrieve frames\n" + str(e))
+        return speed_segmentation2
+
+    def calculate_speedComp_current(self):
+        #calculate variation of length
+        speed_segmentation2 = self.calcFlowMatrices()
+
+        #add to length plots
+        self.axSpeedComp.clear()
+        self.mainplotartistSpeedComp = None
+        self.mainplotartistSpeedComp2 = None
+        self.mainplotartistSpeedComp3 = None
+        self.mainplotartistSpeedComp4 = None
+        self.axbaselineSpeedComp = None
+        self.axgridSpeedComp = None
+        self.axSpeedComp.set_xlabel("Time ("+self.literals["controller"].current_timescale+")")
+        self.axSpeedComp.set_ylabel("Speed ("+self.literals["controller"].current_speedscale+")")
+        
+        if self.mframe.plotsettings.plotline_opts["absolute_time"] == True:
+            self.mainplotartistSpeedComp = self.axSpeedComp.plot(self.peaks[self.current_peak_index].peaktimes, self.peaks[self.current_peak_index].peakdata, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            self.mainplotartistSpeedComp2 = self.axSpeedComp.plot(self.peaks[self.current_peak_index].peaktimes, speed_segmentation2[1:], color=self.mframe.plotsettings.peak_plot_colors["fft"])
+        else:
+            zerotime = self.peaks[self.current_peak_index].firsttime
+            self.mainplotartistSpeedComp = self.axSpeedComp.plot([ttime - zerotime for ttime in self.peaks[self.current_peak_index].peaktimes], self.peaks[self.current_peak_index].peakdata, color=self.mframe.plotsettings.peak_plot_colors["main"])
+            self.mainplotartistSpeedComp2 = self.axSpeedComp.plot([ttime - zerotime for ttime in self.peaks[self.current_peak_index].peaktimes[1:]], speed_segmentation2[1:], color=self.mframe.plotsettings.peak_plot_colors["fft"])
+                
+        curlims = (self.axSpeedComp.get_xlim(), self.axSpeedComp.get_ylim())
+
+        if self.axbaselineSpeedComp != None:
+            self.axbaselineSpeedComp.remove()
+            self.axbaselineSpeedComp = None
+        if self.mframe.plotsettings.plotline_opts["zero"] == True:
+            self.axbaselineSpeedComp = self.axSpeedComp.axhline(y=0.0, color=self.mframe.plotsettings.plotline_opts["zero_color"], linestyle='-')
+
+        if self.axgridSpeedComp != None:
+            self.axgridSpeedComp.remove()
+            self.axgridSpeedComp = None
+        if self.mframe.plotsettings.plotline_opts["grid"] == True:
+            self.axgridSpeedComp = self.axSpeedComp.grid(linestyle="-", color=self.mframe.plotsettings.plotline_opts["grid_color"], alpha=0.5)
+        else:
+            self.axSpeedComp.grid(False)
+        
+        self.axSpeedComp.set_xlim(curlims[0])
+        self.axSpeedComp.set_ylim(curlims[1])
+        self.figSpeedComp.canvas.draw()
+    
+    def calculate_length_exportAll2(self):
+        self.mframe.controller.controller.showwd(parent2=self.mframe)
+
+        topmerge_row= {
+            0:[["Absolute", 1, 2] , ["Normalized", 3,4]],
+            1:[["Absolute", 1, 2] , ["Normalized", 3,4]]
+        }
+        cols = ["Cell shortening (µm)", "Cell shortening (%)","Cell shortening (µm) ","Cell shortening (%) "]
+        lengthavgcols = ["Avg. " + a for a in cols]
+        rows = [[] for col in cols]
+        avg_array = [0.0 for col in cols]
+        #get selected groups
+        valid_pis = []
+        for ii2, ivar in enumerate(self.checkedgroups):
+            if ivar.get() == 1:
+                valid_pis.append(ii2)
+        #calculate rows for each group
+        all_names_data = []
+        all_cols_data = []
+        all_rows_data = []
+        for ipi, valid_pi in enumerate(valid_pis):
+            peak_obj = self.peaks[valid_pi]
+            list_lengths = []
+            width_lengths = []
+            for e_index in range(len(self.peaks[valid_pi].peaktimes)):
+                self.set_image_list(pi=valid_pi)
+                h_value, w_value, c_area = self.drawSegmentedImage(pi=valid_pi, ii=e_index, refreshFrames=False)
+                list_lengths.append([h_value, w_value, c_area])
+                width_lengths.append(w_value)
+
+            fpval = width_lengths[0]
+            minimum_width = width_lengths[peak_obj.peaktimes.index(peak_obj.thirdtime)]
+
+            absolute_widths = [float("{:.3f}".format(a)) for a in width_lengths]
+            absolute_widths_perc = [float("{:.3f}".format(a / fpval * 100.0)) for a in absolute_widths]
+            normalized_widths = [float("{:.3f}".format(a - fpval)) for a in absolute_widths]
+            normalized_widths_perc = [float("{:.3f}".format((a / fpval * 100.0) - 100.0)) for a in absolute_widths]
+            rows_data = [absolute_widths,absolute_widths_perc,normalized_widths,normalized_widths_perc]
+
+            all_names_data.append("Wave " + str(valid_pi+1))
+            all_cols_data.append(cols.copy())
+            all_rows_data.append(rows_data)
+            topmerge_row[ipi+2] = [["Absolute", 1, 2] , ["Normalized", 3,4]]
+
+            absolute_minimum = minimum_width
+            absolute_minimum_perc = (minimum_width / fpval * 100.0)
+            normalized_minimum = minimum_width - fpval
+            normalized_minimum_perc =  (minimum_width / fpval * 100.0) - 100.0
+            rows[0].append(float("{:.3f}".format(absolute_minimum)))
+            rows[1].append(float("{:.3f}".format(absolute_minimum_perc)))
+            rows[2].append(float("{:.3f}".format(normalized_minimum)))
+            rows[3].append(float("{:.3f}".format(normalized_minimum_perc)))
+            avg_array[0] += float("{:.3f}".format(absolute_minimum / float(len(valid_pis))))
+            avg_array[1] += float("{:.3f}".format(absolute_minimum_perc / float(len(valid_pis))))
+            avg_array[2] += float("{:.3f}".format(normalized_minimum / float(len(valid_pis))))
+            avg_array[3] += float("{:.3f}".format(normalized_minimum_perc / float(len(valid_pis))))
+        #send data to average array
+        avg_array = [[ei] for ei in avg_array]
+        final_headers = [lengthavgcols ,cols]
+        final_data = [avg_array, rows]
+        final_names = ["Avg. Cell Measures", "Cell Measures"]
+
+        final_headers.extend(all_cols_data)
+        final_data.extend(all_rows_data)
+        final_names.extend(all_names_data)
+
+        self.set_image_list()
+        self.mframe.controller.controller.cancelwd()
+        SaveTableDialog(self, title='Save Table', literals=[
+            ("headers", final_headers),
+            ("data", final_data),
+            ("sheetnames", final_names),
+            ("data_t", "multiple"),
+            ("mergetop", topmerge_row)
+            ], parent2=self.mframe)
+
+    def calculate_length_exportAll(self):
+        self.mframe.controller.controller.showwd(parent2=self.mframe)
+        #one sheet containing each group's contraction and relaxation amplitude
+        #one sheet with contraction and relaxation amplitude averages
+
+        # cols = ["Cell Contraction Amplitude", "Cell Relaxation Amplitude"]
+        # cols = ["Cell Contraction Amplitude"]
+        cols = ["Cell Contraction Shortening"]
+        
+        suffix_cols = " (%)"
+        if self.cell_plottype.get() == 0:
+            suffix_cols = " (µm)"
+        if self.cell_plottype.get() == 2:
+            suffix_cols = " (µm²)"
+        if self.cell_plottype.get() == 3:
+            suffix_cols = " (% - Area)"
+        cols = [a + suffix_cols for a in cols]
+        lengthavgcols = ["Avg." + a for a in cols]
+
+        rows = [[] for col in cols]
+        avg_array = [0.0 for col in cols]
+
+        times_to_rows = []
+        times_to_cols = []
+        wave_names = []
+        valid_pis = []
+
+        xlbl = ""
+        if self.cell_plottype.get() == 0:
+            xlbl = "Cell length (µm)"
+        if self.cell_plottype.get() == 1:
+            xlbl = "Cell length (%)"
+        if self.cell_plottype.get() == 2:
+            xlbl = "Cell area (µm²)"
+        if self.cell_plottype.get() == 3:
+            xlbl = "Cell area (%)"
+        
+        for ii2, ivar in enumerate(self.checkedgroups):
+            if ivar.get() == 1:
+                valid_pis.append(ii2)
+                wave_names.append("Wave " + str(ii2+1))
+                # times.append([])
+                times_to_rows.append([[], []])
+                times_to_cols.append(["Time ("+self.literals["controller"].current_timescale+")", xlbl])
+        #check method for calculating lengths
+        single_ref = 1
+        # if self.cell_length_method.get() == 1:
+        #     #ask for single or multiple references
+        #     MsgBox = CustomYesNo(self, title='Set all Waves reference as selected Wave first image?', parent2=self.mframe)
+        #     if MsgBox.result == True:
+        #         single_ref = 1
+        #     else:
+        #         single_ref = 0
+        for ipi, valid_pi in enumerate(valid_pis):
+            contraction_length_var = None
+            relaxation_length_var = None
+            peak_obj = self.peaks[valid_pi]
+            if True:
+            # if self.cell_length_method.get() == 0:
+                list_lengths = []
+                width_lengths = []
+                area_lengths = []
+                for e_index in range(len(self.peaks[valid_pi].peaktimes)):
+                # for e_index in range(self.peaks[valid_pi].first, self.peaks[valid_pi].last+1):
+                    # print("e_index")
+                    # print(e_index)
+                    self.set_image_list(pi=valid_pi)
+                    h_value, w_value, c_area = self.drawSegmentedImage(pi=valid_pi, ii=e_index, refreshFrames=False)
+                    list_lengths.append([h_value, w_value, c_area])
+                    width_lengths.append(w_value)
+                    area_lengths.append(c_area)
+                len_ind = 1
+                if self.cell_plottype.get() == 2 or self.cell_plottype.get() == 3:
+                    len_ind = 2
+                contraction_length_var = np.abs(list_lengths[peak_obj.peaktimes.index(peak_obj.firsttime)][len_ind] - list_lengths[peak_obj.peaktimes.index(peak_obj.thirdtime)][len_ind])
+                relaxation_length_var = np.abs(list_lengths[peak_obj.peaktimes.index(peak_obj.thirdtime)][len_ind] - list_lengths[peak_obj.peaktimes.index(peak_obj.fifthtime)][len_ind])
+                if self.cell_percdiff.get() == 1:
+                    contraction_length_var = list_lengths[peak_obj.peaktimes.index(peak_obj.firsttime)][len_ind] / contraction_length_var
+                    contraction_length_var *= 100
+                    relaxation_length_var = list_lengths[peak_obj.peaktimes.index(peak_obj.firsttime)][len_ind] / relaxation_length_var
+                    relaxation_length_var *= 100
+                time_var = peak_obj.peaktimes
+                if self.cell_plottype.get() == 0:
+                    fpval = width_lengths[0]
+                    if self.cell_calctype.get() == 0:
+                        width_lengths = [a for a in width_lengths]
+                    elif self.cell_calctype.get() == 1:
+                        width_lengths = [a - fpval for a in width_lengths]
+                    elif self.cell_calctype.get() == 2:
+                        o_width_lengths = [0.0]
+                        width_lengths = [width_lengths[i] - width_lengths[i-1] for i in range(1, len(width_lengths))]
+                        o_width_lengths.extend(width_lengths)
+                        width_lengths = o_width_lengths.copy()
+                    elif self.cell_calctype.get() == 3:
+                        n_width_lengths = []
+                        for a in width_lengths:
+                            abs_val = np.abs(a - fpval)
+                            if fpval > a:
+                                abs_val *= -1.0
+                            n_width_lengths.append(abs_val)
+                        width_lengths = n_width_lengths.copy()
+                if self.cell_plottype.get() == 1:
+                    fpval = width_lengths[0]
+                    if self.cell_calctype.get() == 0:
+                        width_lengths = [(a / fpval) * 100.0 for a in width_lengths]
+                    elif self.cell_calctype.get() == 1:
+                        width_lengths = [((a / fpval) * 100.0) - 100.0 for a in width_lengths]
+                    elif self.cell_calctype.get() == 2:
+                        o_width_lengths = [0.0]
+                        n_width_lengths = [(width_lengths[i] / fpval) - (width_lengths[i-1] / fpval) for i in range(1, len(width_lengths))]
+                        o_width_lengths.extend(n_width_lengths)
+                        width_lengths = o_width_lengths.copy()
+                    elif self.cell_calctype.get() == 3:
+                        n_width_lengths = []
+                        for a in width_lengths:
+                            abs_val = np.abs(((a / fpval) * 100.0) - 100.0)
+                            if ((a / fpval) * 100.0) > 100.0 :
+                                abs_val *= -1.0
+                            n_width_lengths.append(abs_val)
+                        width_lengths = n_width_lengths.copy()
+                if self.cell_plottype.get() == 2:
+                    fpval = area_lengths[0]
+                    if self.cell_calctype.get() == 0:
+                        width_lengths = [a for a in area_lengths]
+                    elif self.cell_calctype.get() == 1:
+                        width_lengths = [a - fpval for a in area_lengths]
+                    elif self.cell_calctype.get() == 2:
+                        width_lengths = [0.0]
+                        n_width_lengths = [area_lengths[i] - area_lengths[i-1] for i in range(1, len(area_lengths))]
+                        width_lengths.extend(n_width_lengths)
+                    elif self.cell_calctype.get() == 3:
+                        n_width_lengths = []
+                        for a in area_lengths:
+                            abs_val = np.abs(a - fpval)
+                            if fpval > a:
+                                abs_val *= -1.0
+                            n_width_lengths.append(abs_val)
+                        width_lengths = n_width_lengths.copy()
+                if self.cell_plottype.get() == 3:
+                    fpval = area_lengths[0]
+                    if self.cell_calctype.get() == 0:
+                        width_lengths = [(a / fpval) * 100.0 for a in area_lengths]
+                    elif self.cell_calctype.get() == 1:
+                        width_lengths = [((a / fpval) * 100.0) - 100.0 for a in area_lengths]
+                    elif self.cell_calctype.get() == 2:
+                        o_width_lengths = [0.0]
+                        n_width_lengths = [(area_lengths[i] / fpval) - (area_lengths[i-1] / fpval) for i in range(1, len(area_lengths))]
+                        o_width_lengths.extend(n_width_lengths)
+                        width_lengths = o_width_lengths.copy()
+                    elif self.cell_calctype.get() == 3:
+                        n_width_lengths = []
+                        for a in area_lengths:
+                            abs_val = np.abs(((a / fpval) * 100.0) - 100.0)
+                            if ((a / fpval) * 100.0) > 100.0 :
+                                abs_val *= -1.0
+                            n_width_lengths.append(abs_val)
+                        width_lengths = n_width_lengths.copy()
+                times_to_rows[ipi][0] = time_var.copy()
+                times_to_rows[ipi][1] = width_lengths.copy()
+            # elif single_ref == 1:
+            #     list_lengths = []
+            #     # h_value, w_value, c_area = drawSegmentedImage(self, pi=reference_pi, ii=self.peaks[reference_pi].first, refreshFrames=False)
+            #     h_value, w_value, c_area = self.drawSegmentedImage(pi=None, ii=0, refreshFrames=False)
+            #     to_iterate = peak_obj.fulldata[peak_obj.first:peak_obj.min+1]
+            #     integral_contraction = float(np.trapz([a for a in peak_obj.fulldata[peak_obj.first:peak_obj.min+1]]))
+            #     integral_relaxation = float(np.trapz([a for a in peak_obj.fulldata[peak_obj.min:peak_obj.last+1]]))
+            #     contraction_length_var = np.abs(float(c_area) - integral_contraction)
+            #     relaxation_length_var = np.abs(float(c_area) - integral_contraction + integral_relaxation)
+            #     if self.cell_percdiff.get() == 1:
+            #         contraction_length_var = float(c_area) / contraction_length_var
+            #         contraction_length_var *= 100
+            #         relaxation_length_var = float(c_area) / relaxation_length_var
+            #         relaxation_length_var *= 100
+            #         contraction_length_var = w_value * contraction_length_var
+            # else:
+            #     list_lengths = []
+            #     self.set_image_list(pi=valid_pi)
+            #     h_value, w_value, c_area = self.drawSegmentedImage(pi=valid_pi, ii=0, refreshFrames=False)
+            #     integral_contraction = float(np.trapz([a for a in peak_obj.fulldata[peak_obj.first:peak_obj.min+1]]))
+            #     integral_relaxation = float(np.trapz([a for a in peak_obj.fulldata[peak_obj.min:peak_obj.last+1]]))
+            #     contraction_length_var = float(c_area) - integral_contraction
+            #     relaxation_length_var = float(c_area) - integral_contraction + integral_relaxation
+            #     if self.cell_percdiff.get() == 1:
+            #         contraction_length_var = float(c_area) / contraction_length_var
+            #         contraction_length_var *= 100
+            #         relaxation_length_var = float(c_area) / relaxation_length_var
+            #         relaxation_length_var *= 100
+            rows[0].append(float("{:.3f}".format(contraction_length_var)))
+            # rows[1].append(float("{:.3f}".format(relaxation_length_var)))
+            avg_array[0] += float("{:.3f}".format(contraction_length_var/ len(valid_pis)))
+            # avg_array[1] += float("{:.3f}".format(relaxation_length_var/ len(valid_pis))) 
+        avg_array = [[ei] for ei in avg_array]
+        self.set_image_list()
+        final_headers = [lengthavgcols ,cols]
+        final_headers.extend(times_to_cols)
+        final_data = [avg_array, rows]
+        final_data.extend(times_to_rows)
+        final_names = ["Avg. Cell Measures","Cell Measures"]
+        final_names.extend(wave_names)
+        self.mframe.controller.controller.cancelwd()
+        SaveTableDialog(self, title='Save Table', literals=[
+            ("headers", final_headers),
+            ("data", final_data),
+            ("sheetnames", final_names),
+            # ("headers", [lengthavgcols ,cols]),
+            # ("data", [avg_array, rows]),
+            # ("sheetnames", ["Avg. Cell Length","Cell Length"]),
+            ("data_t", "multiple")
+            ], parent2=self.mframe)
+        # try:
+        #     d = SaveTableDialog(self, title='Save Table', literals=[
+        #         ("headers", [self.ax2.get_xlabel(), self.ax2.get_ylabel()]),
+        #         ("data", [self.mainplotartist[0].get_xdata(), self.mainplotartist[0].get_ydata()]),
+        #         ("data_t", "single")
+        #         ])
+        # except TypeError:
+        #     messagebox.showerror("Error", "No Data in plot")
+
+    def validate(self):
+        # print("class CellLengthDialog def validate start")
+        #segmentation checking for disturbances
+        self.valid = True
+        return 1
+
+    def apply(self):
+        # print("class CellLengthDialog def apply start")
+        self.result = True
 
 class WaitDialogProgress(tkDialog.DialogBlockNonGrab):
 # class WaitDialogProgress(tkDialog.DialogNonBlock):
@@ -741,18 +2350,18 @@ class WaitDialogProgress(tkDialog.DialogBlockNonGrab):
         ttk.Label(master, text="Please wait until processing is done...").grid(row=0,column=0, columnspan=3)
 
     def validate(self):
-        print("class AboutDialog def validate start")
+        # print("class AboutDialog def validate start")
         self.valid = False
         return 0
 
     def apply(self):
-        print("class AboutDialog def apply start")
+        # print("class AboutDialog def apply start")
         pass
 
 class QuiverJetMaximize(tkDialog.DialogNonBlockMax):
 
     def body(self, master):
-        print("class QuiverJetMaximize def body creation")
+        # print("class QuiverJetMaximize def body creation")
         self.master_window = master
 
         # self.figmax = plt.figure(figsize=(4, 3), dpi=100 ,facecolor=master.cget('bg'), edgecolor="None")
@@ -780,7 +2389,7 @@ class QuiverJetMaximize(tkDialog.DialogNonBlockMax):
         # self.frame_canvasmax.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         
         # self.packbtns = False
-        print("class QuiverJetMaximize def body done")
+        # print("class QuiverJetMaximize def body done")
 
     def set_figure(self, figx, figy):
         self.figmax.set_size_inches(figx/300, figy/300, forward=True)
@@ -834,19 +2443,19 @@ class QuiverJetMaximize(tkDialog.DialogNonBlockMax):
         pass
 
     def validate(self):
-        print("class QuiverJetMaximize def validate start")
+        # print("class QuiverJetMaximize def validate start")
         self.valid = True
         return 1
 
     def apply(self):
-        print("class QuiverJetMaximize def apply start")
+        # print("class QuiverJetMaximize def apply start")
         self.literals["updatable_frame"].clear_maximize()
         pass
 
 class QuiverJetSettings(tkDialog.DialogNonBlock):
 
     def body(self, master):
-        print("class QuiverJetSettings def body creation")
+        # print("class QuiverJetSettings def body creation")
         ttk.Label(master, text='Vector Spacing:', font=('Helvetica', 14) ).grid(row=0, column=0, rowspan=1, columnspan=2)
         #list_features = ["current_windowX", "current_windowY", "blur_size", "kernel_dilation", "kernel_erosion", "kernel_smoothing_contours", "border_thickness"]
         rown = 1
@@ -994,21 +2603,21 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         self.checkbutton_min.thistype = "plotmin"
         self.checkbutton_min.grid(row=rown, column=0, columnspan=2)
 
-        print("class QuiverJetSettings def body creation done")
+        # print("class QuiverJetSettings def body creation done")
         
         # tk.Label(master, text=literals[k][0]).grid(row=rown, column=0)
         # tk.Spinbox(master, from_=self.literals["config"][k][0], to=self.literals["config"][k][0], increment=1, width=10).grid(row=rown, column=1)
 
     def up_frame(self, current, event=None):
-        print("class QuiverJetSettings def up_frame")
+        # print("class QuiverJetSettings def up_frame")
         if event != None:
-            print("class QuiverJetSettings def up_frame event")
-            print(event)
+            # print("class QuiverJetSettings def up_frame event")
+            # print(event)
             valid = self.validate()
             if valid == True:
-                if event not in ["jetalpha", "quiveralpha", "plotmax", "plotmin"]:
+                if event not in ["jetalpha", "quiveralpha", "plotmax", "plotmin", "minscale", "maxscale"]:
                     self.literals["updatable_frame"].update_config(event,int(current.get().replace(",", ".")))
-                elif event not in ["jetalpha", "quiveralpha"]:
+                elif event not in ["jetalpha", "quiveralpha", "minscale", "maxscale"]:
                     if event == "plotmin":
                         self.literals["updatable_frame"].update_config(event,bool(self.checkbutton_min_val.get()))
                     elif event == "plotmax":
@@ -1020,7 +2629,7 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
         pass
 
     def validate(self):
-        print("class QuiverJetSettings def validate start")
+        # print("class QuiverJetSettings def validate start")
         try:
             current_windowX_spin_val = int(self.current_windowX_spin.get().replace(",", "."))
             if current_windowX_spin_val < self.literals["config"]["current_windowX"][0] or current_windowX_spin_val > self.literals["config"]["current_windowX"][1]:
@@ -1159,14 +2768,14 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
             return 0
 
     def apply(self):
-        print("class QuiverJetSettings def apply start")
+        # print("class QuiverJetSettings def apply start")
         #save configs
         self.result = None
-        print("self.valid")
-        print(self.valid)
+        # print("self.valid")
+        # print(self.valid)
         if self.valid == True:
             self.result = {}
-            print(self.result)
+            # print(self.result)
             self.result["current_windowX"] = int(self.current_windowX_spin.get().replace(",", "."))
             self.result["current_windowY"] = int(self.current_windowY_spin.get().replace(",", "."))
             self.result["blur_size"] = int(self.blur_size_spin.get().replace(",", "."))
@@ -1181,22 +2790,31 @@ class QuiverJetSettings(tkDialog.DialogNonBlock):
             self.result["quiveralpha"] = float(self.quiveralpha_spin.get().replace(",", "."))
             self.result["plotmax"] = bool(self.checkbutton_max_val.get())
             self.result["plotmin"] = bool(self.checkbutton_min_val.get())
-            print(self.result)
+            # print(self.result)
             self.literals["updatable_frame"].update_all_settings(self.result)
         return True
 
-class AdjustDeltaFFTDialog(tkDialog.Dialog):
+# class AdjustDeltaFFTDialog(tkDialog.Dialog):
+class AdjustDeltaFFTDialog(tkDialog.DialogNonBlock):
     def body(self, master):
         rown = 0
         self.spindeltafftlbl = ttk.Label(master, text= 'FFT peak detection Delta:')
         self.spindeltafftlbl.grid(row=rown, column=0)
         rown += 1
-        self.spindeltafft = tk.Spinbox(master, from_=-10000000000, to=10000000000, increment=0.5, width=10)
+        self.spindeltafft = tk.Spinbox(master, from_=-10000000000, to=10000000000, increment=0.5, width=10, command=self.updateplot)
         self.spindeltafft.grid(row=rown, column=0)
         self.spindeltafft.delete(0,"end")
         self.spindeltafft.insert(0,self.literals["delta_fft"])
-        self.spindeltafft.bind('<Return>', lambda *args: self.validate())
+        # self.spindeltafft.bind('<Return>', lambda *args: self.validate())
+        self.spindeltafft.bind('<Return>', lambda *args: self.updateplot())
         rown += 1
+
+        self.show_allcheckvar = tk.IntVar(value=1)
+        if self.literals["updatable_frame"].plotFFTAll == False:
+            self.show_allcheckvar.set(0)
+        self.showall_check_ttk = ttk.Checkbutton(master, text = "Show all detected peaks", variable = self.show_allcheckvar, \
+                         onvalue = 1, offvalue = 0, command=self.updateplot)
+        self.showall_check_ttk.grid(row=rown, column=0)
 
     def validate(self):
         #nothing to validate
@@ -1210,12 +2828,37 @@ class AdjustDeltaFFTDialog(tkDialog.Dialog):
             return 0 
         self.valid = True
         return 1
+
+    def updateplot(self, args=None):
+        self.validate()
+        if self.valid:
+            self.result = float(self.spindeltafft.get().replace(",", "."))
+            doReset = False
+            if (self.literals["delta_fft"] != self.result):
+                # self.literals["updatable_frame"].plotFFTSelection = 0
+                self.literals["delta_fft"] = self.result
+                doReset = True
+            if (self.show_allcheckvar.get() == 0):
+                self.literals["updatable_frame"].plotFFTAll = False
+            else:
+                self.literals["updatable_frame"].plotFFTAll = True
+            self.literals["updatable_frame"].updateadjustfftdelta(self.result, reset=doReset)        
     
     def apply(self):
         self.result = float(self.spindeltafft.get().replace(",", "."))
-        
+        doReset = False
+        if (self.literals["delta_fft"] != self.result):
+            # self.literals["updatable_frame"].plotFFTSelection = 0
+            doReset = True
+        if (self.show_allcheckvar.get() == 0):
+            self.literals["updatable_frame"].plotFFTAll = False
+        else:
+            self.literals["updatable_frame"].plotFFTAll = True
+        self.literals["updatable_frame"].updateadjustfftdelta(self.result, reset=doReset, close=True)        
 
-class AdjustExponentialDialog(tkDialog.Dialog):
+# class AdjustExponentialDialog(tkDialog.Dialog):
+# class AdjustExponentialDialog(tkDialog.DialogNonBlock):
+class AdjustWaveEndDialog(tkDialog.DialogNonBlock):
     def body(self, master):
         self.result = None
         self.smoothdict = {
@@ -1241,14 +2884,47 @@ class AdjustExponentialDialog(tkDialog.Dialog):
             self.local_minimum_check = False
 
         rown = 0
+        self.end_current_type = self.literals["end_current_type"]
+        self.end_thres_val = self.literals["end_thres_val"]
+        self.endtypechangeval = tk.IntVar()
+
+        if self.end_current_type == "threshold":
+            self.endtypechangeval.set(0)
+        else:
+            self.endtypechangeval.set(1)
+
+        #create and add radio selection for detection type
+        # self.radio1thres = ttk.Radiobutton(master, text = "Threshold of Relaxation Max", variable = self.endtypechangeval, value = 0, command=self.detection_update)
+        # self.radio1thres.grid(row=rown, column=0)#, sticky=tk.W+tk.E+tk.N+tk.S)
+        # rown += 1
+
+        # self.spinmaxlbl2 = ttk.Label(master, text= 'Fraction of Relaxation Max:')
+        # self.spinmaxlbl2.grid(row=rown, column=0)
+        # rown += 1
+
+        self.spinmaxbox2 = tk.Spinbox(master, from_=0, to=1.0, increment=0.05, width=10, command=self.updateplot)
+        self.spinmaxbox2.grid(row=rown, column=0)
+        self.spinmaxbox2.delete(0,"end")
+        self.spinmaxbox2.insert(0,self.endnoisecriteria)
+        self.spinmaxbox2.bind('<Return>', lambda *args: self.updateplot())
+        #forget this man
+        self.spinmaxbox2.grid_forget()
+        # rown += 1
+
+
+        # self.radio2sergio = ttk.Radiobutton(master, text = "Threshold of Exp. fit", variable = self.endtypechangeval, value = 1, command=self.detection_update)
+        # self.radio2sergio.grid(row=rown, column=0)#, sticky=tk.W+tk.E+tk.N+tk.S)
+        # rown += 1
+
         self.spinmaxlbl = ttk.Label(master, text= 'Fraction of Wave Max Area:')
         self.spinmaxlbl.grid(row=rown, column=0)
         rown += 1
-        self.spinmaxbox = tk.Spinbox(master, from_=0, to=1.0, increment=0.05, width=10)
+        self.spinmaxbox = tk.Spinbox(master, from_=0, to=1.0, increment=0.05, width=10, command=self.updateplot)
         self.spinmaxbox.grid(row=rown, column=0)
         self.spinmaxbox.delete(0,"end")
         self.spinmaxbox.insert(0,self.endnoisecriteria)
-        self.spinmaxbox.bind('<Return>', lambda *args: self.validate())
+        # self.spinmaxbox.bind('<Return>', lambda *args: self.validate())
+        self.spinmaxbox.bind('<Return>', lambda *args: self.updateplot())
         rown += 1
 
         ttk.Label(master, text='Data smoothing before regression:').grid(row=rown, column=0)
@@ -1256,7 +2932,7 @@ class AdjustExponentialDialog(tkDialog.Dialog):
         self.formatvar = tk.StringVar(master)
         self.formatchoices = {'Always', 'Never', 'Noisy areas'}
         self.formatvar.set(self.smoothdict[self.smoothbeforeregression]) # set the default option
-        self.smoothmenu = ttk.OptionMenu(master, self.formatvar, self.smoothdict[self.smoothbeforeregression], *self.formatchoices)
+        self.smoothmenu = ttk.OptionMenu(master, self.formatvar, self.smoothdict[self.smoothbeforeregression], *self.formatchoices, command=self.updateplot)
         self.smoothmenu.grid(row=rown, column=0)
         rown += 1
         # self.noiseratiolbl = ttk.Label(master, text= 'Maximum local max/min frequency in Wave Max Filter area allowed:')
@@ -1267,8 +2943,25 @@ class AdjustExponentialDialog(tkDialog.Dialog):
         if self.local_minimum_check == False:
             self.local_minimum_check_var.set(0)
         self.local_minimum_check_ttk = ttk.Checkbutton(master, text = "Stop only at local minimum", variable = self.local_minimum_check_var, \
-                         onvalue = 1, offvalue = 0)
+                         onvalue = 1, offvalue = 0, command=self.updateplot)
         self.local_minimum_check_ttk.grid(row=rown, column=0)
+        self.detection_update()
+    
+    def detection_update(self):
+        if self.endtypechangeval.get() == 0:
+        # if self.end_current_type == "threshold":
+            # self.rlabel4_AnswerBox['state'] = 'normal'
+            #disable all grid exponential. enable value threshold
+            # self.rlabel4_AnswerBox['state'] = 'disabled'
+            self.spinmaxbox['state'] = 'disabled'
+            self.smoothmenu['state'] = 'disabled'
+            self.local_minimum_check_ttk['state'] = 'disabled'
+            # self.spinmaxbox2['state'] = 'normal'
+        else:
+            self.spinmaxbox['state'] = 'normal'
+            self.smoothmenu['state'] = 'normal'
+            self.local_minimum_check_ttk['state'] = 'normal'
+            # self.spinmaxbox2['state'] = 'disabled'
 
     def validate(self):
         #nothing to validate
@@ -1282,15 +2975,22 @@ class AdjustExponentialDialog(tkDialog.Dialog):
             return 0 
         self.valid = True
         return 1
-    
+        
+    def updateplot(self, args=None):
+        self.validate()
+        if self.valid == True:
+            self.result = [float(self.spinmaxbox.get().replace(",", ".")) , self.smoothdict[self.formatvar.get()] , self.noiseratio , bool(self.local_minimum_check_var.get())]
+            self.literals["updatable_frame"].updateadjustexponential(self.result, endt=self.endtypechangeval.get(), endtv=float(self.spinmaxbox2.get().replace(",", ".")))
+        
     def apply(self):
         self.result = [float(self.spinmaxbox.get().replace(",", ".")) , self.smoothdict[self.formatvar.get()] , self.noiseratio , bool(self.local_minimum_check_var.get())]
+        self.literals["updatable_frame"].updateadjustexponential(self.result, True, endt=self.endtypechangeval.get(), endtv=float(self.spinmaxbox2.get().replace(",", ".")))
 
 # class AdjustNoiseDetectDialog(tkDialog.Dialog):
 class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
 
     def body(self, master):
-        print("class AdjustNoiseDetectDialog def body creation")
+        # print("class AdjustNoiseDetectDialog def body creation")
         # ttk.Label(master, text='Noise Advanced Parameters:').grid(row=0, column=0)
         # self.checkfvar = tk.IntVar(value=self.literals["noiseareasfiltering"])
         # self.checkf = ttk.Checkbutton(master, text = "Noise Areas Min. Size filtering", variable = self.checkfvar, \
@@ -1308,8 +3008,8 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
         # self.spinu.bind('<Return>', lambda *args: self.validate())
         self.spinu.bind('<Return>', lambda *args: self.updateplot())
 
-        print('self.literals["noisedecreasevalue"]')
-        print(self.literals["noisedecreasevalue"])
+        # print('self.literals["noisedecreasevalue"]')
+        # print(self.literals["noisedecreasevalue"])
         self.spinu.delete(0,"end")
         self.spinu.insert(0,self.literals["noisedecreasevalue"])
         rown = 0
@@ -1325,7 +3025,7 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
         if self.check_u_var.get() == 0:
             self.spinlbl.grid_forget()
             self.spinu.grid_forget()
-        print("class AdjustNoiseDetectDialog def body created")
+        # print("class AdjustNoiseDetectDialog def body created")
 
     def updateplot(self):
         self.validate()
@@ -1349,7 +3049,7 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
         pass
 
     def showspin(self):
-        print("class AdjustNoiseDetectDialog def showspin start")
+        # print("class AdjustNoiseDetectDialog def showspin start")
         if self.check_u_var.get() == 0:
             self.spinu.grid_forget()
             self.spinlbl.grid_forget()
@@ -1358,10 +3058,10 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
             self.spinlbl.grid(row=4, column=0)
             self.spinu.grid(row=4, column=1)
         self.updateplot()
-        print("class AdjustNoiseDetectDialog def showspin end")
+        # print("class AdjustNoiseDetectDialog def showspin end")
 
     def hidespin(self):
-        print("class AdjustNoiseDetectDialog def hidespin start")
+        # print("class AdjustNoiseDetectDialog def hidespin start")
         # if self.check_u_var.get() == 0:
         # else:
         #     self.check_d_var.set(0)
@@ -1372,10 +3072,10 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
             self.spinu.grid_forget()
             self.spinlbl.grid_forget()
         self.updateplot()
-        print("class AdjustNoiseDetectDialog def hidespin end")
+        # print("class AdjustNoiseDetectDialog def hidespin end")
 
     def validate(self):
-        print("class AdjustNoiseDetectDialog def validate start")
+        # print("class AdjustNoiseDetectDialog def validate start")
         #nothing to validate
         if self.check_u_var.get() == 1:
             fvalue = float(self.spinu.get().replace(",", "."))
@@ -1387,14 +3087,14 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
                 )
                 return 0 
         self.valid = True
-        print("class AdjustNoiseDetectDialog def validate done")
+        # print("class AdjustNoiseDetectDialog def validate done")
         return 1
 
     def apply(self):
-        print("class AdjustNoiseDetectDialog def apply start")
+        # print("class AdjustNoiseDetectDialog def apply start")
         #save configs
-        print("self.valid")
-        print(self.valid)
+        # print("self.valid")
+        # print(self.valid)
         if self.valid == True:
             self.result = {}
             # if self.checkfvar.get() == 1:
@@ -1411,13 +3111,13 @@ class AdjustNoiseDetectDialog(tkDialog.DialogNonBlock):
             else:
                 self.result["userdecrease"] = False
                 self.result["noisevalue"] = None
-            print("class AdjustNoiseDetectDialog def apply done")
+            # print("class AdjustNoiseDetectDialog def apply done")
             self.literals["updatable_frame"].adjustnoiseupdate(self.result, True)
 
 class SaveFigureVideoDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SaveFigureVideoDialog def body creation")
+        # print("class SaveFigureVideoDialog def body creation")
         nrow = 0
         ttk.Label(master, text='Output Format:').grid(row=nrow, column=0)
 
@@ -1485,8 +3185,8 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
         self.fpsnspin.grid_forget()
 
     def format_detection(self, args=None):
-        print("args")
-        print(args)
+        # print("args")
+        # print(args)
         self.formatvar.set(args)
         if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
             self.jpglabel.grid(row=3, column=0)
@@ -1502,7 +3202,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
             self.fpsnspin.grid_forget()
 
     def validate(self):
-        print("class SaveFigureVideoDialog def validate start")
+        # print("class SaveFigureVideoDialog def validate start")
         try:
             heightf= int(self.heightvar.get())
             if heightf < 0:
@@ -1557,7 +3257,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class SaveFigureVideoDialog def apply start")
+        # print("class SaveFigureVideoDialog def apply start")
         #save configs
         self.result = None
         if self.valid == True:
@@ -1584,7 +3284,7 @@ class SaveFigureVideoDialog(tkDialog.Dialog):
 class SaveFigureDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SaveFigureDialog def body creation")
+        # print("class SaveFigureDialog def body creation")
 
         nrow = 0
 
@@ -1655,8 +3355,8 @@ class SaveFigureDialog(tkDialog.Dialog):
         self.qualityspin.grid_forget()
 
     def jpg_detection(self, args=None):
-        print("args")
-        print(args)
+        # print("args")
+        # print(args)
         self.formatvar.set(args)
         if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
             self.jpglabel.grid(row=3, column=0)
@@ -1666,7 +3366,7 @@ class SaveFigureDialog(tkDialog.Dialog):
             self.qualityspin.grid_forget()
 
     def validate(self):
-        print("class SaveFigureDialog def validate start")
+        # print("class SaveFigureDialog def validate start")
         try:
             first= int(self.dpi.get())
             if first < 0:
@@ -1716,7 +3416,7 @@ class SaveFigureDialog(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class SaveFigureDialog def apply start")
+        # print("class SaveFigureDialog def apply start")
         #save configs
         self.result = None
         if self.valid == True:
@@ -1746,7 +3446,7 @@ class SaveFigureDialog(tkDialog.Dialog):
 class SaveLegendDialog(tkDialog.DialogNonBlock):
 
     def body(self, master):
-        print("class SaveFigureDialog def body creation")
+        # print("class SaveFigureDialog def body creation")
 
         nrow = 0
 
@@ -1819,8 +3519,8 @@ class SaveLegendDialog(tkDialog.DialogNonBlock):
         self.qualityspin.grid_forget()
 
     def jpg_detection(self, args=None):
-        print("args")
-        print(args)
+        # print("args")
+        # print(args)
         self.formatvar.set(args)
         if self.formatvar.get() == "jpg" or self.formatvar.get() == "jpeg":
             self.jpglabel.grid(row=3, column=0)
@@ -1830,7 +3530,7 @@ class SaveLegendDialog(tkDialog.DialogNonBlock):
             self.qualityspin.grid_forget()
 
     def validate(self):
-        print("class SaveFigureDialog def validate start")
+        # print("class SaveFigureDialog def validate start")
         try:
             first= int(self.dpi.get())
             if first < 0:
@@ -1882,7 +3582,7 @@ class SaveLegendDialog(tkDialog.DialogNonBlock):
             return 0
 
     def apply(self):
-        print("class SaveFigureDialog def apply start")
+        # print("class SaveFigureDialog def apply start")
         #save configs
         self.result = None
         if self.valid == True:
@@ -1913,28 +3613,33 @@ class SaveLegendDialog(tkDialog.DialogNonBlock):
 class SaveTableDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SaveTableDialog def body creation")
+        # print("class SaveTableDialog def body creation")
         # group = self.literals["current_group"]
         ttk.Label(master, text='Table Format:').grid(row=0, column=0)
         # Create a Tkinter variable
         self.formatvar = tk.StringVar(master)
 
         # Dictionary with options
+        defform = 'XLSX'
         if _platform == "linux" or _platform == "linux2":
-            self.formatchoices = { 'CSV','XLS'}
+            # self.formatchoices = { 'CSV','XLS'}
+            self.formatchoices = { 'XLS', 'CSV'}
+            defform = 'XLS'
         else:
-            self.formatchoices = { 'CSV','XLSX'}
-        self.formatvar.set('CSV') # set the default option
+            # self.formatchoices = { 'CSV','XLSX'}
+            self.formatchoices = { 'XLSX', 'CSV'}
+        self.formatvar.set(defform) # set the default option
 
-        ttk.OptionMenu(master, self.formatvar, "CSV", *self.formatchoices).grid(row = 0, column = 1)
+        # ttk.OptionMenu(master, self.formatvar, "CSV", *self.formatchoices).grid(row = 0, column = 1)
+        ttk.OptionMenu(master, self.formatvar, defform, *self.formatchoices).grid(row = 0, column = 1)
 
     def validate(self):
-        print("class SaveTableDialog def validate start")
+        # print("class SaveTableDialog def validate start")
         self.valid = True
         return 1
 
     def apply(self):
-        print("class SaveTableDialog def apply start")
+        # print("class SaveTableDialog def apply start")
         #save table to file
          # Create a Pandas Excel writer using XlsxWriter as the engine.
         # writer = pd.ExcelWriter(FolderResult + "/" +str(NameResult) + "_Contratilidade.xlsx", engine='xlsxwriter')
@@ -1961,44 +3666,131 @@ class SaveTableDialog(tkDialog.Dialog):
        
         # # Close the Pandas Excel writer and output the Excel file.
         # writer.save()
-        try:
-            format_sel = self.formatvar.get()
-            data_type = self.literals["data_t"]
-            data = np.array(self.literals["data"])
+
+        # try:
+            
+        format_sel = self.formatvar.get()
+        data_type = self.literals["data_t"]
+        data = np.array(self.literals["data"])
+        # print("data")
+        # print(data)
+        headers = self.literals["headers"]
+        if "single" in data_type:
+            new_dict = {}
+            for header, data_col in zip(headers, data):
+                new_dict[header] = data_col.copy()
+            new_df = pd.DataFrame(new_dict)
+            fname = filedialog.asksaveasfile(defaultextension="." + format_sel.lower())
+            if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
+                return
+            fname.close()
+            fnamename = str(fname.name)
+            filename = r'%s' %fnamename
+            os.remove(str(filename))
+            if format_sel == "CSV":
+                new_df.to_csv(str(filename),index=False)
+            elif format_sel == "XLS" or format_sel == "XLSX":
+                sheet_n = "Data"
+                if "sheetnames" in self.literals.keys():
+                    sheet_n = self.literals["sheetnames"]
+                writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
+                # new_df.to_excel(str(fname.name), sheet_name=sheet_n,index=False, encoding='utf8')
+                new_df.to_excel(writer, sheet_name=sheet_n,index=False)#, encoding='utf8')
+                # # Add a header format.
+                workbook = writer.book
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'align': 'center','border': 1})
+                worksheet = writer.sheets[sheet_n]
+
+                for idx, col in enumerate(new_df):  # loop through all columns
+                    series = new_df[col]
+                    max_len = max((
+                        series.astype(str).map(len).max(),  # len of largest item
+                        len(str(series.name))  # len of column name/header
+                        )) + 1  # adding a little extra space
+                    worksheet.set_column(idx, idx, max_len)  # set column width
+                # worksheet.set_column('B:L', 15)
+                for col_num, value in enumerate(new_df.columns.values):
+                    # worksheet.write(0, col_num + 1, value, header_format)
+                    worksheet.write(0, col_num, value, header_format)
+                writer.save()
+            messagebox.showinfo(
+                "File saved",
+                "File was successfully saved"
+            )
+        elif "multiple" in data_type:
+            sheets = self.literals["sheetnames"]
+            # print("sheets")
+            # print(sheets)
+            fname = filedialog.asksaveasfile(defaultextension="." + format_sel.lower())
+            if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
+                return
+            fname.close()
+            fnamename = str(fname.name)
+            filename = r'%s' %fnamename
+            os.remove(str(filename))
+            # print("filename")
+            # print(filename)
+            writer = None
+            workbook = None
+            header_format = None
+            topmerge_format_odd = None
+            topmerge_format_even = None
+            if format_sel == "XLS" or format_sel == "XLSX":
+                writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
+                workbook = writer.book
+                header_format = workbook.add_format({
+                    'bold': True,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#D7E4BC',
+                    'align': 'center','border': 1})
+                topmerge_format_odd = workbook.add_format({
+                    'bold': False,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#FDEB9C',
+                    'align': 'center','border': 1})
+                topmerge_format_even = workbook.add_format({
+                    'bold': False,
+                    'text_wrap': True,
+                    'valign': 'top',
+                    'fg_color': '#FFCB99',
+                    'align': 'center','border': 1})
+            sheet_idx = 0
+            print("headers")
+            print(headers)
             print("data")
             print(data)
-            headers = self.literals["headers"]
-            if "single" in data_type:
+            print("sheets")
+            print(sheets)
+            for e_header, e_data, e_sheet in zip(headers, data, sheets):
                 new_dict = {}
-                for header, data_col in zip(headers, data):
+                new_df = None
+                for header, data_col in zip(e_header, e_data):
+                    # print("header")
+                    # print(header)
+                    # print("data_col")
+                    # print(data_col)
+                    # print("type(data_col)")
+                    # print(type(data_col))
                     new_dict[header] = data_col.copy()
                 new_df = pd.DataFrame(new_dict)
-                fname = filedialog.asksaveasfile(defaultextension="." + format_sel.lower())
-                if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
-                    return
-                fname.close()
-                fnamename = str(fname.name)
-                filename = r'%s' %fnamename
-                os.remove(str(filename))
                 if format_sel == "CSV":
-                    new_df.to_csv(str(filename),index=False)
+                    new_df.to_csv(str(filename).split(".")[0] + "_" + e_sheet + "." + str(filename).split(".")[1], index=False)
                 elif format_sel == "XLS" or format_sel == "XLSX":
-                    sheet_n = "Data"
-                    if "sheetnames" in self.literals.keys():
-                        sheet_n = self.literals["sheetnames"]
-                    writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
-                    # new_df.to_excel(str(fname.name), sheet_name=sheet_n,index=False, encoding='utf8')
-                    new_df.to_excel(writer, sheet_name=sheet_n,index=False)#, encoding='utf8')
-                    # # Add a header format.
-                    workbook = writer.book
-                    header_format = workbook.add_format({
-                        'bold': True,
-                        'text_wrap': True,
-                        'valign': 'top',
-                        'fg_color': '#D7E4BC',
-                        'align': 'center','border': 1})
-                    worksheet = writer.sheets[sheet_n]
-
+                    startrow_idx = 0
+                    #check for topmerges in current sheet
+                    if "mergetop" in self.literals.keys():
+                        if sheet_idx in self.literals["mergetop"].keys():
+                            # startrow_idx is 1 if topmerges
+                            startrow_idx = 1
+                    new_df.to_excel(writer, sheet_name=e_sheet,index=False, startrow=startrow_idx)
+                    worksheet = writer.sheets[e_sheet]
                     for idx, col in enumerate(new_df):  # loop through all columns
                         series = new_df[col]
                         max_len = max((
@@ -2007,78 +3799,39 @@ class SaveTableDialog(tkDialog.Dialog):
                             )) + 1  # adding a little extra space
                         worksheet.set_column(idx, idx, max_len)  # set column width
                     # worksheet.set_column('B:L', 15)
+                    #check for topmerges in current sheet
+                    #write topmerge data
+                    #merge top merge data
+                    if "mergetop" in self.literals.keys():
+                        if sheet_idx in self.literals["mergetop"].keys():
+                            for col_num in range(len(self.literals["mergetop"][sheet_idx])):
+                                col_id_here = xlsxwriter.utility.xl_col_to_name(self.literals["mergetop"][sheet_idx][col_num][1]-1)
+                                col_id_there = xlsxwriter.utility.xl_col_to_name(self.literals["mergetop"][sheet_idx][col_num][2]-1)
+                                if col_num % 2 == 0:
+                                    # worksheet.write(0, col_num, literals["mergetop"][sheet_idx][col_num][0], topmerge_format_odd)
+                                    # worksheet.merge_range( "A" + str(self.literals["mergetop"][sheet_idx][col_num][1]) + ":A" + str(self.literals["mergetop"][sheet_idx][col_num][2]), self.literals["mergetop"][sheet_idx][col_num][0], topmerge_format_odd)
+                                    worksheet.merge_range( col_id_here + "1:"+col_id_there+"1", self.literals["mergetop"][sheet_idx][col_num][0], topmerge_format_odd)
+                                else:
+                                    # worksheet.write(0, col_num, literals["mergetop"][sheet_idx][col_num][0], topmerge_format_even)
+                                    # worksheet.merge_range( "A" + str(self.literals["mergetop"][sheet_idx][col_num][1]) + ":A" + str(self.literals["mergetop"][sheet_idx][col_num][2]), self.literals["mergetop"][sheet_idx][col_num][0], topmerge_format_even)
+                                    worksheet.merge_range( col_id_here + "1:"+col_id_there+"1", self.literals["mergetop"][sheet_idx][col_num][0], topmerge_format_even)
                     for col_num, value in enumerate(new_df.columns.values):
                         # worksheet.write(0, col_num + 1, value, header_format)
-                        worksheet.write(0, col_num, value, header_format)
-                    writer.save()
-                messagebox.showinfo(
-                    "File saved",
-                    "File was successfully saved"
-                )
-            elif "multiple" in data_type:
-                sheets = self.literals["sheetnames"]
-                print("sheets")
-                print(sheets)
-                fname = filedialog.asksaveasfile(defaultextension="." + format_sel.lower())
-                if fname is None: # asksaveasfile return `None` if dialog closed with "cancel".
-                    return
-                fname.close()
-                fnamename = str(fname.name)
-                filename = r'%s' %fnamename
-                os.remove(str(filename))
-                print("filename")
-                print(filename)
-                writer = None
-                workbook = None
-                header_format = None
-                if format_sel == "XLS" or format_sel == "XLSX":
-                    writer = pd.ExcelWriter(str(filename).split(".")[0] + "." + format_sel.lower(), engine='xlsxwriter', mode='w')
-                    workbook = writer.book
-                    header_format = workbook.add_format({
-                        'bold': True,
-                        'text_wrap': True,
-                        'valign': 'top',
-                        'fg_color': '#D7E4BC',
-                        'align': 'center','border': 1})
-                for e_header, e_data, e_sheet in zip(headers, data, sheets):
-                    new_dict = {}
-                    new_df = None
-                    for header, data_col in zip(e_header, e_data):
-                        print("header")
-                        print(header)
-                        print("data_col")
-                        print(data_col)
-                        new_dict[header] = data_col.copy()
-                    new_df = pd.DataFrame(new_dict)
-                    if format_sel == "CSV":
-                        new_df.to_csv(str(filename).split(".")[0] + "_" + e_sheet + "." + str(filename).split(".")[1], index=False)
-                    elif format_sel == "XLS" or format_sel == "XLSX":
-                        new_df.to_excel(writer, sheet_name=e_sheet,index=False)
-                        worksheet = writer.sheets[e_sheet]
-
-                        for idx, col in enumerate(new_df):  # loop through all columns
-                            series = new_df[col]
-                            max_len = max((
-                                series.astype(str).map(len).max(),  # len of largest item
-                                len(str(series.name))  # len of column name/header
-                                )) + 1  # adding a little extra space
-                            worksheet.set_column(idx, idx, max_len)  # set column width
-                        # worksheet.set_column('B:L', 15)
-                        for col_num, value in enumerate(new_df.columns.values):
-                            # worksheet.write(0, col_num + 1, value, header_format)
-                            worksheet.write(0, col_num, value, header_format)
-                if format_sel == "XLS" or format_sel == "XLSX":
-                    writer.save()
-                messagebox.showinfo(
-                    "File saved",
-                    "File was successfully saved"
-                )
-        except Exception as e:
-            messagebox.showerror("Error", "Could not save Data file\n" + str(e))
+                        worksheet.write(startrow_idx, col_num, value.split("_")[0], header_format)
+                sheet_idx +=1
+            if format_sel == "XLS" or format_sel == "XLSX":
+                writer.save()
+            messagebox.showinfo(
+                "File saved",
+                "File was successfully saved"
+            )
+            
+        # except Exception as e:
+        #     messagebox.showerror("Error", "Could not save Data file\n" + str(e))
 
 class SummarizeTablesDialog(tkDialog.Dialog):
     def body(self, master):
-        print("class SummarizeTablesDialog def body creation")
+        # print("class SummarizeTablesDialog def body creation")
 
         tframe = ttk.Frame(self)
         scrollbar = ttk.Scrollbar(tframe, orient=tk.VERTICAL)
@@ -2138,43 +3891,57 @@ class SummarizeTablesDialog(tkDialog.Dialog):
         #     self.rowconfigure(i, weight=1)
         # for i in range(0,3):
         #     self.columnconfigure(i, weight=1)
-        print("class SummarizeTablesDialog def body created")
+        # print("class SummarizeTablesDialog def body created")
     
     def add_table(self, event=None):
-        print("class SummarizeTablesDialog def add_table start")
-        print("class SummarizeTablesDialog def add_table open file dialog selection")
-        filenames = filedialog.askopenfilenames(parent=self,title='Choose Data Tables to Summarize:',filetypes = (("XLS Files","*.xls"),("XLSX Files","*.xlsx")))
-        print("class SummarizeTablesDialog def add_table open file dialog done")
-        print("filenames")
-        print(filenames)
+        # print("class SummarizeTablesDialog def add_table start")
+        # print("class SummarizeTablesDialog def add_table open file dialog selection")
+        # if _platform == "linux" or _platform == "linux2":
+            # filenames = filedialog.askopenfilenames(parent=self,title='Choose Data Tables to Summarize:',filetypes = (("XLS Files","*.xls"), ("XLSX Files","*.xlsx")))
+        # else:
+        filenames = filedialog.askopenfilenames(parent=self,title='Choose Data Tables to Summarize:',filetypes = (("XLSX Files","*.xlsx"), ("XLS Files","*.xls")))
+        # print("class SummarizeTablesDialog def add_table open file dialog done")
+        # print("filenames")
+        # print(filenames)
         if filenames:
             # filenames = [r'%s' for fna in filenames]
             newfilenames = []
             for fna in filenames:
                 newfilenames.append(r'%s' %fna)
-            print("class SummarizeTablesDialog def add_table 1 or more files selected")
+            # print("class SummarizeTablesDialog def add_table 1 or more files selected")
             for filename in newfilenames:
-                print("class SummarizeTablesDialog def add_table inserting file in listbox")
+                # print("class SummarizeTablesDialog def add_table inserting file in listbox")
                 self.listbox.insert(tk.END, filename)
-        print("class SummarizeTablesDialog def add_table done")
+        # print("class SummarizeTablesDialog def add_table done")
 
     
     def delete_table(self, event=None):
-        print("class SummarizeTablesDialog def delete_table start")
+        # print("class SummarizeTablesDialog def delete_table start")
         self.listbox.delete(self.listbox.curselection()[0])
-        print("class SummarizeTablesDialog def delete_table done")
+        # print("class SummarizeTablesDialog def delete_table done")
 
     def validate(self):
-        print("class SummarizeTablesDialog def validate start")
+        # print("class SummarizeTablesDialog def validate start")
         items = self.listbox.get(0, tk.END)
-        print("items")
-        print(items)
+        # print("items")
+        # print(items)
         if len(items) > 0:
             for item in items:
-                xl = pd.ExcelFile(item)
+                # xl = pd.ExcelFile(item)
+                # xl = pd.ExcelFile(item, engine='openpyxl')
+                xl = None
+                if ".xlsx" in item:
+                    xl = pd.ExcelFile(item, engine='openpyxl')
+                else:
+                    xl = pd.ExcelFile(item)
                 names = xl.sheet_names  # see all sheet names
-                if "Avg. Time" not in names or "Avg. Speed" not in names or "Avg. Area" not in names:
-                    messagebox.showerror("Error", "No tables selected")
+                timeexist = [name for name in names if "Avg. Time" in name and "Decay" not in name]
+                speedexist = [name for name in names if "Avg. Speed" in name]
+                areaexist = [name for name in names if "Avg. Area" in name]
+                decayexist = [name for name in names if "Avg. Time" in name and "Decay" in name]
+                # if "Avg. Time" not in names or "Avg. Speed" not in names or "Avg. Area" not in names:
+                if len(timeexist) == 0 or len(speedexist) == 0 or len(areaexist) == 0 or len(decayexist) == 0:
+                    messagebox.showerror("Error", "Wrong table format")
                     self.valid = False
                     return 0
             self.valid = True
@@ -2184,11 +3951,14 @@ class SummarizeTablesDialog(tkDialog.Dialog):
             self.valid = False
             return 0
 
-        print("class SummarizeTablesDialog def validate done")
+        # print("class SummarizeTablesDialog def validate done")
 
     def apply(self):
-        print("class SummarizeTablesDialog def apply start")
+        # print("class SummarizeTablesDialog def apply start")
         timeavgdf = {
+            "Name": []
+        }
+        timedecayavgdf = {
             "Name": []
         }
         speedvgdf = {
@@ -2197,9 +3967,30 @@ class SummarizeTablesDialog(tkDialog.Dialog):
         areaavgdf = {
             "Name": []
         }
+        current_timeunit = None
         for item in self.listbox.get(0, tk.END):
-            xl = pd.ExcelFile(item)
-            timedf = xl.parse("Avg. Time")  # read a specific sheet to DataFrame
+            conversion_timefactor = 1
+            xl = None
+            if ".xlsx" in item:
+                xl = pd.ExcelFile(item, engine='openpyxl')
+            else:
+                xl = pd.ExcelFile(item)
+            xl_sheetnames = xl.sheet_names 
+            avgtime_sheetname = [shname for shname in xl_sheetnames if "Avg. Time" in shname and "Decay" not in shname][0]
+            # timedf = xl.parse("Avg. Time")  # read a specific sheet to DataFrame
+            avgtime_sheetname_unit = avgtime_sheetname.split("(")[1].split(")")[0]
+            if current_timeunit is None:
+                current_timeunit = avgtime_sheetname_unit
+            elif avgtime_sheetname_unit != current_timeunit and avgtime_sheetname_unit == "s":
+                #second to millisecond
+                # conversion_timefactor = 000.1
+                conversion_timefactor = 1000
+                # conversion_timefactor = 000.1
+            elif avgtime_sheetname_unit != current_timeunit and avgtime_sheetname_unit == "ms":
+                #millisecond to second
+                # conversion_timefactor = 1000
+                conversion_timefactor = 0.001
+            timedf = xl.parse(avgtime_sheetname)  # read a specific sheet to DataFrame
             k1 = timedf.keys()[0]
             v1 = timedf[k1]
             for v in v1:
@@ -2209,8 +4000,29 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                     timeavgdf[key] = []
                 values = timedf[key]
                 for value in values:
-                    timeavgdf[key].append(value)
-            speeddf = xl.parse("Avg. Speed")  # read a specific sheet to DataFrame
+                    timeavgdf[key].append(float(value) * conversion_timefactor)
+            
+            avgtimedecay_sheetname = [shname for shname in xl_sheetnames if "Avg. Time" in shname and "Decay" in shname][0]
+
+            avgtimedecay_sheetname_unit = avgtimedecay_sheetname.split("(")[2].split(")")[0]
+            # timedecayavgdf
+            timedecaydf = xl.parse(avgtimedecay_sheetname, skiprows=1)  # read a specific sheet to DataFrame
+            k1 = timedecaydf.keys()[0]
+            v1 = timedecaydf[k1]
+            for v in v1:
+                timedecayavgdf["Name"].append(os.path.basename(item))
+            for key in timedecaydf.keys():
+                if key not in timedecayavgdf.keys():
+                    timedecayavgdf[key] = []
+                values = timedecaydf[key]
+                for value in values:
+                    timedecayavgdf[key].append(value)
+
+            avgspeed_sheetname = [shname for shname in xl_sheetnames if "Avg. Speed" in shname][0]
+            # timedf = xl.parse("Avg. Time")  # read a specific sheet to DataFrame
+            avgspeed_sheetname_unit = avgtime_sheetname.split("(")[1].split(")")[0]
+            # speeddf = xl.parse("Avg. Speed")  # read a specific sheet to DataFrame
+            speeddf = xl.parse(avgspeed_sheetname)  # read a specific sheet to DataFrame
             k1 = speeddf.keys()[0]
             v1 = speeddf[k1]
             for v in v1:
@@ -2221,7 +4033,11 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                 values = speeddf[key]
                 for value in values:
                     speedvgdf[key].append(value)
-            areadf = xl.parse("Avg. Area")  # read a specific sheet to DataFrame
+            avgarea_sheetname = [shname for shname in xl_sheetnames if "Avg. Area" in shname][0]
+            # timedf = xl.parse("Avg. Time")  # read a specific sheet to DataFrame
+            avgarea_sheetname_unit = avgtime_sheetname.split("(")[1].split(")")[0]
+            # areadf = xl.parse("Avg. Area")  # read a specific sheet to DataFrame
+            areadf = xl.parse(avgarea_sheetname)  # read a specific sheet to DataFrame
             k1 = areadf.keys()[0]
             v1 = areadf[k1]
             for v in v1:
@@ -2243,8 +4059,8 @@ class SummarizeTablesDialog(tkDialog.Dialog):
             fnamename = str(fname.name)
             filename =  r'%s' %fnamename
             os.remove(str(filename))
-            print("filename")
-            print(filename)
+            # print("filename")
+            # print(filename)
 
             writer = pd.ExcelWriter(str(filename).split(".")[0] + format_do, engine='xlsxwriter', mode='w')
             workbook = writer.book
@@ -2254,9 +4070,23 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                 'valign': 'top',
                 'fg_color': '#D7E4BC',
                 'align': 'center','border': 1})
+            topmerge_format_odd = workbook.add_format({
+                'bold': False,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#FDEB9C',
+                'align': 'center','border': 1})
+            topmerge_format_even = workbook.add_format({
+                'bold': False,
+                'text_wrap': True,
+                'valign': 'top',
+                'fg_color': '#FFCB99',
+                'align': 'center','border': 1})
             timeavgdf = pd.DataFrame(timeavgdf)
-            timeavgdf.to_excel(writer, sheet_name="Time. Concat",index=False)
-            worksheet = writer.sheets["Time. Concat"]
+            # timeavgdf.to_excel(writer, sheet_name="Time. Concat",index=False)
+            timeavgdf.to_excel(writer, sheet_name="Time. Concat (" + self.master.controller.current_timescale + ")",index=False)
+            # worksheet = writer.sheets["Time. Concat"]
+            worksheet = writer.sheets["Time. Concat (" + self.master.controller.current_timescale + ")"]
             for idx, col in enumerate(timeavgdf):  # loop through all columns
                 series = timeavgdf[col]
                 max_len = max((
@@ -2268,8 +4098,10 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                 worksheet.write(0, col_num, value, header_format)
 
             speedvgdf = pd.DataFrame(speedvgdf)
-            speedvgdf.to_excel(writer, sheet_name="Speed. Concat",index=False)
-            worksheet = writer.sheets["Speed. Concat"]
+            # speedvgdf.to_excel(writer, sheet_name="Speed. Concat",index=False)
+            speedvgdf.to_excel(writer, sheet_name="Speed. Concat (" + self.master.controller.current_speedscale .replace('/', ' per ')+ ")",index=False)
+            # worksheet = writer.sheets["Speed. Concat"]
+            worksheet = writer.sheets["Speed. Concat (" + self.master.controller.current_speedscale.replace('/', ' per ') + ")"]
             for idx, col in enumerate(speedvgdf):  # loop through all columns
                 series = speedvgdf[col]
                 max_len = max((
@@ -2281,8 +4113,10 @@ class SummarizeTablesDialog(tkDialog.Dialog):
                 worksheet.write(0, col_num, value, header_format)
 
             areaavgdf = pd.DataFrame(areaavgdf)
-            areaavgdf.to_excel(writer, sheet_name="Area. Concat",index=False)
-            worksheet = writer.sheets["Area. Concat"]
+            # areaavgdf.to_excel(writer, sheet_name="Area. Concat",index=False)
+            areaavgdf.to_excel(writer, sheet_name="Area. Concat (" + self.master.controller.current_areascale + ")",index=False)
+            # worksheet = writer.sheets["Area. Concat"]
+            worksheet = writer.sheets["Area. Concat (" + self.master.controller.current_areascale + ")"]
             for idx, col in enumerate(areaavgdf):  # loop through all columns
                 series = areaavgdf[col]
                 max_len = max((
@@ -2293,21 +4127,50 @@ class SummarizeTablesDialog(tkDialog.Dialog):
             for col_num, value in enumerate(areaavgdf.columns.values):
                 worksheet.write(0, col_num, value, header_format)
 
+            timedecayavgdf = pd.DataFrame(timedecayavgdf)
+            # areaavgdf.to_excel(writer, sheet_name="Area. Concat",index=False)
+            timedecayavgdf.to_excel(writer, sheet_name="Time Decay. Concat (" + self.master.controller.current_timescale + " %)",index=False, startrow=1)
+            # worksheet = writer.sheets["Area. Concat"]
+            worksheet = writer.sheets["Time Decay. Concat (" + self.master.controller.current_timescale + " %)"]
+            for idx, col in enumerate(timedecayavgdf):  # loop through all columns
+                series = timedecayavgdf[col]
+                max_len = max((
+                    series.astype(str).map(len).max(),  # len of largest item
+                    len(str(series.name))  # len of column name/header
+                    )) + 1  # adding a little extra space
+                worksheet.set_column(idx, idx, max_len)  # set column width
+
+            # merge_top = [["T10", 1, 3] , ["T20", 4,6] , ["T30", 7, 9] , ["T40", 10, 12] , ["T50", 13, 15] , ["T60", 16, 18] , ["T70", 19, 21] , ["T80", 22, 24] , ["T90", 25, 27]]
+            merge_top = [["T10", 2, 4] , ["T20", 5,7] , ["T30", 8, 10] , ["T40", 11, 13] , ["T50", 14, 16] , ["T60", 17, 19] , ["T70", 20, 22] , ["T80", 23, 25] , ["T90", 26, 28]]
+            for col_num in range(len(merge_top)):
+                col_id_here = xlsxwriter.utility.xl_col_to_name(merge_top[col_num][1]-1)
+                col_id_there = xlsxwriter.utility.xl_col_to_name(merge_top[col_num][2]-1)
+                if col_num % 2 == 0:
+                    worksheet.merge_range( col_id_here + "1:"+col_id_there+"1", merge_top[col_num][0], topmerge_format_odd)
+                else:
+                    worksheet.merge_range( col_id_here + "1:"+col_id_there+"1", merge_top[col_num][0], topmerge_format_even)
+
+            for col_num, value in enumerate(timedecayavgdf.columns.values):
+                if value.endswith('.1') or value.endswith('.2') or value.endswith('.3') or value.endswith('.4') or value.endswith('.5') or value.endswith('.6') or value.endswith('.7') or value.endswith('.8'):
+                    value = value[:-2]
+                # worksheet.write(0, col_num, value, header_format)
+                worksheet.write(1, col_num, value, header_format)
+
             writer.save()
             messagebox.showinfo(
                 "File saved",
                 "File was successfully saved"
             )
         except Exception as e:
-            print(str(e))
+            # print(str(e))
             messagebox.showerror("Error", "Could not save Data file\n" + str(e))
 
-        print("class SummarizeTablesDialog def apply end")
+        # print("class SummarizeTablesDialog def apply end")
 
 class SavGolDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class SavGolDialog def body creation")
+        # print("class SavGolDialog def body creation")
 
         ttk.Label(master, text='Window Length:').grid(row=0, column=0)
 
@@ -2328,7 +4191,7 @@ class SavGolDialog(tkDialog.Dialog):
         return self.e1 # initial focus
 
     def validate(self):
-        print("class SavGolDialog def validate start")
+        # print("class SavGolDialog def validate start")
         try:
             first= int(self.e1.get().replace(",", "."))
             second = int(self.e2.get().replace(",", "."))
@@ -2337,6 +4200,13 @@ class SavGolDialog(tkDialog.Dialog):
                 messagebox.showwarning(
                     "Bad input",
                     "Illegal values, please try again"
+                )
+                self.valid = False
+                return 0
+            if first % 2 == 0:
+                messagebox.showwarning(
+                    "Bad input",
+                    "Window length must be odd"
                 )
                 self.valid = False
                 return 0
@@ -2351,7 +4221,7 @@ class SavGolDialog(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class SavGolDialog def apply start")
+        # print("class SavGolDialog def apply start")
         first = int(self.e1.get().replace(",", "."))
         second = int(self.e2.get().replace(",", "."))
         self.result = first, second
@@ -2361,7 +4231,7 @@ class SavGolDialog(tkDialog.Dialog):
 class NpConvDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class NpConvDialog def body creation")
+        # print("class NpConvDialog def body creation")
 
         ttk.Label(master, text='Window Length:').grid(row=0, column=0)
 
@@ -2383,7 +4253,7 @@ class NpConvDialog(tkDialog.Dialog):
         return self.e1 # initial focus
 
     def validate(self):
-        print("class NpConvDialog def validate start")
+        # print("class NpConvDialog def validate start")
         try:
             first= int(self.e1.get().replace(",", "."))
             if first > self.literals["maxvalues"]:
@@ -2404,14 +4274,14 @@ class NpConvDialog(tkDialog.Dialog):
             return 0
 
     def apply(self):
-        print("class NpConvDialog def apply start")
+        # print("class NpConvDialog def apply start")
         first = int(self.e1.get().replace(",", "."))
         self.result = first, self.formatvar.get()
 
 class FourierConvDialog(tkDialog.Dialog):
 
     def body(self, master):
-        print("class FourierConvDialog def body creation")
+        # print("class FourierConvDialog def body creation")
         ttk.Label(master, text="% of Frequencies kept:").grid(row=0, column=0)
 
         self.e1 = tk.Spinbox(master, from_=self.literals["freqstart"], to=self.literals["maxvalues"], increment=0.1, width=10)
@@ -2421,11 +4291,11 @@ class FourierConvDialog(tkDialog.Dialog):
 
         self.valid = False
 
-        print("class FourierConvDialog def body created")
+        # print("class FourierConvDialog def body created")
         return self.e1 # initial focus
 
     def validate(self):
-        print("class FourierConvDialog def validate start")
+        # print("class FourierConvDialog def validate start")
         try:
             first= float(self.e1.get().replace(",", "."))
             if first > self.literals["maxvalues"]:
@@ -2436,7 +4306,7 @@ class FourierConvDialog(tkDialog.Dialog):
                 self.valid = False
                 return 0
             self.valid = True
-            print("class FourierConvDialog def validate true")
+            # print("class FourierConvDialog def validate true")
             return 1
         except ValueError:
             messagebox.showwarning(
@@ -2444,11 +4314,11 @@ class FourierConvDialog(tkDialog.Dialog):
                 "Illegal values, please try again"
             )
             self.valid = False
-            print("class FourierConvDialog def validate false")
+            # print("class FourierConvDialog def validate false")
             return 0
 
     def apply(self):
-        print("class FourierConvDialog def apply start")
+        # print("class FourierConvDialog def apply start")
         first = float(self.e1.get().replace(",", "."))
         self.result = first
-        print("class FourierConvDialog def apply done")
+        # print("class FourierConvDialog def apply done")

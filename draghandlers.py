@@ -49,7 +49,7 @@ class PeakObj(object):
         "Contraction time-to-peak (CTP)": 0.0,
         "Contraction time from peak to minimum speed (CTPMS)": 0.0,
         "Relaxation time-to-peak (RTP)": 0.0,
-        "Relaxation time from peak to Basaline (RTPB)": 0.0,
+        "Relaxation time from peak to Baseline (RTPB)": 0.0,
         "Time between Contraction-Relaxation maximum speed (TBC-RMS)": 0.0,
 
         'Maximum Contraction Speed (MCS)': 0.0,
@@ -91,7 +91,7 @@ class PeakObj(object):
             self.parameters["Contraction time-to-peak (CTP)"] = (self.secondtime - self.firsttime)
             self.parameters["Contraction time from peak to minimum speed (CTPMS)"] = (self.thirdtime - self.secondtime)
             self.parameters["Relaxation time-to-peak (RTP)"] = (self.fourthtime - self.thirdtime)
-            self.parameters["Relaxation time from peak to Basaline (RTPB)"] = (self.fifthtime - self.fourthtime)
+            self.parameters["Relaxation time from peak to Baseline (RTPB)"] = (self.fifthtime - self.fourthtime)
             self.parameters["Time between Contraction-Relaxation maximum speed (TBC-RMS)"] = (self.fourthtime - self.secondtime)
             self.time_scale = timescale
         elif timescale == "ms" and self.time_scale != "ms":
@@ -108,12 +108,12 @@ class PeakObj(object):
             self.parameters["Contraction time-to-peak (CTP)"] = (self.secondtime - self.firsttime)
             self.parameters["Contraction time from peak to minimum speed (CTPMS)"] = (self.thirdtime - self.secondtime)
             self.parameters["Relaxation time-to-peak (RTP)"] = (self.fourthtime - self.thirdtime)
-            self.parameters["Relaxation time from peak to Basaline (RTPB)"] = (self.fifthtime - self.fourthtime)
+            self.parameters["Relaxation time from peak to Baseline (RTPB)"] = (self.fifthtime - self.fourthtime)
             self.parameters["Time between Contraction-Relaxation maximum speed (TBC-RMS)"] = (self.fourthtime - self.secondtime)
             self.time_scale = timescale
         print("class PeakObj def switch_timescale done")
 
-    def calc_parameters(self):
+    def calc_parameters(self, recalc=True):
         print("class PeakObj def calc_parameters start")
         self.peakdata = []
         self.peaktimes = []
@@ -165,7 +165,9 @@ class PeakObj(object):
         self.fourthvalue = self.fulldata[self.smax]
         self.fifthvalue = self.fulldata[self.last]
         print("class PeakObj def calc_parameters retrieving values for each dot done")
+        self.advanced_parameters()
 
+    def advanced_parameters(self):
         print("class PeakObj def calc_parameters calculating interest variables from times and values")
         self.parameters["Contraction-Relaxation Time (CRT)"] = (self.fifthtime - self.firsttime)
         self.parameters["Contraction Time (CT)"] = (self.thirdtime - self.firsttime)
@@ -173,7 +175,7 @@ class PeakObj(object):
         self.parameters["Contraction time-to-peak (CTP)"] = (self.secondtime - self.firsttime)
         self.parameters["Contraction time from peak to minimum speed (CTPMS)"] = (self.thirdtime - self.secondtime)
         self.parameters["Relaxation time-to-peak (RTP)"] = (self.fourthtime - self.thirdtime)
-        self.parameters["Relaxation time from peak to Basaline (RTPB)"] = (self.fifthtime - self.fourthtime)
+        self.parameters["Relaxation time from peak to Baseline (RTPB)"] = (self.fifthtime - self.fourthtime)
         self.parameters["Time between Contraction-Relaxation maximum speed (TBC-RMS)"] = (self.fourthtime - self.secondtime)
 
         print("class PeakObj def calc_parameters printing max difference")
@@ -196,7 +198,6 @@ class PeakObj(object):
             self.parameters[k] = float("{:.3f}".format(self.parameters[k]))
         print("class PeakObj def calc_parameters formating parameter float done")
         print("class PeakObj def calc_parameters done")
-
 
 class MoveDragHandler(object):
     """ A simple class to handle Drag n Drop.
@@ -295,6 +296,8 @@ class MoveDragHandler(object):
         self.axcurlims = (None, None)
         self.ax2curlims = (None, None)
         self.delta_fft = deltafft
+        self.FFTxData = {}
+        self.tempresult = False
 
     def get_rectangles_data(self):
         if not self.drawnrects:
@@ -648,14 +651,23 @@ class MoveDragHandler(object):
                 newdot2[0].pointtype = newtype
                 self.ax2.set_xlim(xlim)
                 self.ax2.set_ylim(ylim)
+            #add dot to f_points list of master
+            #"first", "max", "min", "last"
+            self.selectareaopen = False
             self.selectdotarea = None
             self.selectloc = None
+            self.tempresult = False
             self.figure.canvas.draw()
             messagebox.showinfo("Dot Added", "Dot added successfully!")
             return True
         else:
+            print("self.selectdotarea")
+            print(self.selectdotarea)
+            print("self.selectloc")
+            print(self.selectloc)
             self.selectdotarea = None
             self.selectloc = None
+            self.tempresult = False
             messagebox.showerror("Error", "Dot already exists at this position")
             return False
         self.selectdotarea = None
@@ -735,9 +747,15 @@ class MoveDragHandler(object):
             print("inside first")
             selected = None
             
-            array = np.asarray(list(range(len(self.data))))
-            idx = (np.abs(array - event.xdata)).argmin()
+            arrayz = np.asarray(list(range(len(self.data))))
+            idx = (np.abs(arrayz - event.xdata)).argmin()
             self.selectloc = (int(idx), self.data[int(idx)])
+            # print("event.xdata")
+            # print(event.xdata)
+            # print("idx")
+            # print(idx)
+            # print("self.selectloc")
+            # print(self.selectloc)
             for child in thisax.get_children():
                 if isinstance(child, Line2D) and child.contains(event)[0] and child.get_marker() == "o":
                     selected = child
@@ -745,6 +763,8 @@ class MoveDragHandler(object):
                         self.selectloc = None
                     break
             #open menu for move event
+            print("selected")
+            print(selected)
             self.selectdotarea = selected
             try:
                 self.selectareaopen = True
@@ -1349,25 +1369,46 @@ class MoveDragHandler(object):
 
             maxes_x = []
             maxes_x = [freq[i] for i in maxes[1:]]
-            maxes_x = [maxes_x[0]]
             maxes_y = []
             maxes_y = [AmpFFT[i] for i in maxes[1:]]
-            maxes_y = [maxes_y[0]]
+            if len(maxes_x) > 0 and len(maxes_y) > 0 and self.master.current_frame.plotFFTAll == False:
+                maxes_x = [maxes_x[self.master.current_frame.plotFFTSelection]]
+                maxes_y = [maxes_y[self.master.current_frame.plotFFTSelection]]
+            elif len(maxes_x) == 0 or len(maxes_y) == 0:
+                maxes_x = []
+                maxes_y = []
 
             self.ax2.set_xlabel("Frequency (Hz)");
             self.ax2.set_ylabel("Amplitude Density");
             self.subplotartist = self.ax2.plot(freq, AmpFFT, color=self.colorify["main"])
 
             fdot = False
+            maxesi = 0
+            self.FFTxData = {}
+            print("##")
+            print("self.master.current_frame.plotFFTSelection")
+            print(self.master.current_frame.plotFFTSelection)
+            print("##")
             for x, y in zip(maxes_x, maxes_y):
                 curc = self.colorify["fft"]
-                if fdot == False:
-                    curc = self.colorify["fft_selection"]
+                # if fdot == False:
+                if maxesi == self.master.current_frame.plotFFTSelection and self.master.current_frame.plotFFTAll == True:
+                    curc = self.colorify["fft_selection"]                 
+                    fdot = True
+                elif fdot == False and self.master.current_frame.plotFFTAll == False:
+                    curc = self.colorify["fft_selection"]                    
                     fdot = True
                 # dot = self.ax2.plot(x, y, "o", color=curc, picker=1)
+                self.FFTxData[x] = maxesi
                 dot = self.ax2.plot(x, y, "o", linewidth=2, fillstyle='none', color=curc, picker=3)
-                
-            self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) )
+                maxesi += 1
+            
+            if len(maxes_x) > 0 and self.master.current_frame.plotFFTAll == True:
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[self.master.current_frame.plotFFTSelection]) )
+            elif len(maxes_x) > 0:
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) )
+            else:
+                self.ax2.set_title("Selected Wave Frequency: None")
 
             # self.ax2.plot(maxes_x, maxes_y, "o", color=self.colorify["fft"])
             if self.ax2grid != None:
@@ -1514,7 +1555,9 @@ class MoveDragHandler(object):
         self.figure.canvas.draw()
         if selected == None: return
         xdata, ydata = selected.get_data()
-        self.ax2.set_title("Frequency: " + "{:.3f}".format(float(xdata[0])) )
+        self.master.current_frame.plotFFTSelection = self.FFTxData[float(xdata[0])]
+        # self.ax2.set_title("Frequency: " + "{:.3f}".format(float(xdata[0])) )
+        self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(float(xdata[0])) )
         self.figure.canvas.draw()
 
     #Mode Noise -> Draw areas and set them as noise or not noise

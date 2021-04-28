@@ -4,6 +4,7 @@ from lineardetectpack import generate_bfderivative_full, noise_signal_linear_reg
 from jenksdetectpack import jenks_until
 from peakdetectpure import peakdet
 from scipy.optimize import curve_fit
+from scipy.signal import argrelmin, argrelmax
 
 def exponential_fit(x, a, b, c):
     return np.exp(a) * np.exp(b * x) + c
@@ -24,8 +25,8 @@ def smooth_scipy(data, window_size, window_type='flat'):
     data = np.array(data)
     window_type = window_type.lower()
     window_size = int(window_size)
-    print("window_size")
-    print(window_size)
+    # print("window_size")
+    # print(window_size)
     if data.ndim != 1:
         raise ValueError("smooth only accepts 1 dimension arrays.")
     if data.size < window_size:
@@ -47,12 +48,12 @@ def noise_definition(data):
     if largs != False:
         ftoplot, ltoplot, xintersect, yintersect, xintersect_dot, yintersect_value = largs
         belowthresholdvalues = [e for e in sorted(data) if e < yintersect_value]
-        return np.mean(belowthresholdvalues)
+        return np.mean(belowthresholdvalues), np.std(belowthresholdvalues), np.max(belowthresholdvalues)
     else:
         #cutoff from avg first 25% lowest values
         sorted_data = sorted(data)
         sorted_data_25perc = sorted_data[: int(len(sorted_data) / 4)]
-        return np.mean(sorted_data_25perc)
+        return np.mean(sorted_data_25perc), np.std(sorted_data_25perc), np.max(sorted_data_25perc)
 
 def _1gaussian(x, amp1,cen1,sigma1):
     return amp1*(1/(sigma1*(np.sqrt(2*np.pi))))*(np.exp((-1.0/2.0)*(((x-cen1)/sigma1)**2)))
@@ -61,13 +62,11 @@ def _2gaussian(x, amp1,cen1,sigma1, amp2,cen2,sigma2):
     return amp1*(1/(sigma1*(np.sqrt(2*np.pi))))*(np.exp((-1.0/2.0)*(((x-cen1)/sigma1)**2))) + \
             amp2*(1/(sigma2*(np.sqrt(2*np.pi))))*(np.exp((-1.0/2.0)*(((x-cen2)/sigma2)**2)))
 
-# def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
 def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=None):
-    #TODO: Write up noise detection separately and pass args to peak_detection
     # print("current_case")
     # print(current_case)
-    print("pre_cutoff_val")
-    print(cutoff_val)
+    # print("pre_cutoff_val")
+    # print(cutoff_val)
     if cutoff_val == None:
         # cutoff_val = np.median(current_case)
         # cutoff_val = float("{:.3f}".format(cutoff_val))
@@ -75,21 +74,33 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
         vi = np.argsort(current_case)[-n:]
         cutoff_val = np.mean([current_case[a] for a in vi])
         cutoff_val = float("{:.3f}".format(cutoff_val))
-    print("cutoff_val")
-    print(cutoff_val)
+    # print("cutoff_val")
+    # print(cutoff_val)
 
     # gvf, case_classes = jenks_until(current_case, False, cutoff=cutoff_val)
     gvf = cutoff_val
+    case_classes = class_definition(current_case, cutoff_val)
+    
+    # print("case_classes")
+    # print(case_classes)
+    #non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise,
+    results = probable_signal_from_classes(current_case, case_classes, filter_noise_area=filter_noise_area, added_noise_dots=added_noise_dots, removed_noise_dots=removed_noise_dots)
+    if results is not None:
+        non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise = results
+        return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val
+    else:
+        return None
+
+def class_definition(current_case, cutoff_val):
     case_classes = []
     for e in current_case:
         if e < cutoff_val:
             case_classes.append(1)
         else:
             case_classes.append(2)
-    
-    # print("case_classes")
-    # print(case_classes)
+    return case_classes
 
+def probable_signal_from_classes(current_case, case_classes, filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[]):
     #class > 1 are peak points
     non_noise_points = [(e, i) for i,e in enumerate(current_case) if case_classes[i] != 1]
 
@@ -102,8 +113,10 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
         noise_points = [(e, i) for i,e in enumerate(current_case) if case_classes[i] == 1 or int(i) in added_noise_dots]
     else:
         noise_points = [(e, i) for i,e in enumerate(current_case) if case_classes[i] == 1]
-    print("noise_points")
-    print(noise_points)
+    # print("case_classes")
+    # print(case_classes)
+    # print("noise_points")
+    # print(noise_points)
     if len(noise_points) < 2:
         return None
 
@@ -124,7 +137,7 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
     noise_freq = len(noise_points) / len(current_case)
     peak_to_noise_ratio = len(non_noise_points) / len(noise_points)
 
-    #get noise areas
+    #get noise areas, which are consecutive points not in probable wave areas
     noise_area = False
     noise_areas = []
     for i, e in enumerate(current_case):
@@ -134,12 +147,13 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
             noise_areas.append([])
             noise_areas[-1].append(i)
             noise_area = True
-        else:
+        else: #what causes breakage from one area to another is finding a probable wave point
             noise_area = False
 
     #get mean noise area size
     mean_noise_area_size = np.mean([len(a) for a in noise_areas])
 
+    #filtered_maxfilter_areas are noise_areas filtered by a minimum point density excepting for starting and ending noise_areas
     filtered_maxfilter_areas = []
     if filter_noise_area == True:
         #filter noise areas by mean excluding first and last areas
@@ -158,10 +172,306 @@ def noise_detection(current_case, filter_noise_area=True, added_noise_dots=[], r
 
     #max noise is extracted
     max_filtered_noise = np.max(filtered_maxfilter_values)
-    print("max_noise")
-    print(max_noise)
-    return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val
+    # print("max_noise")
+    # print(max_noise)
+    return non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise
 
+
+# def threshold_peak_detection(current_case, endwave_threshold=None, nargs=[]):
+#     non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise, cutoff_val = nargs
+#     delta, stop_condition_perc, cutoff_val = None, endwave_threshold, cutoff_val
+#     exponential_pops = None
+#     possible_minimums = argrelmin(current_case)
+#     possible_maximums = argrelmax(current_case)
+
+#     maxtab = [i for i in possible_maximums if i not in noise_points_indexes]
+#     mintab = [i for i in possible_minimums if i not in noise_points_indexes]
+#     #minimum wave points: two maxtabs, one mintab, five points
+
+#     for 
+#     # f_points, s_f_points, t_points, l_points
+#     return (f_points, s_f_points, t_points, l_points), (mean_noise, std_noise, max_noise, filtered_maxfilter_indexes), exponential_pops, (delta, stop_condition_perc, cutoff_val)
+
+#for example,
+# calcium decay time 75 is measured as the
+# time from peak calcium amplitude to
+# the time when the amplitude falls to 25%
+# of the baseline-corrected maximum amplitude
+
+def peak_detection_decay(current_case, delta=False, cutoff_val=None, until_time=0.75, noise_baseline=None):
+    
+    if noise_baseline is None:
+        noise_baseline = noise_definition(current_case)[0]
+
+    if cutoff_val is None:
+        n = int(len(current_case) * 0.3)
+        vi = np.argsort(current_case)[-n:]
+        cutoff_val = np.mean([current_case[a] for a in vi])
+        cutoff_val = float("{:.3f}".format(cutoff_val))
+    
+    case_classes = class_definition(current_case, cutoff_val)
+    non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise = probable_signal_from_classes(current_case, case_classes)
+
+    if delta == False:
+        delta = np.mean(non_noise_points_values) / 3
+        delta = float("{:.3f}".format(delta))
+    
+    # delta is average from detected maximum values to closest baseline minimum / 2
+    maxtab, mintab = peakdet(current_case, delta)
+
+    above_before_derivatives = generate_bfderivative_full(current_case)
+
+    all_local_maximums = []
+    all_local_minimums = []
+    for i in range(len(above_before_derivatives)-1):
+        val = above_before_derivatives[i]
+        val2 = above_before_derivatives[i+1]
+        if val > 0.0 and val2 < 0.0:
+            all_local_maximums.append(i)
+        elif val < 0.0 and val2 > 0.0:
+            all_local_minimums.append(i)
+    #add first and last points to minimums if below max noise threshold
+    if current_case[0] < np.max(noise_points_values) and current_case[1] > current_case[0]:
+        all_local_minimums.insert(0, 0)
+    if current_case[-1] < np.max(noise_points_values) and current_case[-2] > current_case[-1]:
+        all_local_minimums.append(len(current_case)-1)
+    
+    #pick pairs of maximums, filter maximums after pairs if baseline not found
+
+    #filter maximums by derivative
+    maxtab = sorted(list(set(maxtab) & set(all_local_maximums)))
+    
+    f_points = []
+    s_f_points = []
+    t_points = []
+    l_points = []
+
+    i = 0
+    while (True and len(maxtab) > 0):
+        # = current_case[maxtab[i]]
+        max_1_i = maxtab[i]
+
+        f_point = None
+
+        #
+        #FIRST POINT DETECTION
+        #
+        #probable first points are listed here
+        #they include, all points before max_1_i
+        #which are mathematically local minimums
+        #and whose indexes are in probable non wave areas (defined by a cutoff)
+        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+
+        #max_2, max_2_i = None, None
+        try:
+            #max_2 = current_case[maxtab[i+1]]
+            max_2_i = maxtab[i+1]
+        except IndexError as e:
+            # print(e)
+            break
+
+        #here we get the following probable non wave area after an maximum, up to its rounded median point
+        try:
+            #noise_above = [a for a in noise_points_indexes if a > max_2_i][0]
+            filtered_maxfilter_area_above = [a for a in filtered_maxfilter_areas if a[0] > max_2_i][0]
+            filtered_maxfilter_area_above_start = filtered_maxfilter_area_above[0]
+            filtered_maxfilter_area_above_middle_p = int(np.median(filtered_maxfilter_area_above))
+        except IndexError as e:
+            # print(e)
+            break
+
+        #search algorithm goes from max_2_i to filtered_maxfilter_area_above_middle_p
+
+        #first point is determined to be the last of all probable f_points
+        if len(previous_mins) >= 1:
+            #
+            #FIRST POINT DEFINITION
+            #
+            f_point = previous_mins[-1]
+            f_points.append(f_point)
+        else:
+            i += 1
+            continue
+        #maximum 1 and 2 search is done around the defined area
+        try:
+            #
+            #MAXIMUM FINAL DETECTION AND DEFINITION
+            #
+            
+            #maximum minimum refinement after f_point and l_point detection
+            # in_between = range(f_points[-1],l_points[-1]+1)
+            in_between = range(f_points[-1],filtered_maxfilter_area_above_middle_p+1)
+            in_between_maximums = sorted(list(set(in_between) & set(maxtab)))
+            #filter maximum and minimum points if more than two between first and last points:
+            in_between_maximums_vals_sort = sorted([(i,current_case[i]) for i in in_between_maximums], key=lambda x: x[1], reverse=True)
+            #maximums are two highest maximums
+            second_point = in_between_maximums_vals_sort[0][0]
+            s_f_points.append(second_point)
+            fourth_point = in_between_maximums_vals_sort[1][0]
+            s_f_points.append(fourth_point)
+            second_point = np.min([s_f_points[-1], s_f_points[-2]])
+            fourth_point = np.max([s_f_points[-1], s_f_points[-2]])
+
+            #
+            #THIRD POINT DETECTION AND DEFINITION
+            #
+            between_defined_maximums = [e for i,e in enumerate(current_case) if i > second_point and i < fourth_point]
+            all_between_maxes = [(i+second_point+1, e) for i,e in enumerate(between_defined_maximums)]
+            all_between_maxes_sort = sorted(all_between_maxes, key=lambda x: x[1], reverse=True)
+            t_points.append(all_between_maxes_sort[-1][0])
+
+            #
+            #LAST POINT DEFINITION AND DETECTION
+            #
+            between_fourth_and_noise = [i for i,e in enumerate(current_case) if i > fourth_point and e > noise_baseline]
+            until_point = between_fourth_and_noise[int(np.rint(len(between_fourth_and_noise) * until_time))]
+            l_points.append(until_point)
+
+            # time_between = 
+            #differently from peak_detection search 1, now the last point is defined by the threshold
+            #threshold_value = (current_case[fourth_point] - cutoff_val) * end_detect_params[1]
+            
+            #between_fourth_and_noise = [i for i,e in enumerate(current_case) if i > fourth_point and i < filtered_maxfilter_area_above_middle_p+1 and e <= threshold_value]
+            #last point is the starting point after fourth and before median of following noise area below threshold
+            #l_points.append(between_fourth_and_noise[0])
+        except IndexError:
+            i += 1
+            continue
+        
+        #skip all maximums before median of following noise area and restart search
+        maxtab_skip_point = sorted([m for m in maxtab if m > filtered_maxfilter_area_above_middle_p])
+
+        if len(maxtab_skip_point) > 0:
+            i = maxtab.index(maxtab_skip_point[0])
+        else:
+            break
+    return (f_points, s_f_points, t_points, l_points), (mean_noise, std_noise, max_noise, filtered_maxfilter_indexes), [], (delta, None, None)
+
+
+
+
+def peak_detection_threshold(current_case, delta=False, end_detect_params=[]):
+
+    #noise maximum as param
+    cutoff_val = end_detect_params[-1]
+    # print("cutoff_val")
+    # print(cutoff_val)
+
+    case_classes = class_definition(current_case, cutoff_val)
+    non_noise_points, non_noise_points_values, non_noise_points_indexes, noise_points, noise_points_values, noise_points_indexes, mean_noise, std_noise, max_noise, peak_freq, noise_freq, peak_to_noise_ratio, noise_areas, mean_noise_area_size, filtered_maxfilter_areas, filtered_maxfilter_indexes, filtered_maxfilter_values, max_filtered_noise = probable_signal_from_classes(current_case, case_classes)
+
+    if delta == False:
+        delta = np.mean(non_noise_points_values) / 3
+        delta = float("{:.3f}".format(delta))
+    
+    # delta is average from detected maximum values to closest baseline minimum / 2
+    maxtab, mintab = peakdet(current_case, delta)
+
+    maxtab = [i for i in maxtab if i not in noise_points_indexes]
+
+    above_before_derivatives = generate_bfderivative_full(current_case)
+
+    all_local_maximums = []
+    all_local_minimums = []
+    for i in range(len(above_before_derivatives)-1):
+        val = above_before_derivatives[i]
+        val2 = above_before_derivatives[i+1]
+        if val > 0.0 and val2 < 0.0:
+            all_local_maximums.append(i)
+        elif val < 0.0 and val2 > 0.0:
+            all_local_minimums.append(i)
+    #add first and last points to minimums if below max noise threshold
+    if current_case[0] < np.max(noise_points_values) and current_case[1] > current_case[0]:
+        all_local_minimums.insert(0, 0)
+    if current_case[-1] < np.max(noise_points_values) and current_case[-2] > current_case[-1]:
+        all_local_minimums.append(len(current_case)-1)
+
+
+    #filter maximums by derivative
+    maxtab = sorted(list(set(maxtab) & set(all_local_maximums)))
+    
+    f_points = []
+    s_f_points = []
+    t_points = []
+    l_points = []
+    exponential_pops = []
+
+    i = 0
+    while (True and len(maxtab) > 0):
+        # = current_case[maxtab[i]]
+        max_1_i = maxtab[i]
+
+        f_point = None
+
+        #probable first points are listed here
+        #they include, all points before max_1_i
+        #which are mathematically local minimums
+        #and whose indexes are in probable non wave areas (defined by a cutoff)
+        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+
+        #max_2, max_2_i = None, None
+        try:
+            #max_2 = current_case[maxtab[i+1]]
+            max_2_i = maxtab[i+1]
+        except IndexError as e:
+            # print(e)
+            break
+
+        #here we get the following probable non wave area after an maximum, up to its rounded median point
+        try:
+            #noise_above = [a for a in noise_points_indexes if a > max_2_i][0]
+            filtered_maxfilter_area_above = [a for a in filtered_maxfilter_areas if a[0] > max_2_i][0]
+            filtered_maxfilter_area_above_start = filtered_maxfilter_area_above[0]
+            filtered_maxfilter_area_above_middle_p = int(np.median(filtered_maxfilter_area_above))
+        except IndexError as e:
+            # print(e)
+            break
+
+        #search algorithm goes from max_2_i to filtered_maxfilter_area_above_middle_p
+
+        #first point is determined to be the last of all probable f_points
+        if len(previous_mins) >= 1:
+            f_point = previous_mins[-1]
+            f_points.append(f_point)
+        else:
+            i += 1
+            continue
+        #maximum 1 and 2 search is done around the defined area
+        try:
+            #maximum minimum refinement after f_point and l_point detection
+            # in_between = range(f_points[-1],l_points[-1]+1)
+            in_between = range(f_points[-1],filtered_maxfilter_area_above_middle_p+1)
+            in_between_maximums = sorted(list(set(in_between) & set(maxtab)))
+            #filter maximum and minimum points if more than two between first and last points:
+            in_between_maximums_vals_sort = sorted([(i,current_case[i]) for i in in_between_maximums], key=lambda x: x[1], reverse=True)
+            #maximums are two highest maximums
+            second_point = in_between_maximums_vals_sort[0][0]
+            s_f_points.append(second_point)
+            fourth_point = in_between_maximums_vals_sort[1][0]
+            s_f_points.append(fourth_point)
+            second_point = np.min([s_f_points[-1], s_f_points[-2]])
+            fourth_point = np.max([s_f_points[-1], s_f_points[-2]])
+            between_defined_maximums = [e for i,e in enumerate(current_case) if i > second_point and i < fourth_point]
+            all_between_maxes = [(i+second_point+1, e) for i,e in enumerate(between_defined_maximums)]
+            all_between_maxes_sort = sorted(all_between_maxes, key=lambda x: x[1], reverse=True)
+            t_points.append(all_between_maxes_sort[-1][0])
+            #differently from peak_detection search 1, now the last point is defined by the threshold
+            threshold_value = (current_case[fourth_point] - cutoff_val) * end_detect_params[1]
+            between_fourth_and_noise = [i for i,e in enumerate(current_case) if i > fourth_point and i < filtered_maxfilter_area_above_middle_p+1 and e <= threshold_value]
+            #last point is the starting point after fourth and before median of following noise area below threshold
+            l_points.append(between_fourth_and_noise[0])
+        except IndexError:
+            i += 1
+            continue
+        
+        #skip all maximums before median of following noise area and restart search
+        maxtab_skip_point = sorted([m for m in maxtab if m > filtered_maxfilter_area_above_middle_p])
+
+        if len(maxtab_skip_point) > 0:
+            i = maxtab.index(maxtab_skip_point[0])
+        else:
+            break
+    return (f_points, s_f_points, t_points, l_points), (mean_noise, std_noise, max_noise, filtered_maxfilter_indexes), [], (delta, None, None)
 
 # def peak_detection(current_case, filter_noise_area=True, delta=False, stop_condition_perc=False, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90):
 def peak_detection(current_case, original_case=False, delta=False, expconfigs=[], stop_condition_perc=False, nargs=[]):
@@ -190,7 +500,7 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
         delta = np.mean(non_noise_points_values) / 3
         delta = float("{:.3f}".format(delta))
 
-    # delta is average from detected maximum values to closest baseline minimum / 2
+    # delta is average from detected maximum values to closest baseline minimum / 3
     maxtab, mintab = peakdet(current_case, delta)
 
     maxtab = [i for i in maxtab if i not in noise_points_indexes]
@@ -245,7 +555,7 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
             #max_2 = current_case[maxtab[i+1]]
             max_2_i = maxtab[i+1]
         except IndexError as e:
-            print(e)
+            # print(e)
             break
 
         range_maxfilter = []
@@ -261,7 +571,7 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
             filtered_maxfilter_area_minmax = [i for i in range_maxfilter if i in all_local_minimums or i in all_local_maximums]
             filtered_maxfilter_area_minmax_perc = len(filtered_maxfilter_area_minmax) / len(filtered_maxfilter_values)
         except IndexError as e:
-            print(e)
+            # print(e)
             break
 
         after_mins = current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint]
@@ -281,11 +591,11 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
         
         valuesfit = after_mins
         if smoothbeforeregression == "always":
-            print("always selected, smoothing going to be done")
+            # print("always selected, smoothing going to be done")
             # smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
             smoothed_vals = smooth_data(valuesfit, 2)
-            print(len(valuesfit))
-            print(len(smoothed_vals))
+            # print(len(valuesfit))
+            # print(len(smoothed_vals))
             if len(valuesfit) != len(smoothed_vals):
                 valuesfit = smoothed_vals[2:]
             else:
@@ -298,16 +608,16 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
                     ovaluesfit = osmoothed_vals.copy()
 
             # valuesfit = smoothed_vals[2:-2]
-            print(len(valuesfit))
+            # print(len(valuesfit))
 
         elif smoothbeforeregression == "noisecriteria":
-            print("noise criteria selected, verifying smoothing")
+            # print("noise criteria selected, verifying smoothing")
             if filtered_maxfilter_area_minmax_perc > noiseratio:
-                print("smoothing done")
+                # print("smoothing done")
                 # smoothed_vals = smooth_data(current_case[filtered_maxfilter_area_above_start:filtered_maxfilter_area_endpoint], 2)
                 smoothed_vals = smooth_data(valuesfit, 2)
-                print(len(valuesfit))
-                print(len(smoothed_vals))
+                # print(len(valuesfit))
+                # print(len(smoothed_vals))
                 if len(valuesfit) != len(smoothed_vals):
                     valuesfit = smoothed_vals[2:]
                 else:
@@ -324,7 +634,7 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
                 # stop_condition_perc = 0.20
                 stop_condition_perc = 0.35
         elif smoothbeforeregression == "never":
-            print("never selected, skipping smoothing")
+            # print("never selected, skipping smoothing")
             pass
 
         #TODO MORE HERE
@@ -339,22 +649,22 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
         #Sanity check
         after_point = None
         if len(valuesfit) == 0:
-            print("no values available for exponential inference (insufficient)")
+            # print("no values available for exponential inference (insufficient)")
             i += 1
             continue
         elif len(valuesfit) < 2:
-            print("Single value available for exponential inference (insufficient)")
-            print("afterpoint is single value")
+            # print("Single value available for exponential inference (insufficient)")
+            # print("afterpoint is single value")
             after_point = range_maxfilter[valuesfit.index(np.min(valuesfit))]
         elif len(valuesfit) > 2:
-            print("multple values available for exponential inference")
+            # print("multple values available for exponential inference")
 
             #x values created for real data and for high definition data
             valuesfitx = np.array(range_maxfilter)
             valuesfitx_highdef = np.linspace(max_2_i, filtered_maxfilter_area_endpoint, 100)
 
             #curve fit for exponential function. high def data appended as well
-            print("try exponential fit")
+            # print("try exponential fit")
             popt, pcov = curve_fit(exponential_fit, valuesfitx, valuesfit, p0 = (1e-6, 1e-6, 1), maxfev=150000)
             opopt, opcov = None, None
             if original_case:
@@ -362,7 +672,7 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
                 opopt[0] = popt[0]
                 opopt[1] = popt[1]
             
-            print("exponential fit not found")
+            # print("exponential fit not found")
             exponential_pops.append((valuesfitx_highdef, popt))
 
             #integral of values for exponential are done
@@ -371,27 +681,27 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
                 total_area = np.trapz([exponential_fit(point, *opopt) for point in range_maxfilter])
             else:
                 total_area = np.trapz([exponential_fit(point, *popt) for point in range_maxfilter])
-            print("range_maxfilter")
-            print(range_maxfilter)
-            print("total_area")
-            print(total_area)
+            # print("range_maxfilter")
+            # print(range_maxfilter)
+            # print("total_area")
+            # print(total_area)
             current_area = 0.0
-            print("stop_condition_perc")
-            print(stop_condition_perc)
+            # print("stop_condition_perc")
+            # print(stop_condition_perc)
             stop_percentual = total_area * stop_condition_perc
-            print("stop_percentual")
-            print(stop_percentual)
-            print("popt")
-            print(popt)
-            print("opopt")
-            print(opopt)
-            print("")
-            print("")
+            # print("stop_percentual")
+            # print(stop_percentual)
+            # print("popt")
+            # print(popt)
+            # print("opopt")
+            # print(opopt)
+            # print("")
+            # print("")
             for point in range_maxfilter:
-                print("iteration")
+                # print("iteration")
                 after_point = point
-                print("point")
-                print(point)
+                # print("point")
+                # print(point)
                 if original_case:
                     exponential_speed_value = exponential_fit(point, *opopt)
                 else:
@@ -401,16 +711,16 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
                 # print("range_summation")
                 # print(range_summation)
                 # current_area = np.trapz([exponential_fit(a, *popt) for a in range_summation])
-                print("current_area")
-                print(current_area)
+                # print("current_area")
+                # print(current_area)
                 is_local_minimum = point in all_local_minimums
                 if current_area >= stop_percentual and local_minimum_check == False:
                     break
                 elif current_area >= stop_percentual and local_minimum_check == True and is_local_minimum == True:
                     break
-            print("")
-            print("")
-            print("last point has been defined as: " + str(after_point) + " for perc == " + str(current_area))
+            # print("")
+            # print("")
+            # print("last point has been defined as: " + str(after_point) + " for perc == " + str(current_area))
         if after_point is None:
             i += 1
             continue
