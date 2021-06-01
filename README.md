@@ -34,8 +34,7 @@ for Windows)
 Wait until the ContractionWave window opens (it might take some time). 
 
 ### Installation – Anaconda environment for Mac-OS
-#### I- Anaconda environment installation (should only be executed
-once)
+#### I- Anaconda environment installation (should only be executed once)
 
 The latest stable version **for Windows and Ubuntu (64-bit) or Mac-OS**
 
