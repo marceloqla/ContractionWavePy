@@ -18,8 +18,7 @@ These installations steps can also be found on the program's manual on: https://
 **Step 1:** Sign in to Mendeley Data website: https://data.mendeley.com
 If you are a first time user, you will need to register to log in.
 The link to the executable file in the Mendeley website is presented below:
-https://data.mendeley.com/datasets/hswwzgw6rp/draft?a=0b0c2dc1-5b68-4655-b4c1-
-6cb792675b08
+https://data.mendeley.com/datasets/hswwzgw6rp/draft?a=0b0c2dc1-5b68-4655-b4c1-6cb792675b08
 
 In Experiment data files click on CONTRACTIONWAVE - Executable file (Windows or
 Ubuntu) folder and choose the Operating System to download.
