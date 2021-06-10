@@ -12,6 +12,8 @@ import scipy.ndimage as ndimage
 #imports of external libs
 from PIL import ImageTk
 from PIL import Image
+from skimage.io import MultiImage
+from skimage.util import img_as_ubyte
 
 import multiprocessing
 from multiprocessing import Process, Manager, active_children#, Queue
@@ -356,17 +358,27 @@ def pixeldifferencecalc3(queueobj, object_to_diff, f_indexes, start_ind, end_ind
             jj += 1
         vc_p.release()
     elif object_to_diff.gtype == "Tiff Directory":
-        _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
-        images = images[start_ind:end_ind]
-        f_frame = images[f_point]
+        # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
+        # images = images[start_ind:end_ind]
+        # f_frame = images[f_point]
+        images = MultiImage(r'%s' % object_to_diff.gpath)
+        f_frame = images[start_ind+f_point]
+        # f_frame = f_frame[:, :, ::-1]
+        f_frame = img_as_ubyte(f_frame)
+        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
         f_frame = f_frame.astype('uint8')
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
             prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
         else:
             prvs_f_frame = f_frame
-        for j in range(len(images)-1):
+        # for j in range(len(images)-1):
+        for j in range(start_ind, end_ind-1):
             frame1 = images[0+j]
+            # frame1 = frame1[:, :, ::-1]
+            frame1 = img_as_ubyte(frame1)
+            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
+            
             frame1 = frame1.astype('uint8')
             if len(frame1.shape) >= 3:
                 prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
@@ -381,7 +393,8 @@ def pixeldifferencecalc3(queueobj, object_to_diff, f_indexes, start_ind, end_ind
             diff_prvs_min_mean2 = float("{:.3f}".format(diff_prvs_min_mean2))
             print(stamp+" PDIFF_VALUE "+ str(j) +" " +str(diff_prvs_min_mean2))
             queueobj.put(stamp+" PDIFF_VALUE "+ str(j) +" " +str(diff_prvs_min_mean2))
-            queueobj.put(stamp+" PROGRESS "+str((j+1) / (len(images)-1)))
+            # queueobj.put(stamp+" PROGRESS "+str((j+1) / (len(images)-1)))
+            queueobj.put(stamp+" PROGRESS "+str((j+1) / ((end_ind-start_ind)-1)))
             if j in f_indexes:
                 prvs_f_frame = prvs.copy()
 
@@ -481,17 +494,27 @@ def pixeldifferencecalc2(queueobj, object_to_diff, min_indexes, start_ind, end_i
             jj += 1
         vc_p.release()
     elif object_to_diff.gtype == "Tiff Directory":
-        _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
-        images = images[start_ind:end_ind]
-        f_frame = images[f_point]
+        # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
+        # images = images[start_ind:end_ind]
+        # f_frame = images[f_point]
+        images = MultiImage(r'%s' % object_to_diff.gpath)
+        f_frame = images[start_ind+f_point]
+        # f_frame = f_frame[:, :, ::-1]
+        # f_frame = img_as_ubyte(f_frame)
+        f_frame = img_as_ubyte(f_frame)
+        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
         f_frame = f_frame.astype('uint8')
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
             prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
         else:
             prvs_f_frame = f_frame
-        for j in range(len(images)-1):
+        # for j in range(len(images)-1):
+        for j in range(start_ind, end_ind-1):
             frame1 = images[0+j]
+            # frame1 = frame1[:, :, ::-1]
+            frame1 = img_as_ubyte(frame1)
+            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
             frame1 = frame1.astype('uint8')
             if len(frame1.shape) >= 3:
                 prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
@@ -663,21 +686,29 @@ def pixeldifferencecalc(queueobj, object_to_diff, f_indexes, start_ind, end_ind,
             j += 1
         vc_p.release()
     elif object_to_diff.gtype == "Tiff Directory":
-        _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
-        
+        # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)        
+        images = MultiImage(r'%s' % object_to_diff.gpath)
         # 
-        images = images[start_ind:end_ind]
+        # images = images[start_ind:end_ind]
         
         #Pre process and send flow to queue
-        f_frame = images[f_point]
+        # f_frame = images[f_point]
+        f_frame = images[start_ind+f_point]
+        # f_frame = f_frame[:, :, ::-1]
+        f_frame = img_as_ubyte(f_frame)
+        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
         f_frame = f_frame.astype('uint8')
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
             prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
         else:
             prvs_f_frame = f_frame
-        for j in range(len(images)-1):
+        for j in range(start_ind, end_ind-1):
+        # for j in range(len(images)-1):
             frame1 = images[0+j]
+            # frame1 = frame1[:, :, ::-1]
+            frame1 = img_as_ubyte(frame1)
+            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
             frame1 = frame1.astype('uint8')
             if len(frame1.shape) >= 3:
                 prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
@@ -945,15 +976,22 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             j += 1
         vc.release()
     elif object_to_flow.gtype == "Tiff Directory":
-        _, images = cv2.imreadmulti(r'%s' % object_to_flow.gpath, None, cv2.IMREAD_COLOR)
+        # _, images = cv2.imreadmulti(r'%s' % object_to_flow.gpath, None, cv2.IMREAD_COLOR)
+        images = MultiImage(r'%s' % object_to_flow.gpath)
         starttime = time.time()
         if segmentationtype == 0: #by magnitude threshold
             #Pre process and send flow to queue
             for j in range(len(images)-1):
                 #Dense Optical Flow in OpenCV (Gunner Farneback's algorithm)
                 frame1 = images[0+j]
+                # frame1 = frame1[:, :, ::-1]
+                frame1 = img_as_ubyte(frame1)
+                frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
                 frame1 = frame1.astype('uint8')
                 frame2 = images[1+j]
+                # frame2 = frame2[:, :, ::-1]
+                frame2 = img_as_ubyte(frame2)
+                frame2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
                 frame2 = frame2.astype('uint8')
                 if len(frame1.shape) >= 3:
                     prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
@@ -1271,7 +1309,8 @@ def get_Video_FPS(videopath):
     return int(fps)
 
 def get_Frames_CTiff(tiffpath):
-    _, images = cv2.imreadmulti(r'%s' %tiffpath)
+    # _, images = cv2.imreadmulti(r'%s' %tiffpath)
+    images = MultiImage(r'%s' % tiffpath)
     return len(images)
 
 class AnalysisGroup(object):
@@ -1314,7 +1353,7 @@ class AnalysisGroup(object):
         # self.lesser_vals = None
         self.baseline_oflow = None
         self.angledifference = None
-        self.temp_pdif = None
+        self.temp_pdiff = None
 
         #Saved vars during analysis
         self.noisemin = None
@@ -2087,6 +2126,7 @@ class SampleApp(tk1.ThemedTk):
                 print(self.progress_bar)
             time.sleep(2)
             # self.checkTheQueue(single_check=True)
+            self.frames["PageFour"].tries = 0
             self.frames["PageFour"].show_comparison()
 
 
@@ -3726,6 +3766,8 @@ class PageFour(ttk.Frame):
         self.double_dotsize = None
         self.exponential_settings = []
         self.delta_fft = None
+        self.tries = 0
+        self.diffdialog = None
 
         nargs = noise_detection(self.current_case,filter_noise_area=True, added_noise_dots=[], removed_noise_dots=[], cutoff_val=0.90)
 
@@ -4016,6 +4058,8 @@ class PageFour(ttk.Frame):
                 messagebox.showerror("Error", "No Analysis Found")
                 validate = False
         if validate == True:
+            self.diffdialog = None
+            self.tries = 0
             self.mainplotartist = None
             self.adjustnoisedialog = None
             self.adjustwaveenddialog = None 
@@ -4353,6 +4397,10 @@ class PageFour(ttk.Frame):
         addqueue(self.controller.current_analysis, aux)
         self.controller.checkTheQueue()
     
+    def newtry_show_comparison(self):
+        self.tries += 1
+        self.show_comparison()
+
     def show_comparison(self):
         self.controller.progress_bar = None
         # print("wait to check")
@@ -4367,8 +4415,11 @@ class PageFour(ttk.Frame):
             if group.task_type == "PDiff" and group.id == self.controller.current_analysis.id and k in self.done_pdiffs and k not in killed_stamps: #only OFlow groups are added to stamps
                 cur_k = k
                 try:
+                    if self.diffdialog:
+                        self.diffdialog.cancel()
+                        self.diffdialog = None
                     print("about to open diff comp")
-                    d = DiffComparisionDialog(self, title='Comparison View', literals=[
+                    self.diffdialog = DiffComparisionDialog(self, title='Comparison View', literals=[
                                 ("data", self.current_case),
                                 ("data2", self.controller.current_analysis.temp_pdiff),
                                 ("mframe", self)
@@ -4378,7 +4429,14 @@ class PageFour(ttk.Frame):
                     print("could not open diff comp")
                     print(e)
                     cur_k = None
-                    self.after(500, self.show_comparison)
+                    if self.diffdialog:
+                        self.diffdialog.cancel()
+                        self.diffdialog = None
+                    if self.tries < 5:
+                        self.after(1000, self.newtry_show_comparison)
+                    else:
+                        messagebox.showerror("Error", "Fatal exception when opening dialog: "+e)
+
         if cur_k != None:
             progress_tasks.pop(cur_k)
             stamp_to_group.pop(cur_k)
@@ -6344,14 +6402,21 @@ class PageFive(ttk.Frame):
                             self.controller.show_frame("PageSix")
                             return
                         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
-                            _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
+                            # _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
+                            images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
 
                             images = images[self.controller.selectedframes[self.controller.current_peak.first]:self.controller.selectedframes[(self.controller.current_peak.last+1)]+1]
                             print('len(images)')
                             print(len(images))
                             for j in range(len(images)-1):
                                 frame1 = images[0+j]
+                                # frame1 = frame1[:, :, ::-1]
+                                frame1 = img_as_ubyte(frame1)
+                                frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
                                 frame2 = images[1+j]
+                                # frame2 = frame2[:, :, ::-1]
+                                frame2 = img_as_ubyte(frame2)
+                                frame2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
             
                                 frame1 = frame1.astype('uint8')
                                 frame2 = frame2.astype('uint8')
@@ -7975,10 +8040,14 @@ class PageSix(ttk.Frame):
             _, img = vc.read()
             vc.release()
         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
-            _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
+            # _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
+            images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
 
             images = images[self.controller.selectedframes[peak_obj.first]:self.controller.selectedframes[(peak_obj.last)+1]]
             img = images[0]
+            # img = img[:, :, ::-1]
+            img = img_as_ubyte(img)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         #get image, run segmentation with current settings
         mask, contourdimensions, largest_area_rect, largest_contour = self.get_contour(img, self.blur_size,self.kernel_dilation,self.kernel_erosion,self.kernel_smoothing_contours,self.border_thickness)
         print("contourdimensions")
