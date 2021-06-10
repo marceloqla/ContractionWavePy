@@ -101,7 +101,7 @@ Press “Enter” to start the installation.
 
 Wait until all installations are concluded (it might take some time – 5 to 30 minutes)
 
-**Step 6: Step 6: Activating Anaconda to execute ContractionWave**
+**Step 6: Activating Anaconda to execute ContractionWave**
 
 **Important:** This step should be executed after typing the command on step 5 if you are
 doing it for the first time, or after the command on step 4, if you have already followed
