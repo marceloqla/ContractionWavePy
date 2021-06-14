@@ -12,8 +12,9 @@ import scipy.ndimage as ndimage
 #imports of external libs
 from PIL import ImageTk
 from PIL import Image
-from skimage.io import MultiImage
-from skimage.util import img_as_ubyte
+# from PIL import ImageSequence
+# from skimage.io import MultiImage
+# from skimage.util import img_as_ubyte
 
 import multiprocessing
 from multiprocessing import Process, Manager, active_children#, Queue
@@ -119,6 +120,15 @@ img_opencv = (".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".pbm", "
 # cinco pontos
 # opções exportação
 # zoom matlab ver exportação
+
+class MultiTiffReader(object):
+    def __init__(self, path):
+        self.img = Image.open(r'%s' % path)
+    def __len__(self):
+        return self.img.n_frames
+    def __getitem__(self, num):
+        self.img.seek(num)
+        return np.array(self.img.convert('RGB'))
 
 
 def full_extent(ax, pad=0.0):
@@ -361,27 +371,33 @@ def pixeldifferencecalc3(queueobj, object_to_diff, f_indexes, start_ind, end_ind
         # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
         # images = images[start_ind:end_ind]
         # f_frame = images[f_point]
-        images = MultiImage(r'%s' % object_to_diff.gpath)
+
+        # images = MultiImage(r'%s' % object_to_diff.gpath)
+        # f_frame = images[start_ind+f_point]
+        # f_frame = img_as_ubyte(f_frame)
+        # f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
+        # f_frame = f_frame.astype('uint8')
+
+        images = MultiTiffReader(object_to_diff.gpath)
         f_frame = images[start_ind+f_point]
-        # f_frame = f_frame[:, :, ::-1]
-        f_frame = img_as_ubyte(f_frame)
-        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
-        f_frame = f_frame.astype('uint8')
+
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
-            prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
+            # prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
+            prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_RGB2GRAY)
         else:
             prvs_f_frame = f_frame
-        # for j in range(len(images)-1):
-        for j in range(start_ind, end_ind-1):
+        for j in range(len(images)-1):
+        # for j in range(start_ind, end_ind-1):
             frame1 = images[0+j]
-            # frame1 = frame1[:, :, ::-1]
-            frame1 = img_as_ubyte(frame1)
-            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
+
+            # frame1 = img_as_ubyte(frame1)
+            # frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
             
             frame1 = frame1.astype('uint8')
             if len(frame1.shape) >= 3:
-                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
             else:
                 prvs = frame1
             diff_prvs_min2 = cv2.subtract(prvs, prvs_f_frame)
@@ -436,7 +452,6 @@ def pixeldifferencecalc2(queueobj, object_to_diff, min_indexes, start_ind, end_i
             queueobj.put(stamp+" PROGRESS "+str((j+1) / (len(files_grabbed)-1)))
             if j in min_indexes:
                 prvs_f_frame = prvs.copy()
-
     elif object_to_diff.gtype == "Video":
         print("f_point")
         print(f_point)
@@ -497,27 +512,32 @@ def pixeldifferencecalc2(queueobj, object_to_diff, min_indexes, start_ind, end_i
         # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)
         # images = images[start_ind:end_ind]
         # f_frame = images[f_point]
-        images = MultiImage(r'%s' % object_to_diff.gpath)
-        f_frame = images[start_ind+f_point]
-        # f_frame = f_frame[:, :, ::-1]
+
+        # images = MultiImage(r'%s' % object_to_diff.gpath)
+        # f_frame = images[start_ind+f_point]
         # f_frame = img_as_ubyte(f_frame)
-        f_frame = img_as_ubyte(f_frame)
-        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
-        f_frame = f_frame.astype('uint8')
+        # f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
+        # f_frame = f_frame.astype('uint8')
+
+        images = MultiTiffReader(object_to_diff.gpath)
+        f_frame = images[start_ind+f_point]
+
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
             prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
         else:
             prvs_f_frame = f_frame
-        # for j in range(len(images)-1):
-        for j in range(start_ind, end_ind-1):
+        for j in range(len(images)-1):
+        # for j in range(start_ind, end_ind-1):
             frame1 = images[0+j]
-            # frame1 = frame1[:, :, ::-1]
-            frame1 = img_as_ubyte(frame1)
-            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
-            frame1 = frame1.astype('uint8')
+
+            # frame1 = img_as_ubyte(frame1)
+            # frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
+            # frame1 = frame1.astype('uint8')
+
             if len(frame1.shape) >= 3:
-                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
             else:
                 prvs = frame1
             diff_prvs_min2 = cv2.subtract(prvs, prvs_f_frame)
@@ -687,31 +707,33 @@ def pixeldifferencecalc(queueobj, object_to_diff, f_indexes, start_ind, end_ind,
         vc_p.release()
     elif object_to_diff.gtype == "Tiff Directory":
         # _, images = cv2.imreadmulti(r'%s' % object_to_diff.gpath, None, cv2.IMREAD_COLOR)        
-        images = MultiImage(r'%s' % object_to_diff.gpath)
-        # 
         # images = images[start_ind:end_ind]
-        
-        #Pre process and send flow to queue
         # f_frame = images[f_point]
+
+        # images = MultiImage(r'%s' % object_to_diff.gpath)
+        # f_frame = images[start_ind+f_point]
+        # f_frame = img_as_ubyte(f_frame)
+        # f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
+        # f_frame = f_frame.astype('uint8')
+
+        images = MultiTiffReader(object_to_diff.gpath)
         f_frame = images[start_ind+f_point]
-        # f_frame = f_frame[:, :, ::-1]
-        f_frame = img_as_ubyte(f_frame)
-        f_frame = cv2.cvtColor(f_frame, cv2.COLOR_RGB2BGR)
-        f_frame = f_frame.astype('uint8')
+
         prvs_f_frame = None
         if len(f_frame.shape) >= 3:
-            prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
+            # prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_BGR2GRAY)
+            prvs_f_frame = cv2.cvtColor(f_frame,cv2.COLOR_RGB2GRAY)
         else:
             prvs_f_frame = f_frame
         for j in range(start_ind, end_ind-1):
         # for j in range(len(images)-1):
             frame1 = images[0+j]
-            # frame1 = frame1[:, :, ::-1]
-            frame1 = img_as_ubyte(frame1)
-            frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
+            # frame1 = img_as_ubyte(frame1)
+            # frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
             frame1 = frame1.astype('uint8')
             if len(frame1.shape) >= 3:
-                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
             else:
                 prvs = frame1
 
@@ -738,6 +760,7 @@ def pixeldifferencecalc(queueobj, object_to_diff, f_indexes, start_ind, end_ind,
                 prvs_f_frame = prvs.copy()
 
 def opticalflowfolder(queueobj, object_to_flow, stamp):
+    print("start opticalflowfolder for stamp: " + stamp)
     pyr_scale = object_to_flow.pyr_scale
     levels = object_to_flow.levels
     winsize = object_to_flow.winsize
@@ -748,6 +771,7 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
     pixel_val = object_to_flow.pixelsize
 
     segmentationtype = object_to_flow.segmentationtype
+    print("loaded opticalflowfolder configs for stamp: " + stamp)
     # magnitudethreshold = object_to_flow.magnitudethreshold
     #Pre process groups
 
@@ -767,7 +791,7 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
 
     angledifference = object_to_flow.angledifference
     global filter_by_ang
-    global filesprocessed
+    # global filesprocessed
     queueobj.put(stamp+" TIME "+ " ".join(["--", "---", "--:--:--"]) )
     print("#PROCESSING "+stamp+" "+object_to_flow.name+" TIME "+ " ".join(["--", "---", "--:--:--"]) + " " + str(dt.datetime.now()) +"\n" )
     if object_to_flow.gtype == "Folder":
@@ -976,26 +1000,43 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             j += 1
         vc.release()
     elif object_to_flow.gtype == "Tiff Directory":
-        # _, images = cv2.imreadmulti(r'%s' % object_to_flow.gpath, None, cv2.IMREAD_COLOR)
-        images = MultiImage(r'%s' % object_to_flow.gpath)
+
         starttime = time.time()
+        print("PRE-PROCESSING "+stamp+" "+object_to_flow.name+" about to load images...")
+        # _, images = cv2.imreadmulti(r'%s' % object_to_flow.gpath, None, cv2.IMREAD_COLOR)
+        
+        # images = MultiImage(r'%s' % object_to_flow.gpath)
+        
+        # im = Image.open(r'%s' % object_to_flow.gpath)
+        # im = im.convert('RGB')
+
+        # images_len = sum(1 for _ in ImageSequence.Iterator(im))
+        # images = ImageSequence.Iterator(im)
+        images = MultiTiffReader(object_to_flow.gpath)
+
+        load_telapsed = time.time() - starttime
+        print("PRE-PROCESSING "+stamp+" "+object_to_flow.name+" load images done at " + str(load_telapsed) + " seconds.")
         if segmentationtype == 0: #by magnitude threshold
             #Pre process and send flow to queue
+            print("PRE-PROCESSING "+stamp+" "+object_to_flow.name+" about to ncc for images...")
             for j in range(len(images)-1):
+            # for j in range(images_len-1):
                 #Dense Optical Flow in OpenCV (Gunner Farneback's algorithm)
                 frame1 = images[0+j]
-                # frame1 = frame1[:, :, ::-1]
-                frame1 = img_as_ubyte(frame1)
                 frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
-                frame1 = frame1.astype('uint8')
+                # frame1 = img_as_ubyte(frame1)
+                # # frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
+                # frame1 = frame1.astype('uint8')
                 frame2 = images[1+j]
-                # frame2 = frame2[:, :, ::-1]
-                frame2 = img_as_ubyte(frame2)
                 frame2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
-                frame2 = frame2.astype('uint8')
+                # frame2 = img_as_ubyte(frame2)
+                # # frame2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
+                # frame2 = frame2.astype('uint8')
                 if len(frame1.shape) >= 3:
-                    prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
-                    prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                    # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                    prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
+                    # prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                    prvs2 = cv2.cvtColor(frame2,cv2.COLOR_RGB2GRAY)
                 else:
                     prvs = frame1
                     prvs2 = frame2
@@ -1008,13 +1049,18 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
                     biggest_ncc_i = j
                 telapsed = time.time() - starttime
                 queueobj.put(stamp+" TIME "+ " ".join([str(int(telapsed)), "Wait...", "--:--:--"]) )
+            preprocess_telapsed = (time.time() - starttime) - load_telapsed
+            print("PRE-PROCESSING "+stamp+" "+object_to_flow.name+" ncc calculation done at " + str(preprocess_telapsed) + " seconds.")
+            
             frame1 = images[0+biggest_ncc_i]
             frame1 = frame1.astype('uint8')
             frame2 = images[1+biggest_ncc_i]
             frame2 = frame2.astype('uint8')
             if len(frame1.shape) >= 3:
-                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
-                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                # prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
+                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_RGB2GRAY)
             else:
                 prvs = frame1
                 prvs2 = frame2
@@ -1032,14 +1078,17 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
             magnitudethreshold = ncc_mean
 
         for j in range(len(images)-1):
+        # for j in range(images_len-1):
             #Dense Optical Flow in OpenCV (Gunner Farneback's algorithm)
             frame1 = images[0+j]
             frame1 = frame1.astype('uint8')
             frame2 = images[1+j]
             frame2 = frame2.astype('uint8')
             if len(frame1.shape) >= 3:
-                prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
-                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                # prvs = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)
+                # prvs2 = cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)
+                prvs = cv2.cvtColor(frame1,cv2.COLOR_RGB2GRAY)
+                prvs2 = cv2.cvtColor(frame2,cv2.COLOR_RGB2GRAY)
             else:
                 prvs = frame1
                 prvs2 = frame2
@@ -1078,6 +1127,8 @@ def opticalflowfolder(queueobj, object_to_flow, stamp):
 
 def update_running_tasks():
     global running_tasks, ncores, processingdeque, stamp_to_pid, pid_to_stamp
+    print(str(len(processingdeque)) + " tasks to be queued.")
+    print(str(ncores - len(running_tasks)) + " free cores")
     while len(running_tasks) < ncores and len(processingdeque) > 0:
         p, etask = processingdeque.popleft()
         p.start()
@@ -1103,7 +1154,9 @@ def addqueue(group, auxiliary=None):
         print("stamp: " + stamp + " created")
         progress_tasks[stamp] = 0.0
         qmanagerflows[stamp+"_means"] = [0.0 for a in range(int(group.framenumber)-1)]
+        # newtask = Process(target=opticalflowfolder, args=(globalq, group, stamp))
         newtask = Process(target=opticalflowfolder, args=(globalq, group, stamp))
+        print("stamp: " + stamp + " task sent")
         processingdeque.append((newtask, stamp))
         update_running_tasks()
     elif group.task_type == "PDiff":
@@ -1149,6 +1202,7 @@ def checkQueue():
 
     while not globalq.empty():
         message = globalq.get()
+        print("checkQueue message")
         print(message)
         
         stamp = message.split()[0]
@@ -1310,7 +1364,8 @@ def get_Video_FPS(videopath):
 
 def get_Frames_CTiff(tiffpath):
     # _, images = cv2.imreadmulti(r'%s' %tiffpath)
-    images = MultiImage(r'%s' % tiffpath)
+    # images = MultiImage(r'%s' % tiffpath)
+    images = MultiTiffReader(tiffpath)
     return len(images)
 
 class AnalysisGroup(object):
@@ -2210,7 +2265,8 @@ class SampleApp(tk1.ThemedTk):
             self.progress_bar.refreshProgress()
 
         if self.queue == True and single_check == False:
-            self.after(100, self.checkTheQueue)
+            self.after(300, self.checkTheQueue)
+            # self.after(1000, self.checkTheQueue)
 
 class StartPage(ttk.Frame):
 
@@ -6403,19 +6459,23 @@ class PageFive(ttk.Frame):
                             return
                         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
                             # _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
-                            images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
+                            # images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
+                            images = MultiTiffReader(self.controller.current_analysis.gpath)
+                            
 
-                            images = images[self.controller.selectedframes[self.controller.current_peak.first]:self.controller.selectedframes[(self.controller.current_peak.last+1)]+1]
+                            # images = images[self.controller.selectedframes[self.controller.current_peak.first]:self.controller.selectedframes[(self.controller.current_peak.last+1)]+1]
                             print('len(images)')
                             print(len(images))
-                            for j in range(len(images)-1):
+
+                            # for j in range(len(images)-1):
+                            for j in range(self.controller.selectedframes[self.controller.current_peak.first], self.controller.selectedframes[(self.controller.current_peak.last+1)]):
                                 frame1 = images[0+j]
                                 # frame1 = frame1[:, :, ::-1]
-                                frame1 = img_as_ubyte(frame1)
+                                # frame1 = img_as_ubyte(frame1)
                                 frame1 = cv2.cvtColor(frame1, cv2.COLOR_RGB2BGR)
                                 frame2 = images[1+j]
                                 # frame2 = frame2[:, :, ::-1]
-                                frame2 = img_as_ubyte(frame2)
+                                # frame2 = img_as_ubyte(frame2)
                                 frame2 = cv2.cvtColor(frame2, cv2.COLOR_RGB2BGR)
             
                                 frame1 = frame1.astype('uint8')
@@ -8041,12 +8101,13 @@ class PageSix(ttk.Frame):
             vc.release()
         elif self.controller.current_analysis.gtype == "Tiff Directory" or self.controller.current_analysis.gtype == "CTiff":
             # _, images = cv2.imreadmulti(r'%s' %self.controller.current_analysis.gpath, None, cv2.IMREAD_COLOR)
-            images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
+            # images = MultiImage(r'%s' % self.controller.current_analysis.gpath)
+            images = MultiTiffReader(self.controller.current_analysis.gpath)
 
-            images = images[self.controller.selectedframes[peak_obj.first]:self.controller.selectedframes[(peak_obj.last)+1]]
-            img = images[0]
+            # images = images[self.controller.selectedframes[peak_obj.first]:self.controller.selectedframes[(peak_obj.last)+1]]
+            img = images[self.controller.selectedframes[peak_obj.first]]
             # img = img[:, :, ::-1]
-            img = img_as_ubyte(img)
+            # img = img_as_ubyte(img)
             img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
         #get image, run segmentation with current settings
         mask, contourdimensions, largest_area_rect, largest_contour = self.get_contour(img, self.blur_size,self.kernel_dilation,self.kernel_erosion,self.kernel_smoothing_contours,self.border_thickness)
