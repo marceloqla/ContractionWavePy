@@ -260,7 +260,8 @@ def peak_detection_decay(current_case, delta=False, cutoff_val=None, until_time=
         #they include, all points before max_1_i
         #which are mathematically local minimums
         #and whose indexes are in probable non wave areas (defined by a cutoff)
-        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        # previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i]) if e < mean_noise])))
 
         #max_2, max_2_i = None, None
         try:
@@ -407,7 +408,8 @@ def peak_detection_threshold(current_case, delta=False, end_detect_params=[]):
         #they include, all points before max_1_i
         #which are mathematically local minimums
         #and whose indexes are in probable non wave areas (defined by a cutoff)
-        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        # previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i]) if e < mean_noise])))
 
         #max_2, max_2_i = None, None
         try:
@@ -547,7 +549,8 @@ def peak_detection(current_case, original_case=False, delta=False, expconfigs=[]
         max_1_i = maxtab[i]
 
         f_point = None
-        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        # previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i])]) & set(all_local_minimums) & set(noise_points_indexes)))
+        previous_mins = sorted(list(set([i for i,e in enumerate(current_case[:max_1_i]) if e < mean_noise])))
 
 
         #max_2, max_2_i = None, None

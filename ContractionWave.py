@@ -122,6 +122,7 @@ img_opencv = (".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".pbm", "
 # zoom matlab ver exportação
 
 class MultiTiffReader(object):
+    #https://stackoverflow.com/questions/18602525/python-pil-for-loop-to-work-with-multi-image-tiff
     def __init__(self, path):
         self.img = Image.open(r'%s' % path)
     def __len__(self):
