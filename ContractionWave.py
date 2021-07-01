@@ -5158,7 +5158,7 @@ class PageFour(ttk.Frame):
             # return
         #edit minima
         if gvf_cutoff_val < self.current_case_minima:
-            messagebox.showwarning("Warning", "Current Wave Max Filter below Speed minima.","Editing value to minima")
+            messagebox.showwarning("Warning: Current Wave Max Filter below Speed minima.","Editing value to minima")
             self.spin_cutoff["from_"] = self.current_case_minima
             self.spin_cutoff.delete(0,"end")
             self.spin_cutoff.insert(0, float("{:.3f}".format(self.current_case_minima)))
@@ -5300,7 +5300,7 @@ class PageFour(ttk.Frame):
             #edit minima
             self.recalculate_minima(self.current_case)
             if gvf < self.current_case_minima:
-                messagebox.showwarning("Warning", "Current Wave Max Filter below Speed minima.","Editing value to minima")
+                messagebox.showwarning("Warning: Current Wave Max Filter below Speed minima.","Editing value to minima")
                 gvf = self.current_case_minima
                 self.spin_cutoff.delete(0,"end")
                 self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
@@ -8386,7 +8386,7 @@ class PageSix(ttk.Frame):
 if __name__ == "__main__":
     orig_stdout = sys.stdout
     flog = open('last_log.txt', 'w')
-    # sys.stdout = flog
+    sys.stdout = flog
 
     # if os.path.exists('processing_logfile.log'):
         # os.remove("processing_logfile.log")
