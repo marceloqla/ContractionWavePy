@@ -111,6 +111,9 @@ class PeakObj(object):
             self.parameters["Relaxation time from peak to Baseline (RTPB)"] = (self.fifthtime - self.fourthtime)
             self.parameters["Time between Contraction-Relaxation maximum speed (TBC-RMS)"] = (self.fourthtime - self.secondtime)
             self.time_scale = timescale
+        
+        for k in ["Contraction-Relaxation Time (CRT)","Contraction Time (CT)","Relaxation Time (RT)","Contraction time-to-peak (CTP)","Contraction time from peak to minimum speed (CTPMS)","Relaxation time-to-peak (RTP)","Relaxation time from peak to Baseline (RTPB)","Time between Contraction-Relaxation maximum speed (TBC-RMS)"]:
+            self.parameters[k] = float("{:.3f}".format(self.parameters[k]))
         print("class PeakObj def switch_timescale done")
 
     def calc_parameters(self, recalc=True):
@@ -1404,9 +1407,9 @@ class MoveDragHandler(object):
                 maxesi += 1
             
             if len(maxes_x) > 0 and self.master.current_frame.plotFFTAll == True:
-                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[self.master.current_frame.plotFFTSelection]) )
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[self.master.current_frame.plotFFTSelection]) + "Hz" )
             elif len(maxes_x) > 0:
-                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) )
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) + "Hz" )
             else:
                 self.ax2.set_title("Selected Wave Frequency: None")
 
