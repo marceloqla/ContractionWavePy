@@ -1407,9 +1407,9 @@ class MoveDragHandler(object):
                 maxesi += 1
             
             if len(maxes_x) > 0 and self.master.current_frame.plotFFTAll == True:
-                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[self.master.current_frame.plotFFTSelection]) + "Hz" )
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[self.master.current_frame.plotFFTSelection]) + " Hz" )
             elif len(maxes_x) > 0:
-                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) + "Hz" )
+                self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(maxes_x[0]) + " Hz" )
             else:
                 self.ax2.set_title("Selected Wave Frequency: None")
 
@@ -1560,7 +1560,7 @@ class MoveDragHandler(object):
         xdata, ydata = selected.get_data()
         self.master.current_frame.plotFFTSelection = self.FFTxData[float(xdata[0])]
         # self.ax2.set_title("Frequency: " + "{:.3f}".format(float(xdata[0])) )
-        self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(float(xdata[0])) )
+        self.ax2.set_title("Selected Wave Frequency: " + "{:.3f}".format(float(xdata[0])) + " Hz" )
         self.figure.canvas.draw()
 
     #Mode Noise -> Draw areas and set them as noise or not noise
