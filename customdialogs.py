@@ -21,12 +21,24 @@ from sys import platform as _platform
 import scipy.ndimage as ndimage
 from scipy.linalg import norm
 from compareimage import CompareImage
+# from ContractionWave import MultiTiffReader
 import xlsxwriter
 # from skimage.filters import threshold_otsu
 # from jenksdetectpack import getJenksBreaks
 # from scipy import stats
 #from sklearn.neighbors import KernelDensity
 from scipy.signal import argrelextrema
+
+class MultiTiffReader(object):
+    #https://stackoverflow.com/questions/18602525/python-pil-for-loop-to-work-with-multi-image-tiff
+    def __init__(self, path):
+        self.img = Image.open(r'%s' % path)
+    def __len__(self):
+        return self.img.n_frames
+    def __getitem__(self, num):
+        self.img.seek(num)
+        return np.array(self.img.convert('RGB'))
+
 
 img_opencv = (".bmp", ".dib", ".jpeg", ".jpg", ".jpe", ".jp2", ".png", ".pbm", ".pgm", ".ppm", ".sr", ".ras", ".tiff", ".tif")
 
@@ -1430,9 +1442,12 @@ class NewCellLengthDialog(tkDialog.DialogMax):
                     count += 1
                 vc.release()
             elif self.literals["controller"].current_analysis.gtype == "Tiff Directory" or self.literals["controller"].current_analysis.gtype == "CTiff":
-                _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
-                images = images[self.literals["controller"].selectedframes[self.peaks[pi].first]:self.literals["controller"].selectedframes[(self.peaks[pi].last)+1]]
-                for j in range(len(images)-1):
+                # _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
+                images = MultiTiffReader(self.literals["controller"].current_analysis.gpath)
+
+                # images = images[self.literals["controller"].selectedframes[self.peaks[pi].first]:self.literals["controller"].selectedframes[(self.peaks[pi].last)+1]]
+                # for j in range(len(images)-1):
+                for j in range(self.literals["controller"].selectedframes[self.peaks[pi].first], self.literals["controller"].selectedframes[(self.peaks[pi].last)+1]):
                     frame1 = images[0+j]
                     self.current_framelist.append(frame1)
         except Exception as e:
@@ -1497,6 +1512,8 @@ class NewCellLengthDialog(tkDialog.DialogMax):
         if ii is None:
             # print("ii is none")
             ii = self.index_of_peak
+        print("ii")
+        print(ii)
         imgget = self.current_framelist[ii].copy()
         # bsize, kdil, kero, ksco, borders = self.current_segmentation_settings_list[self.index_of_peak]
         bsize, kdil, kero, ksco, borders = self.segmentation_dict[pi][ii]
@@ -1969,9 +1986,11 @@ class NewCellLengthDialog(tkDialog.DialogMax):
                 count += 1
             vc.release()
         elif self.literals["controller"].current_analysis.gtype == "Tiff Directory" or self.literals["controller"].current_analysis.gtype == "CTiff":
-            _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
-            images = images[self.literals["controller"].selectedframes[self.current_peak.first]:self.literals["controller"].selectedframes[(self.current_peak.last)+1]]
-            for j in range(len(images)-1):
+            # _, images = cv2.imreadmulti(r'%s' %self.literals["controller"].current_analysis.gpath, None, cv2.IMREAD_COLOR)
+            images = MultiTiffReader(self.literals["controller"].current_analysis.gpath)
+            # images = images[self.literals["controller"].selectedframes[self.current_peak.first]:self.literals["controller"].selectedframes[(self.current_peak.last)+1]]
+            # for j in range(len(images)-1):
+            for j in range(self.literals["controller"].selectedframes[self.peaks[pi].first], self.literals["controller"].selectedframes[(self.peaks[pi].last)+1]):
                 frame1 = images[0+j]
                 frame2 = images[1+j]
         
