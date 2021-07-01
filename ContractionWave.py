@@ -5158,7 +5158,7 @@ class PageFour(ttk.Frame):
             # return
         #edit minima
         if gvf_cutoff_val < self.current_case_minima:
-            messagebox.showwarning("Warning: Current Wave Max Filter below Speed minima.","Editing value to minima")
+            messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minima. Editing value to minima")
             self.spin_cutoff["from_"] = self.current_case_minima
             self.spin_cutoff.delete(0,"end")
             self.spin_cutoff.insert(0, float("{:.3f}".format(self.current_case_minima)))
@@ -5298,12 +5298,13 @@ class PageFour(ttk.Frame):
                 # previous_case = current_case.copy()
                 self.current_case = self.denoise(current_case_val, self.denoising)
             #edit minima
-            self.recalculate_minima(self.current_case)
-            if gvf < self.current_case_minima:
-                messagebox.showwarning("Warning: Current Wave Max Filter below Speed minima.","Editing value to minima")
-                gvf = self.current_case_minima
-                self.spin_cutoff.delete(0,"end")
-                self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
+            self.recalculate_minima([a for a in self.current_case])
+            if gvf:
+                if gvf < self.current_case_minima:
+                    messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minima. Editing value to minima")
+                    gvf = self.current_case_minima
+                    self.spin_cutoff.delete(0,"end")
+                    self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
         
         #set limit for plotsettings variables dependent of case length        
         self.plotsettings.set_limit(len(self.current_case))
