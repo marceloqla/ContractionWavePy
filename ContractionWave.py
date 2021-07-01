@@ -4402,25 +4402,25 @@ class PageFour(ttk.Frame):
         menu.add_cascade(label='Export', menu=export_menu)
 
         plots_menu = tk.Menu(menu, tearoff=0)
-        plots_menu.add_command(label='Select Wave Areas', command=lambda:self.set_dragmode(txt="edit"))#, command=set_original)
+        plots_menu.add_command(label='Select Wave Areas', command=lambda:self.set_dragmode(txt="edit"))
         # plots_menu.add_separator()
-        plots_menu.add_command(label='Select Wave Points', command=lambda:self.set_dragmode(txt="point"))#)
+        plots_menu.add_command(label='Select Wave Points', command=lambda:self.set_dragmode(txt="point"))
         # plots_menu.add_separator()
-        plots_menu.add_command(label='Zoom Plot Area', command=lambda:self.set_dragmode(txt="zoom"))#, command=set_original)
+        plots_menu.add_command(label='Zoom Plot Area', command=lambda:self.set_dragmode(txt="zoom"))
         # plots_menu.add_separator()
-        plots_menu.add_command(label='None', command=lambda:self.set_dragmode(txt="none"))#, command=set_original)
+        plots_menu.add_command(label='None', command=lambda:self.set_dragmode(txt="none"))
         # plots_menu.add_separator()
         menu.add_cascade(label='Plot Mouse Mode', menu=plots_menu)
 
         # Sub Plot Menu
         sub_plots_menu = tk.Menu(menu, tearoff=0)
-        sub_plots_menu.add_command(label='None', command=lambda:self.add_a_subplot(txt="None"))#, command=set_original)
+        sub_plots_menu.add_command(label='None', command=lambda:self.add_a_subplot(txt="None"))
         # sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='Main Plot Zoom', command=lambda:self.add_a_subplot(txt="Zoom"))#, command=set_original)
+        sub_plots_menu.add_command(label='Main Plot Zoom', command=lambda:self.add_a_subplot(txt="Zoom"))
         # sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='Wave Max. Filter Areas', command=lambda:self.add_a_subplot(txt="PeakNoise"))#, command=set_original)
+        sub_plots_menu.add_command(label='Wave Max. Filter Areas', command=lambda:self.add_a_subplot(txt="PeakNoise"))
         # sub_plots_menu.add_separator()
-        sub_plots_menu.add_command(label='Fast Fourier Transform', command=lambda:self.add_a_subplot(txt="FFT"))#, command=set_original)
+        sub_plots_menu.add_command(label='Fast Fourier Transform', command=lambda:self.add_a_subplot(txt="FFT"))
         # sub_plots_menu.add_separator()
         menu.add_cascade(label='Sub-Plot Mode', menu=sub_plots_menu)
 
@@ -5158,7 +5158,7 @@ class PageFour(ttk.Frame):
             # return
         #edit minima
         if gvf_cutoff_val < self.current_case_minima:
-            messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minima. Editing value to minima")
+            messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
             self.spin_cutoff["from_"] = self.current_case_minima
             self.spin_cutoff.delete(0,"end")
             self.spin_cutoff.insert(0, float("{:.3f}".format(self.current_case_minima)))
@@ -5301,7 +5301,7 @@ class PageFour(ttk.Frame):
             self.recalculate_minima([a for a in self.current_case])
             if gvf:
                 if gvf < self.current_case_minima:
-                    messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minima. Editing value to minima")
+                    messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
                     gvf = self.current_case_minima
                     self.spin_cutoff.delete(0,"end")
                     self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
@@ -5423,10 +5423,13 @@ class PageFour(ttk.Frame):
                 # self.spin_cutoff["state"] = "normal"
                 self.gvf_cutoff = conditions[2]
                 self.spin_cutoff.delete(0,"end")
-                if self.prevrenoise != None:
-                    self.spin_cutoff.insert(0,conditions[2] - self.prevrenoise)
-                else:
-                    self.spin_cutoff.insert(0,conditions[2])
+                #edit minima
+                # if self.prevrenoise != None:
+                    # self.spin_cutoff.insert(0,conditions[2] - self.prevrenoise)
+                # else:
+                    # self.spin_cutoff.insert(0,conditions[2])
+                self.spin_cutoff.insert(0,conditions[2])
+
             # else:
                 # self.spin_cutoff["state"] = "disabled"
             # self.spin_cutoff.delete(0,"end")
