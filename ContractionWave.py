@@ -5700,8 +5700,8 @@ class PageFour(ttk.Frame):
             self.maxfilter_line_ax2 = None
 
         val = 0.0
-        if self.prevrenoise is not None:
-            val = self.prevrenoise
+        # if self.prevrenoise is not None:
+            # val = self.prevrenoise
 
         print("self.gvf_cutoff")
         print(self.gvf_cutoff)
