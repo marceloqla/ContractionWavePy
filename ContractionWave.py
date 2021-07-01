@@ -3805,6 +3805,9 @@ class PageFour(ttk.Frame):
         self.realnoise = None
         self.done_pdiffs = []
         # self.adjustnoisevar = True
+        #edit minima
+        self.current_case_minima = np.min(self.current_case)
+        self.noiseavgvar = noise_definition(self.current_case)[0]
         self.prevrenoise = None
         self.usernoise = None
         self.hidedots = True
@@ -3851,6 +3854,7 @@ class PageFour(ttk.Frame):
         lbl1.grid(row=0, column=0)
 
         self.spin_deltavalue = tk.Spinbox(self.frame1, from_=0, to=9999999999999, increment=0.5, width=10, command=self.update_with_delta_freq)
+        # self.spin_deltavalue = tk.Spinbox(self.frame1, from_=0, to=9999999999999, increment=0.5, width=10, command=self.decrease_avg_noise_update)
         self.spin_deltavalue.grid(row=0, column=1)
         CreateToolTip(self.spin_deltavalue, \
         "Speed difference for a given Maximum and a following Minimum Plot Points to be valid. "
@@ -3859,7 +3863,9 @@ class PageFour(ttk.Frame):
         lbl1_5 = ttk.Label(self.frame1, text= 'Wave Max Filter (μm/s): ')#, style="greyBackground.TLabel")
         lbl1_5.grid(row=0, column=2)
 
+        #edit minima
         self.spin_cutoff = tk.Spinbox(self.frame1, from_=0, to=9999999999999, increment=0.5, width=10, command=self.update_with_delta_freq)
+        self.spin_cutoff["from_"] = self.current_case_minima
         self.spin_cutoff.grid(row=0, column=3)
         CreateToolTip(self.spin_cutoff, \
         "Wave maxima cannot exist below this Speed threshold. Also defines the starting points for the Exp. Regression function."
@@ -3869,9 +3875,11 @@ class PageFour(ttk.Frame):
         if self.decreasenoise == False:
             e2 = 0
         self.check_decrease_value = tk.IntVar(value=e2)
+        #edit minima
         # self.checkdecrease = ttk.Checkbutton(self.frame1, text = "Decrease Avg. Noise", variable = self.check_decrease_value, \
         self.checkdecrease = ttk.Checkbutton(self.frame1, text = "Decrease Noise Cutoff", variable = self.check_decrease_value, \
-                         onvalue = 1, offvalue = 0, command=self.update_with_delta_freq)
+                        #  onvalue = 1, offvalue = 0, command=self.update_with_delta_freq)
+                         onvalue = 1, offvalue = 0, command=self.decrease_avg_noise_update)
         self.checkdecrease.grid(row=0, column=4)
         CreateToolTip(self.checkdecrease, \
         "Noise cutoff value is decreased from plot.")
@@ -3908,7 +3916,9 @@ class PageFour(ttk.Frame):
         self.spin_stopcondition.insert(0,0.35)
 
         self.spin_cutoff.delete(0,"end")
-        self.spin_cutoff.insert(0,0.4)
+        #edit minima
+        # self.spin_cutoff.insert(0,0.4)
+        self.spin_cutoff.insert(0,  float("{:.3f}".format(self.current_case_minima)))
 
         self.spin_deltavalue.bind("<Return>",self.update_with_delta_freq)
         self.spin_stopcondition.bind("<Return>",self.update_with_delta_freq)
@@ -3920,7 +3930,8 @@ class PageFour(ttk.Frame):
         self.t_points = None
         self.l_points = None
         self.points = None
-        self.noiseavgvar = None
+        #edit minima
+        # self.noiseavgvar = None
         self.noise_line = None
         self.noise_line_ax2 = None
         self.maxfilter_line = None
@@ -4055,6 +4066,34 @@ class PageFour(ttk.Frame):
 
         self.runupdate()
     
+    #edit minima
+    def decrease_avg_noise_update(self):
+        to_remove_noise = 0
+        if self.check_decrease_value.get() == 1:
+            to_remove_noise = self.noiseavgvar
+        else:
+            to_remove_noise = (-1.0) * self.noiseavgvar
+            if self.userdecreasenoise == True:
+                to_remove_noise = (-1.0) * self.prevrenoise
+        print("")
+        print("")
+        print(f"About to decrease: {to_remove_noise}")
+        self.recalculate_minima([a - to_remove_noise for a in self.current_case])
+        gvf_cutoff_val = float(self.spin_cutoff.get().replace(",","."))
+        gvf_cutoff_val = gvf_cutoff_val - to_remove_noise
+        self.spin_cutoff.delete(0,"end")
+        self.spin_cutoff.insert(0, float("{:.3f}".format(gvf_cutoff_val)))
+        self.update_with_delta_freq()
+
+    #edit minima
+    def recalculate_minima(self, values):
+        print("")
+        print(f"Previous minima: {self.current_case_minima}")
+        self.current_case_minima = np.min(values)
+        print(f"Current minima: {self.current_case_minima}")
+        print("")
+        self.spin_cutoff["from_"] = self.current_case_minima
+    
     def plotDots(self, event=None):
         self.controller.btn_lock = True
         self.refreshDotList()
@@ -4149,22 +4188,22 @@ class PageFour(ttk.Frame):
 
             self.noiseavgvar = noise_definition(self.current_case)[0]
             
-            print("self.current_case")
-            print(self.current_case)
-            print("self.controller.mag_sindex")
-            print(self.controller.mag_sindex)
-            print("self.controller.mag_findex")
-            print(self.controller.mag_findex)
+            # print("self.current_case")
+            # print(self.current_case)
+            # print("self.controller.mag_sindex")
+            # print(self.controller.mag_sindex)
+            # print("self.controller.mag_findex")
+            # print(self.controller.mag_findex)
             self.current_case = self.current_case[self.controller.mag_sindex:self.controller.mag_findex]
-            print("self.current_case")
-            print(self.current_case)
+            # print("self.current_case")
+            # print(self.current_case)
             self.old_current_case = self.controller.current_analysis.mag_means.copy()
             self.old_current_case = self.old_current_case[self.controller.mag_sindex:self.controller.mag_findex]
 
             self.current_case_frames = list(range(len(self.current_case)))
             self.current_case_frames = [a + self.controller.mag_sindex for a in self.current_case_frames]
-            print("self.current_case_frames")
-            print(self.current_case_frames)
+            # print("self.current_case_frames")
+            # print(self.current_case_frames)
 
             #reset dragdots drawn rectangles:
             self.dragDots.drawnrects = []
@@ -4188,6 +4227,9 @@ class PageFour(ttk.Frame):
             self.denoising = None
             self.stop_condition_perc = None
             # self.adjustnoisevar = True
+            #edit minima
+            self.current_case_minima = np.min(self.current_case)
+            self.spin_cutoff["from_"] = self.current_case_minima
             self.prevrenoise = None
             self.usernoise = None
             self.hidedots = True
@@ -4384,15 +4426,15 @@ class PageFour(ttk.Frame):
 
         # Data Menu
         data_menu = tk.Menu(menu, tearoff=0)
+        #edit minima
         data_menu.add_command(label='Restore Original', command=self.set_original)
         # data_menu.add_separator()
-        data_menu.add_command(label='Noise Advanced Options', command=self.adjustnoise)#, command=self.set_original)
+        #edit minima
+        data_menu.add_command(label='Noise Advanced Options', command=self.adjustnoise)
         # data_menu.add_separator()
-        # data_menu.add_command(label='Exp. Regression Options', command=self.adjustexponential)#, command=self.set_original)
-        data_menu.add_command(label='Wave End Detection Options', command=self.adjustexponential)#, command=self.set_original)
+        data_menu.add_command(label='Wave End Detection Options', command=self.adjustexponential)
         data_menu.add_command(label='Set FFT Peak det. Delta', command=self.adjustfftdelta)
-        # data_menu.add_command(label='Amplitude Contraction', command=self.comparepixeldiff)#, command=self.set_original)
-        data_menu.add_command(label='Contraction Amplitude', command=self.comparepixeldiff)#, command=self.set_original)
+        data_menu.add_command(label='Contraction Amplitude', command=self.comparepixeldiff)
         
 
         # Smooth/Noise Sub Menu
@@ -4615,6 +4657,30 @@ class PageFour(ttk.Frame):
         else:
             self.check_decrease_value.set(0)
         print(" def adjustnoise update_with_delta_freq")
+        #edit minima
+
+        if self.prevrenoise != None:
+            print("self.prevrenoise")
+            print(self.prevrenoise)
+            val = self.prevrenoise
+            # self.current_case = [a + val for a in self.current_case]
+            gvf_cutoff_val = float(self.spin_cutoff.get().replace(",","."))
+            gvf_cutoff_val = gvf_cutoff_val + val
+            self.spin_cutoff.delete(0,"end")
+            self.spin_cutoff.insert(0, float("{:.3f}".format(gvf_cutoff_val)))
+
+        to_remove_noise = 0
+        if self.decreasenoise == True:
+            to_remove_noise = self.noiseavgvar
+        elif self.userdecreasenoise == True:
+            to_remove_noise = self.usernoise
+        #edit minima
+        self.recalculate_minima([a - to_remove_noise for a in self.current_case])
+        gvf_cutoff_val = float(self.spin_cutoff.get().replace(",","."))
+        gvf_cutoff_val = gvf_cutoff_val - to_remove_noise
+        self.spin_cutoff.delete(0,"end")
+        self.spin_cutoff.insert(0, float("{:.3f}".format(gvf_cutoff_val)))
+
         self.update_with_delta_freq(smooth=False)
         if close == True:
             self.closeadjustnoise()
@@ -5056,16 +5122,21 @@ class PageFour(ttk.Frame):
         except ValueError:
             self.return_last_spinner("stop_condition_perc", "Spinner value is not float!")
             self.controller.btn_lock = False
+        #edit minima
+        # decrease_from_zero = 0
         try:
             gvf_cutoff_val = float(gvf_cutoff_val)
-            if self.decreasenoise == True:
-                # gvf_cutoff_val += self.noiseavgvar
-                gvf_cutoff_val -= self.noiseavgvar
-                pass
-            elif self.userdecreasenoise == True:
-                # gvf_cutoff_val += self.usernoise
-                gvf_cutoff_val -= self.usernoise
-                pass
+           #edit minima 
+            # if self.decreasenoise == True:
+            #     # gvf_cutoff_val += self.noiseavgvar
+            #     gvf_cutoff_val -= self.noiseavgvar
+            #     decrease_from_zero = 0 + self.noiseavgvar
+            #     pass
+            # elif self.userdecreasenoise == True:
+            #     # gvf_cutoff_val += self.usernoise
+            #     gvf_cutoff_val -= self.usernoise
+            #     decrease_from_zero = 0 + self.usernoise
+            #     pass
             self.gvf_cutoff = gvf_cutoff_val
             #todo tirar da diminuicao do grafico
         except ValueError:
@@ -5080,10 +5151,19 @@ class PageFour(ttk.Frame):
             self.return_last_spinner("stop_condition_perc", "Invalid Spinner value!")
             self.controller.btn_lock = False
             return
-        if gvf_cutoff_val < 0:
-            self.return_last_spinner("gvf_cutoff", "Invalid Spinner value!")
-            self.controller.btn_lock = False
-            return
+        # if gvf_cutoff_val < 0:
+        # if gvf_cutoff_val < decrease_from_zero:
+            # self.return_last_spinner("gvf_cutoff", "Invalid Spinner value!")
+            # self.controller.btn_lock = False
+            # return
+        #edit minima
+        if gvf_cutoff_val < self.current_case_minima:
+            messagebox.showwarning("Warning", "Current Wave Max Filter below Speed minima.","Editing value to minima")
+            self.spin_cutoff["from_"] = self.current_case_minima
+            self.spin_cutoff.delete(0,"end")
+            self.spin_cutoff.insert(0, float("{:.3f}".format(self.current_case_minima)))
+            gvf_cutoff_val = self.current_case_minima
+            # self.controller.btn_lock = False
         if doupdate == True:
             self.runupdate(delta_val=delta_val, stop_condition_perc_val=stop_condition_perc_val, gvf=gvf_cutoff_val, smoothing=smooth)
             # self.delta = delta_val
@@ -5217,6 +5297,13 @@ class PageFour(ttk.Frame):
             else:
                 # previous_case = current_case.copy()
                 self.current_case = self.denoise(current_case_val, self.denoising)
+            #edit minima
+            self.recalculate_minima(self.current_case)
+            if gvf < self.current_case_minima:
+                messagebox.showwarning("Warning", "Current Wave Max Filter below Speed minima.","Editing value to minima")
+                gvf = self.current_case_minima
+                self.spin_cutoff.delete(0,"end")
+                self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
         
         #set limit for plotsettings variables dependent of case length        
         self.plotsettings.set_limit(len(self.current_case))
@@ -8299,7 +8386,7 @@ class PageSix(ttk.Frame):
 if __name__ == "__main__":
     orig_stdout = sys.stdout
     flog = open('last_log.txt', 'w')
-    sys.stdout = flog
+    # sys.stdout = flog
 
     # if os.path.exists('processing_logfile.log'):
         # os.remove("processing_logfile.log")
