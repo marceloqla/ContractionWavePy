@@ -5059,10 +5059,12 @@ class PageFour(ttk.Frame):
         try:
             gvf_cutoff_val = float(gvf_cutoff_val)
             if self.decreasenoise == True:
-                gvf_cutoff_val += self.noiseavgvar
+                # gvf_cutoff_val += self.noiseavgvar
+                gvf_cutoff_val -= self.noiseavgvar
                 pass
             elif self.userdecreasenoise == True:
-                gvf_cutoff_val += self.usernoise
+                # gvf_cutoff_val += self.usernoise
+                gvf_cutoff_val -= self.usernoise
                 pass
             self.gvf_cutoff = gvf_cutoff_val
             #todo tirar da diminuicao do grafico
@@ -5226,16 +5228,16 @@ class PageFour(ttk.Frame):
         print("update_vars")
         print(update_vars)
 
-        #detect noise from case
-        # nargs = noise_detection(self.current_case,filter_noise_area=self.adjustnoisevar, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
-        nargs = noise_detection(self.current_case,filter_noise_area=True, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
+        # # detect noise from case
+        # # nargs = noise_detection(self.current_case,filter_noise_area=self.adjustnoisevar, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
+        # nargs = noise_detection(self.current_case,filter_noise_area=True, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
         
-        if nargs == None:
-            self.spin_stopcondition["state"] = "normal"
-            self.spin_cutoff["state"] = "normal"
-            messagebox.showerror("Error:", "Maximum filtering step error. Please raise the Wave Max Filter cutoff")    
-            self.controller.cancelwd()
-            return
+        # if nargs == None:
+        #     self.spin_stopcondition["state"] = "normal"
+        #     self.spin_cutoff["state"] = "normal"
+        #     messagebox.showerror("Error:", "Maximum filtering step error. Please raise the Wave Max Filter cutoff")    
+        #     self.controller.cancelwd()
+        #     return
         #decrease noise from case if selected
         
         # self.noiseavgvar = nargs[6]+nargs[7]
@@ -5283,6 +5285,17 @@ class PageFour(ttk.Frame):
         print("")
         print("")
         print("")
+        
+        #detect noise from case
+        # nargs = noise_detection(self.current_case,filter_noise_area=self.adjustnoisevar, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
+        nargs = noise_detection(self.current_case,filter_noise_area=True, added_noise_dots=self.dragDots.user_selected_noise, removed_noise_dots=self.dragDots.user_removed_noise, cutoff_val=gvf)
+        
+        if nargs == None:
+            self.spin_stopcondition["state"] = "normal"
+            self.spin_cutoff["state"] = "normal"
+            messagebox.showerror("Error:", "Maximum filtering step error. Please raise the Wave Max Filter cutoff")    
+            self.controller.cancelwd()
+            return
         #detect points from case
 
         noises_vals = []
