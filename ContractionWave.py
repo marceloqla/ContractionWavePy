@@ -2997,63 +2997,73 @@ class PageOne(ttk.Frame):
                                 "No images on folder or subfolders"
                             )
             elif d.result == "Video":
-                filename = filedialog.askopenfilename(title = "Select Video File:",filetypes = (("Audio Video Interleave","*.avi"),("all files","*.*")))
-                filename = r'%s' %filename
-                if filename:
-                    default_name = os.path.basename(filename)
-                    newanalysis = AnalysisGroup(name=default_name, gpath=filename, gtype="Video")
-                    newanalysis.lindex = self.listbox.size()
-                    newanalysis.task_type = "OFlow"
-                    newanalysis.set_valtype("FPS", get_Video_FPS(filename))
-                    newanalysis.set_valtype("pixelsize", default_values["pixelsize"])
-                    newanalysis.set_valtype("pyr_scale", default_values["pyr_scale"])
-                    newanalysis.set_valtype("levels", default_values["levels"])
-                    newanalysis.set_valtype("winsize", default_values["winsize"])
-                    newanalysis.set_valtype("iterations", default_values["iterations"])
-                    newanalysis.set_valtype("poly_n", default_values["poly_n"])
-                    newanalysis.set_valtype("poly_sigma", default_values["poly_sigma"])
-                    newanalysis.set_valtype("angledifference", default_values["angledifference"])
-                    newanalysis.set_valtype("segmentationtype", default_values["segmentationtype"])
-                    if newanalysis.framenumber >= 2:
-                        self.analysisgroups.append(newanalysis)
-                        # newanalysis.set_valtype("magnitudethreshold", self.pre_process_group(d.result, newanalysis) )
-                        self.listbox.insert(tk.END, default_name)
-                        self.listbox.select_set(tk.END) #This only sets focus on the first item.
-                        self.listbox.event_generate("<<ListboxSelect>>")
-                    else:
-                        messagebox.showwarning(
-                            "Bad input",
-                            "Video has less than 2 Valid Frames"
-                        )
+                #edit filenames
+                # filename = filedialog.askopenfilename(title = "Select Video File:",filetypes = (("Audio Video Interleave","*.avi"),("all files","*.*")))
+                filenames = filedialog.askopenfilenames(title = "Select Video File:",filetypes = (("Audio Video Interleave","*.avi"),("all files","*.*")))
+                filenames = list(filenames)
+                #edit filenames
+                for filename in filenames:
+                    filename = r'%s' %filename
+                    if filename:
+                        default_name = os.path.basename(filename)
+                        newanalysis = AnalysisGroup(name=default_name, gpath=filename, gtype="Video")
+                        newanalysis.lindex = self.listbox.size()
+                        newanalysis.task_type = "OFlow"
+                        newanalysis.set_valtype("FPS", get_Video_FPS(filename))
+                        newanalysis.set_valtype("pixelsize", default_values["pixelsize"])
+                        newanalysis.set_valtype("pyr_scale", default_values["pyr_scale"])
+                        newanalysis.set_valtype("levels", default_values["levels"])
+                        newanalysis.set_valtype("winsize", default_values["winsize"])
+                        newanalysis.set_valtype("iterations", default_values["iterations"])
+                        newanalysis.set_valtype("poly_n", default_values["poly_n"])
+                        newanalysis.set_valtype("poly_sigma", default_values["poly_sigma"])
+                        newanalysis.set_valtype("angledifference", default_values["angledifference"])
+                        newanalysis.set_valtype("segmentationtype", default_values["segmentationtype"])
+                        if newanalysis.framenumber >= 2:
+                            self.analysisgroups.append(newanalysis)
+                            # newanalysis.set_valtype("magnitudethreshold", self.pre_process_group(d.result, newanalysis) )
+                            self.listbox.insert(tk.END, default_name)
+                            self.listbox.select_set(tk.END) #This only sets focus on the first item.
+                            self.listbox.event_generate("<<ListboxSelect>>")
+                        else:
+                            messagebox.showwarning(
+                                "Bad input",
+                                "Video has less than 2 Valid Frames"
+                            )
             elif d.result == "Tiff Directory":
-                filename = filedialog.askopenfilename(title = "Select TIFF Directory File:",filetypes = (("TIFF Files","*.tiff"),("TIF Files","*.tif"),("all files","*.*")))
-                filename = r'%s' %filename
-                if filename:
-                    default_name = os.path.basename(filename)
-                    newanalysis = AnalysisGroup(name=default_name, gpath=filename, gtype="Tiff Directory")
-                    newanalysis.lindex = self.listbox.size()
-                    newanalysis.task_type = "OFlow"
-                    newanalysis.set_valtype("FPS", default_values["FPS"])
-                    newanalysis.set_valtype("pixelsize", default_values["pixelsize"])
-                    newanalysis.set_valtype("pyr_scale", default_values["pyr_scale"])
-                    newanalysis.set_valtype("levels", default_values["levels"])
-                    newanalysis.set_valtype("winsize", default_values["winsize"])
-                    newanalysis.set_valtype("iterations", default_values["iterations"])
-                    newanalysis.set_valtype("poly_n", default_values["poly_n"])
-                    newanalysis.set_valtype("poly_sigma", default_values["poly_sigma"])
-                    newanalysis.set_valtype("angledifference", default_values["angledifference"])
-                    newanalysis.set_valtype("segmentationtype", default_values["segmentationtype"])
-                    if newanalysis.framenumber >= 2:
-                        self.analysisgroups.append(newanalysis)
-                        # newanalysis.set_valtype("magnitudethreshold", self.pre_process_group(d.result, newanalysis) )
-                        self.listbox.insert(tk.END, default_name)
-                        self.listbox.select_set(tk.END) #This only sets focus on the first item.
-                        self.listbox.event_generate("<<ListboxSelect>>")
-                    else:
-                        messagebox.showwarning(
-                            "Bad input",
-                            "TIFF Directory has less than 2 images"
-                        )
+                #edit filenames
+                # filename = filedialog.askopenfilename(title = "Select TIFF Directory File:",filetypes = (("TIFF Files","*.tiff"),("TIF Files","*.tif"),("all files","*.*")))
+                filenames = filedialog.askopenfilenames(title = "Select TIFF Directory File:",filetypes = (("TIFF Files","*.tiff"),("TIF Files","*.tif"),("all files","*.*")))
+                filenames = list(filenames)
+                #edit filenames
+                for filename in filenames:
+                    filename = r'%s' %filename
+                    if filename:
+                        default_name = os.path.basename(filename)
+                        newanalysis = AnalysisGroup(name=default_name, gpath=filename, gtype="Tiff Directory")
+                        newanalysis.lindex = self.listbox.size()
+                        newanalysis.task_type = "OFlow"
+                        newanalysis.set_valtype("FPS", default_values["FPS"])
+                        newanalysis.set_valtype("pixelsize", default_values["pixelsize"])
+                        newanalysis.set_valtype("pyr_scale", default_values["pyr_scale"])
+                        newanalysis.set_valtype("levels", default_values["levels"])
+                        newanalysis.set_valtype("winsize", default_values["winsize"])
+                        newanalysis.set_valtype("iterations", default_values["iterations"])
+                        newanalysis.set_valtype("poly_n", default_values["poly_n"])
+                        newanalysis.set_valtype("poly_sigma", default_values["poly_sigma"])
+                        newanalysis.set_valtype("angledifference", default_values["angledifference"])
+                        newanalysis.set_valtype("segmentationtype", default_values["segmentationtype"])
+                        if newanalysis.framenumber >= 2:
+                            self.analysisgroups.append(newanalysis)
+                            # newanalysis.set_valtype("magnitudethreshold", self.pre_process_group(d.result, newanalysis) )
+                            self.listbox.insert(tk.END, default_name)
+                            self.listbox.select_set(tk.END) #This only sets focus on the first item.
+                            self.listbox.event_generate("<<ListboxSelect>>")
+                        else:
+                            messagebox.showwarning(
+                                "Bad input",
+                                "TIFF Directory has less than 2 images"
+                            )
     
     def onselect_event(self, event):
         if self.controller.current_frame.fname == self.fname:
