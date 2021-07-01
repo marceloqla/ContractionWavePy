@@ -5158,7 +5158,7 @@ class PageFour(ttk.Frame):
             # return
         #edit minima
         if gvf_cutoff_val < self.current_case_minima:
-            messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
+            # messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
             self.spin_cutoff["from_"] = self.current_case_minima
             self.spin_cutoff.delete(0,"end")
             self.spin_cutoff.insert(0, float("{:.3f}".format(self.current_case_minima)))
@@ -5301,7 +5301,7 @@ class PageFour(ttk.Frame):
             self.recalculate_minima([a for a in self.current_case])
             if gvf:
                 if gvf < self.current_case_minima:
-                    messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
+                    # messagebox.showwarning("Warning:","Current Wave Max Filter below Speed minimum value. Setting to minimum value...")
                     gvf = self.current_case_minima
                     self.spin_cutoff.delete(0,"end")
                     self.spin_cutoff.insert(0, float("{:.3f}".format(gvf)))
